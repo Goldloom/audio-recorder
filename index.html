@@ -1371,7 +1371,72 @@ Ch01. 오리엔테이션
             }
         }
 
-        // (캡처 관련 함수들은 기존과 동일 – 생략)
+        // 캡처 관련 상수
+        const TARGET_WIDTH = 1280;
+        const TARGET_HEIGHT = 720;
+
+        function startCapture() {
+            if (!captureEnabled.checked || !videoElement) return;
+
+            const interval = parseInt(captureInterval.value) * 1000;
+            captureTimer = setInterval(captureFrame, interval);
+            captureFrame(); // 첫 프레임 즉시 캡처
+        }
+
+        function stopCapture() {
+            if (captureTimer) {
+                clearInterval(captureTimer);
+                captureTimer = null;
+            }
+        }
+
+        function captureFrame() {
+            if (!videoElement || videoElement.readyState < 2) return;
+
+            const vw = videoElement.videoWidth;
+            const vh = videoElement.videoHeight;
+
+            // 1280x720 고정 캔버스
+            const canvas = document.createElement('canvas');
+            canvas.width = TARGET_WIDTH;
+            canvas.height = TARGET_HEIGHT;
+            const ctx = canvas.getContext('2d');
+
+            // 원본 비율 유지 + Contain 방식
+            const scale = Math.min(
+                TARGET_WIDTH / vw,
+                TARGET_HEIGHT / vh
+            );
+
+            const drawW = vw * scale;
+            const drawH = vh * scale;
+
+            const offsetX = (TARGET_WIDTH - drawW) / 2;
+            const offsetY = (TARGET_HEIGHT - drawH) / 2;
+
+            // 여백 배경색 (검정 바탕)
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
+
+            // 비율 유지된 상태로 가운데 정렬
+            ctx.drawImage(videoElement, offsetX, offsetY, drawW, drawH);
+
+            const quality = parseFloat(captureQuality.value);
+            const imageData = canvas.toDataURL("image/webp", quality);
+
+            capturedImages.push(imageData);
+            captureCount++;
+
+            updateCaptureStatus();
+        }
+
+        function updateCaptureStatus() {
+            if (captureCount > 0) {
+                captureStatus.textContent = `📸 ${captureCount}장 캡처됨`;
+            } else {
+                captureStatus.textContent = '';
+            }
+        }
 
         function pauseRecording() {
             // 기존 코드 그대로
