@@ -1475,7 +1475,7 @@ Ch01. 오리엔테이션
             ctx.drawImage(videoElement, 0, 0);
 
             const quality = parseFloat(captureQuality.value);
-            const imageData = canvas.toDataURL('image/jpeg', quality);
+            const imageData = canvas.toDataURL('image/webp', quality);
 
             capturedImages.push(imageData);
             captureCount++;
@@ -1538,7 +1538,7 @@ Ch01. 오리엔테이션
                 }
 
                 const img = await loadImage(images[i]);
-                pdf.addImage(images[i], 'JPEG', 0, 0, imgWidth, imgHeight);
+                pdf.addImage(images[i], 'WEBP', 0, 0, imgWidth, imgHeight);
 
                 // 진행 상태 업데이트
                 captureStatus.textContent = `📄 PDF 생성 중... (${i + 1}/${images.length})`;
