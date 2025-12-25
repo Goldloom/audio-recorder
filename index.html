@@ -1276,9 +1276,65 @@ Ch01. 오리엔테이션
                 streams = [];
                 let recordingType = '';
 
-                // (시스템 오디오/마이크 획득 부분은 기존과 동일)
+                // 시스템 오디오 획득
+                if (wantSystem) {
+                    updateStatus('ready', '🔄 화면 공유 창에서 오디오를 선택하세요...');
+                    const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: true
+                    });
 
-                // ... 중략 (기존 코드 그대로) ...
+                    // 비디오 트랙이 있으면 캡처용으로 저장
+                    const videoTrack = displayStream.getVideoTracks()[0];
+                    if (videoTrack && captureEnabled.checked) {
+                        videoStream = new MediaStream([videoTrack]);
+                        videoElement = document.createElement('video');
+                        videoElement.srcObject = videoStream;
+                        videoElement.muted = true;
+                        videoElement.play();
+                    } else if (videoTrack) {
+                        videoTrack.stop();
+                    }
+
+                    // 오디오 트랙만 추출
+                    const audioTrack = displayStream.getAudioTracks()[0];
+                    if (audioTrack) {
+                        const audioOnlyStream = new MediaStream([audioTrack]);
+                        streams.push(audioOnlyStream);
+                        recordingType = 'system';
+                    }
+                }
+
+                // 마이크 획득
+                if (wantMic) {
+                    const micStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }
+                    });
+                    streams.push(micStream);
+                    recordingType = recordingType === 'system' ? 'both' : 'mic';
+                }
+
+                if (streams.length === 0) {
+                    throw new Error('오디오 스트림을 가져올 수 없습니다.');
+                }
+
+                // 스트림 병합
+                let finalStream;
+                if (streams.length > 1) {
+                    finalStream = mergeAudioStreams(streams);
+                } else {
+                    finalStream = streams[0];
+                }
+
+                setupVisualizer();
+
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                    ? 'audio/webm;codecs=opus'
+                    : 'audio/webm';
 
                 mediaRecorder = new MediaRecorder(finalStream, { mimeType });
                 audioChunks = [];
@@ -1289,7 +1345,7 @@ Ch01. 오리엔테이션
                     }
                 };
 
-                // ✅ 첫 녹음 onstop 은 activeChapterName 기준
+                // 첫 녹음 onstop 은 activeChapterName 기준
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: mimeType });
                     const baseName =
@@ -1306,6 +1362,11 @@ Ch01. 오리엔테이션
                 isPaused = false;
                 timerInterval = setInterval(updateTimer, 100);
 
+                // 캡처 시작
+                if (captureEnabled.checked && videoElement) {
+                    startCapture();
+                }
+
                 recordBtn.classList.add('recording');
                 recordBtn.disabled = true;
                 pauseBtn.disabled = false;
@@ -1319,7 +1380,7 @@ Ch01. 오리엔테이션
                 if (chapters.length > 0) {
                     startChapterTimers();
                     const firstChapter = chapters[0];
-                    activeChapterName = firstChapter.name;  // ✅ 현재 챕터 이름 설정
+                    activeChapterName = firstChapter.name;
                     updateStatus('recording', `🔴 녹음 중... (${firstChapter.name})`);
                 } else {
                     activeChapterName = '';
