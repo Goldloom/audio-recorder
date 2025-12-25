@@ -1055,6 +1055,14 @@ Ch01. 오리엔테이션
         let captureCount = 0;
         let videoStream = null;
         let videoElement = null;
+        
+        // 분할 대기 상태 변수들
+        let chapterReadyToSplit = false;
+        let waitingForSilence = false;
+        let pendingSplitChapterIndex = -1;
+        let readyToAutoStop = false;
+        let silenceStartForSplit = null;
+        const silenceDurationForSplit = 3000; // 3초 무음
 
         function updateStatus(state, message) {
             statusDisplay.className = 'status ' + state;
@@ -2043,14 +2051,6 @@ Ch01. 오리엔테이션
             }
         }
         
-        // 분할 대기 상태 변수들
-        let chapterReadyToSplit = false;
-        let waitingForSilence = false;
-        let pendingSplitChapterIndex = -1;
-        let readyToAutoStop = false;
-        let silenceStartForSplit = null;
-        const silenceDurationForSplit = 3000; // 3초 무음
-
         function clearChapterTimers() {
             chapterTimers.forEach(t => clearTimeout(t));
             chapterTimers = [];
