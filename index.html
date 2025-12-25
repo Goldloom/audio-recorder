@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -86,7 +85,7 @@
             transform: translateY(-10px);
             transition: all 0.3s ease;
             z-index: 100;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         .tooltip strong {
@@ -220,15 +219,8 @@
         }
 
         @keyframes pulse {
-
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
-            }
-
-            50% {
-                box-shadow: 0 0 0 20px rgba(231, 76, 60, 0);
-            }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+            50% { box-shadow: 0 0 0 20px rgba(231, 76, 60, 0); }
         }
 
         .btn svg {
@@ -494,11 +486,11 @@
             border-radius: 50%;
         }
 
-        .toggle-switch input:checked+.toggle-slider {
+        .toggle-switch input:checked + .toggle-slider {
             background: linear-gradient(135deg, #27ae60, #2ecc71);
         }
 
-        .toggle-switch input:checked+.toggle-slider:before {
+        .toggle-switch input:checked + .toggle-slider:before {
             transform: translateX(24px);
         }
 
@@ -542,7 +534,7 @@
             cursor: help;
         }
 
-        .curriculum-help-icon:hover+.curriculum-tooltip {
+        .curriculum-help-icon:hover + .curriculum-tooltip {
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
@@ -564,7 +556,7 @@
             transform: translateY(-10px);
             transition: all 0.3s ease;
             z-index: 100;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
         .curriculum-tooltip strong {
@@ -575,7 +567,7 @@
         }
 
         .curriculum-tooltip code {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255,255,255,0.1);
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 11px;
@@ -739,7 +731,6 @@
         }
     </style>
 </head>
-
 <body>
     <div class="container">
         <h1>🎧 시스템 오디오 녹음기</h1>
@@ -852,18 +843,18 @@ Ch01. 오리엔테이션
         <div class="controls">
             <button class="btn btn-record" id="recordBtn" title="녹음 시작">
                 <svg viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="8" />
+                    <circle cx="12" cy="12" r="8"/>
                 </svg>
             </button>
             <button class="btn btn-pause" id="pauseBtn" disabled title="일시정지">
                 <svg viewBox="0 0 24 24">
-                    <rect x="6" y="4" width="4" height="16" />
-                    <rect x="14" y="4" width="4" height="16" />
+                    <rect x="6" y="4" width="4" height="16"/>
+                    <rect x="14" y="4" width="4" height="16"/>
                 </svg>
             </button>
             <button class="btn btn-stop" id="stopBtn" disabled title="정지">
                 <svg viewBox="0 0 24 24">
-                    <rect x="6" y="6" width="12" height="12" />
+                    <rect x="6" y="6" width="12" height="12"/>
                 </svg>
             </button>
         </div>
@@ -943,17 +934,17 @@ Ch01. 오리엔테이션
         function setupVisualizer() {
             // 기존 context가 있으면 닫기
             if (audioContext) {
-                audioContext.close().catch(() => { });
+                audioContext.close().catch(() => {});
             }
-
+            
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 256;
             analyser.smoothingTimeConstant = 0.8;
-
+            
             const bufferLength = analyser.frequencyBinCount;
             dataArray = new Uint8Array(bufferLength);
-
+            
             // 모든 오디오 트랙을 연결
             streams.forEach(s => {
                 if (s.getAudioTracks().length > 0) {
@@ -965,7 +956,7 @@ Ch01. 오리엔테이션
                     }
                 }
             });
-
+            
             // 시각화 시작
             if (animationId) {
                 cancelAnimationFrame(animationId);
@@ -975,17 +966,17 @@ Ch01. 오리엔테이션
 
         function drawVisualizer() {
             animationId = requestAnimationFrame(drawVisualizer);
-
+            
             canvas.width = canvas.offsetWidth * 2;
             canvas.height = canvas.offsetHeight * 2;
             canvasCtx.scale(2, 2);
-
+            
             const width = canvas.offsetWidth;
             const height = canvas.offsetHeight;
-
+            
             canvasCtx.fillStyle = '#1a1a2e';
             canvasCtx.fillRect(0, 0, width, height);
-
+            
             if (!analyser || !dataArray) {
                 // 녹음 전 기본 라인 표시
                 canvasCtx.strokeStyle = '#667eea';
@@ -996,13 +987,13 @@ Ch01. 오리엔테이션
                 canvasCtx.stroke();
                 return;
             }
-
+            
             analyser.getByteFrequencyData(dataArray);
-
+            
             // 무음 감지 로직
             if (silenceDetection.checked && mediaRecorder && mediaRecorder.state === 'recording') {
                 const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-
+                
                 if (average < silenceThreshold) {
                     if (!silenceStart) {
                         silenceStart = Date.now();
@@ -1010,7 +1001,7 @@ Ch01. 오리엔테이션
                         const silentTime = Date.now() - silenceStart;
                         silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초)`;
                         silenceIndicator.className = 'silence-indicator active';
-
+                        
                         if (silentTime >= silenceDuration) {
                             // 무음 감지됨 - 새 강의로 분할
                             splitRecording();
@@ -1024,39 +1015,39 @@ Ch01. 오리엔테이션
                     silenceIndicator.className = 'silence-indicator';
                 }
             }
-
+            
             const barCount = 64;
             const barWidth = width / barCount;
             const gap = 2;
-
+            
             for (let i = 0; i < barCount; i++) {
                 const dataIndex = Math.floor(i * dataArray.length / barCount);
                 const barHeight = (dataArray[dataIndex] / 255) * height * 0.9;
-
+                
                 const x = i * barWidth;
                 const y = height - barHeight;
-
+                
                 const gradient = canvasCtx.createLinearGradient(0, y, 0, height);
                 gradient.addColorStop(0, '#667eea');
                 gradient.addColorStop(0.5, '#764ba2');
                 gradient.addColorStop(1, '#f093fb');
-
+                
                 canvasCtx.fillStyle = gradient;
-                canvasCtx.fillRect(x + gap / 2, y, barWidth - gap, barHeight);
+                canvasCtx.fillRect(x + gap/2, y, barWidth - gap, barHeight);
             }
         }
 
         function mergeAudioStreams(streams) {
             const ctx = new AudioContext();
             const dest = ctx.createMediaStreamDestination();
-
+            
             streams.forEach(stream => {
                 if (stream.getAudioTracks().length > 0) {
                     const source = ctx.createMediaStreamSource(stream);
                     source.connect(dest);
                 }
             });
-
+            
             return dest.stream;
         }
 
@@ -1072,7 +1063,7 @@ Ch01. 오리엔테이션
             try {
                 streams = [];
                 let recordingType = '';
-
+                
                 // Get system audio via screen capture
                 if (wantSystem) {
                     try {
@@ -1084,7 +1075,7 @@ Ch01. 오리엔테이션
                                 autoGainControl: false
                             }
                         });
-
+                        
                         // Check if audio track exists
                         const audioTracks = displayStream.getAudioTracks();
                         if (audioTracks.length === 0) {
@@ -1092,15 +1083,15 @@ Ch01. 오리엔테이션
                             updateStatus('error', '❌ 오디오 공유가 선택되지 않았습니다. 다시 시도하고 "오디오 공유"를 체크해주세요.');
                             return;
                         }
-
+                        
                         // Stop video track (we only need audio)
                         displayStream.getVideoTracks().forEach(track => track.stop());
-
+                        
                         // Create audio-only stream
                         const audioStream = new MediaStream(audioTracks);
                         streams.push(audioStream);
                         recordingType = 'system';
-
+                        
                         // Handle when user stops sharing
                         audioTracks[0].onended = () => {
                             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
@@ -1115,7 +1106,7 @@ Ch01. 오리엔테이션
                         throw err;
                     }
                 }
-
+                
                 // Get microphone audio
                 if (wantMic) {
                     const micStream = await navigator.mediaDevices.getUserMedia({
@@ -1128,7 +1119,7 @@ Ch01. 오리엔테이션
                     streams.push(micStream);
                     recordingType = recordingType === 'system' ? 'both' : 'mic';
                 }
-
+                
                 // Merge streams if multiple
                 let finalStream;
                 if (streams.length > 1) {
@@ -1136,35 +1127,35 @@ Ch01. 오리엔테이션
                 } else {
                     finalStream = streams[0];
                 }
-
+                
                 setupVisualizer();
-
+                
                 // Setup MediaRecorder
-                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                    ? 'audio/webm;codecs=opus'
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+                    ? 'audio/webm;codecs=opus' 
                     : 'audio/webm';
-
+                    
                 mediaRecorder = new MediaRecorder(finalStream, { mimeType });
                 audioChunks = [];
-
+                
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) {
                         audioChunks.push(event.data);
                     }
                 };
-
+                
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: mimeType });
                     saveRecording(audioBlob, recordingType);
                     cleanup();
                 };
-
+                
                 mediaRecorder.start(1000); // Collect data every second
                 startTime = Date.now();
                 pausedTime = 0;
                 isPaused = false;
                 timerInterval = setInterval(updateTimer, 100);
-
+                
                 recordBtn.classList.add('recording');
                 recordBtn.disabled = true;
                 pauseBtn.disabled = false;
@@ -1174,22 +1165,22 @@ Ch01. 오리엔테이션
                 includeMic.disabled = true;
                 currentRecordingType = recordingType;
                 lectureCount = 1;
-
+                
                 // 챕터 기반 자동 분할 시작
                 if (chapters.length > 0) {
                     startChapterTimers();
                     const firstChapter = chapters[0];
                     updateStatus('recording', `🔴 녹음 중... (${firstChapter.name})`);
                 } else {
-                    const sourceText = recordingType === 'both' ? '시스템 + 마이크' :
-                        recordingType === 'system' ? '시스템 오디오' : '마이크';
+                    const sourceText = recordingType === 'both' ? '시스템 + 마이크' : 
+                                       recordingType === 'system' ? '시스템 오디오' : '마이크';
                     updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount}, ${sourceText})`);
                 }
-
+                
             } catch (err) {
                 console.error('녹음 시작 오류:', err);
                 cleanup();
-
+                
                 if (err.name === 'NotAllowedError') {
                     updateStatus('error', '❌ 권한이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.');
                 } else if (err.name === 'NotSupportedError') {
@@ -1205,16 +1196,16 @@ Ch01. 오리엔테이션
                 stream.getTracks().forEach(track => track.stop());
             });
             streams = [];
-
+            
             if (audioContext) {
-                audioContext.close().catch(() => { });
+                audioContext.close().catch(() => {});
                 audioContext = null;
             }
-
+            
             if (animationId) {
                 cancelAnimationFrame(animationId);
             }
-
+            
             analyser = null;
             dataArray = null;
         }
@@ -1250,7 +1241,7 @@ Ch01. 오리엔테이션
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
                 clearInterval(timerInterval);
-
+                
                 recordBtn.classList.remove('recording');
                 recordBtn.disabled = false;
                 pauseBtn.disabled = true;
@@ -1263,7 +1254,7 @@ Ch01. 오리엔테이션
                 clearChapterTimers();
                 currentChapterIndex = 0;
                 renderChapters();
-
+                
                 pauseBtn.innerHTML = `
                     <svg viewBox="0 0 24 24">
                         <rect x="6" y="4" width="4" height="16"/>
@@ -1271,7 +1262,7 @@ Ch01. 오리엔테이션
                     </svg>
                 `;
                 pauseBtn.title = '일시정지';
-
+                
                 timerDisplay.textContent = '00:00:00';
                 updateStatus('ready', '✅ 녹음 완료! 새 녹음을 시작할 수 있습니다.');
             }
@@ -1287,13 +1278,13 @@ Ch01. 오리엔테이션
                 url: URL.createObjectURL(blob),
                 type: type
             };
-
+            
             recordings.unshift(recording);
             renderRecordings();
         }
 
         function getTypeBadge(type) {
-            switch (type) {
+            switch(type) {
                 case 'system':
                     return '<span class="recording-badge badge-system">🔊 시스템</span>';
                 case 'mic':
@@ -1310,7 +1301,7 @@ Ch01. 오리엔테이션
                 recordingsList.innerHTML = '<div class="empty-state">녹음된 파일이 없습니다</div>';
                 return;
             }
-
+            
             recordingsList.innerHTML = recordings.map(rec => `
                 <div class="recording-item" data-id="${rec.id}">
                     <div class="recording-header">
@@ -1367,41 +1358,41 @@ Ch01. 오리엔테이션
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 // 현재 녹음 저장
                 mediaRecorder.stop();
-
+                
                 // 약간의 딜레이 후 새 녹음 시작
                 setTimeout(() => {
                     if (streams.length > 0 && streams.some(s => s.active)) {
                         lectureCount++;
                         audioChunks = [];
-
+                        
                         let finalStream;
                         if (streams.length > 1) {
                             finalStream = mergeAudioStreams(streams);
                         } else {
                             finalStream = streams[0];
                         }
-
-                        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                            ? 'audio/webm;codecs=opus'
+                        
+                        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+                            ? 'audio/webm;codecs=opus' 
                             : 'audio/webm';
-
+                        
                         mediaRecorder = new MediaRecorder(finalStream, { mimeType });
-
+                        
                         mediaRecorder.ondataavailable = (event) => {
                             if (event.data.size > 0) {
                                 audioChunks.push(event.data);
                             }
                         };
-
+                        
                         mediaRecorder.onstop = () => {
                             const audioBlob = new Blob(audioChunks, { type: mimeType });
                             saveRecording(audioBlob, currentRecordingType);
                         };
-
+                        
                         mediaRecorder.start(1000);
                         startTime = Date.now();
                         pausedTime = 0;
-
+                        
                         updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount})`);
                     }
                 }, 100);
@@ -1414,31 +1405,39 @@ Ch01. 오리엔테이션
         function parseCurriculum(text) {
             const lines = text.trim().split('\n');
             const parsed = [];
-
+            
             // 시간 패턴: MM:SS 또는 H:MM:SS
             const timeOnlyPattern = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
             const timeInLinePattern = /(\d{1,2}):(\d{2})(?::(\d{2}))?/;
-
+            
             // 패턴들
             const courseNumberPattern = /^(\d+)\s*$/; // 강의 번호 (숫자만 있는 줄)
             const partPattern = /^(Part\s*\d+[.\s\-]*.*?)$/i;
-            const chapterPattern = /^(Ch(?:apter)?\s*\d+[.\s]*[^0-9]*?)$/i; // Chapter 01. 제목 (시간 없는 것)
+            const chapterTitlePattern = /^(Ch(?:apter)?\s*\d+)[.\s]+(.+)$/i; // Ch01. 제목 (시간 없는 것)
+            const subChapterPattern = /^(CH?\d+[-]\d+)[.\s]*(.*)$/i; // CH01-01. 제목
             const progressPattern = /^\d+\/\d+$/; // 2/3 같은 진행률 패턴
-
+            const quizPattern = /^미제출|퀴즈|과제|제출/; // 퀴즈/과제 패턴
+            
             let courseNumber = '';
             let currentPart = '';
             let currentChapter = '';
             let pendingTitle = null; // 다음 줄 시간을 기다리는 제목
-
+            let pendingSubChapter = null; // CH01-01 형식의 소챕터
+            
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
                 if (!line) continue;
-
+                
                 // 진행률 패턴 무시 (2/3 같은 것)
                 if (progressPattern.test(line)) {
                     continue;
                 }
-
+                
+                // 퀴즈/과제 패턴 무시
+                if (quizPattern.test(line)) {
+                    continue;
+                }
+                
                 // 시간만 있는 줄 (이전 제목의 시간)
                 if (timeOnlyPattern.test(line) && pendingTitle) {
                     const timeMatch = line.match(timeOnlyPattern);
@@ -1451,32 +1450,32 @@ Ch01. 오리엔테이션
                         seconds = parseInt(timeMatch[2]);
                     }
                     const totalSeconds = minutes * 60 + seconds;
-
+                    
                     // 전체 파일명 생성
                     let fullName = '';
                     if (courseNumber) fullName += courseNumber + ' ';
                     if (currentPart) fullName += currentPart + ' - ';
                     if (currentChapter) fullName += currentChapter + ' - ';
                     fullName += pendingTitle;
-
+                    
                     parsed.push({
                         name: fullName,
                         shortName: pendingTitle,
                         originalDuration: totalSeconds,
                         adjustedDuration: 0
                     });
-
+                    
                     pendingTitle = null;
                     continue;
                 }
-
+                
                 // 강의 번호 (숫자만)
                 if (courseNumberPattern.test(line)) {
                     courseNumber = line;
                     pendingTitle = null;
                     continue;
                 }
-
+                
                 // Part 인식
                 const partMatch = line.match(partPattern);
                 if (partMatch && !timeInLinePattern.test(line)) {
@@ -1488,19 +1487,34 @@ Ch01. 오리엔테이션
                     pendingTitle = null;
                     continue;
                 }
-
-                // Chapter 인식 (시간 없는 챕터 제목)
-                const chMatch = line.match(chapterPattern);
-                if (chMatch && !timeInLinePattern.test(line)) {
-                    currentChapter = chMatch[1].replace(/\s+/g, ' ').trim();
-                    const chNumMatch = currentChapter.match(/Ch(?:apter)?\s*(\d+)/i);
+                
+                // Chapter 제목 인식 (Ch01. 제목 형식, 시간 없는 것)
+                const chTitleMatch = line.match(chapterTitlePattern);
+                if (chTitleMatch && !timeInLinePattern.test(line)) {
+                    const chNumMatch = chTitleMatch[1].match(/Ch(?:apter)?\s*(\d+)/i);
                     if (chNumMatch) {
                         currentChapter = `Ch${chNumMatch[1].padStart(2, '0')}`;
                     }
                     pendingTitle = null;
                     continue;
                 }
-
+                
+                // CH01-01. 제목 형식 (소챕터, 시간은 다음 줄에 있을 수 있음)
+                const subChMatch = line.match(subChapterPattern);
+                if (subChMatch && !timeInLinePattern.test(line)) {
+                    const subChNum = subChMatch[1].toUpperCase(); // CH01-01
+                    const subChTitle = subChMatch[2] || '';
+                    
+                    // CH01-01에서 Ch01 추출해서 현재 챕터 업데이트
+                    const chFromSub = subChNum.match(/CH?(\d+)-/i);
+                    if (chFromSub) {
+                        currentChapter = `Ch${chFromSub[1].padStart(2, '0')}`;
+                    }
+                    
+                    pendingTitle = subChNum + (subChTitle ? '. ' + subChTitle : '');
+                    continue;
+                }
+                
                 // 시간이 같은 줄에 있는 경우
                 const timeMatch = line.match(timeInLinePattern);
                 if (timeMatch) {
@@ -1513,17 +1527,23 @@ Ch01. 오리엔테이션
                         seconds = parseInt(timeMatch[2]);
                     }
                     const totalSeconds = minutes * 60 + seconds;
-
+                    
                     let name = line.replace(timeInLinePattern, '').trim();
                     name = name.replace(/[\s\-–—:]+$/, '').trim();
-
+                    
                     if (name) {
+                        // CH01-01 형식인지 확인하고 챕터 업데이트
+                        const subChInLine = name.match(/^(CH?(\d+)-\d+)/i);
+                        if (subChInLine) {
+                            currentChapter = `Ch${subChInLine[2].padStart(2, '0')}`;
+                        }
+                        
                         let fullName = '';
                         if (courseNumber) fullName += courseNumber + ' ';
                         if (currentPart) fullName += currentPart + ' - ';
                         if (currentChapter) fullName += currentChapter + ' - ';
                         fullName += name;
-
+                        
                         parsed.push({
                             name: fullName,
                             shortName: name,
@@ -1537,7 +1557,10 @@ Ch01. 오리엔테이션
                     pendingTitle = line;
                 }
             }
-
+            
+            return parsed;
+        }
+            
             return parsed;
         }
 
@@ -1558,17 +1581,17 @@ Ch01. 오리엔테이션
             }
 
             adjustChapterTimes();
-
+            
             chapterList.innerHTML = chapters.map((ch, idx) => {
                 const originalTime = formatTimeShort(ch.originalDuration);
                 const adjustedTime = formatTimeShort(ch.adjustedDuration);
                 let className = 'chapter-item';
                 if (idx < currentChapterIndex) className += ' completed';
                 if (idx === currentChapterIndex && mediaRecorder?.state === 'recording') className += ' active';
-
+                
                 // 목록에는 짧은 이름 표시
                 const displayName = ch.shortName || ch.name;
-
+                
                 return `
                     <div class="${className}" title="${ch.name}">
                         <span class="chapter-name">${idx + 1}. ${displayName}</span>
@@ -1591,18 +1614,18 @@ Ch01. 오리엔테이션
         // 챕터 기반 자동 분할 시작
         function startChapterTimers() {
             if (chapters.length === 0) return;
-
+            
             clearChapterTimers();
             currentChapterIndex = 0;
             chapterStartTime = Date.now();
             renderChapters();
-
+            
             let accumulatedTime = 0;
-
+            
             // 중간 챕터들 분할 타이머
             for (let i = 0; i < chapters.length - 1; i++) {
                 accumulatedTime += chapters[i].adjustedDuration * 1000;
-
+                
                 const timer = setTimeout(() => {
                     if (mediaRecorder && mediaRecorder.state === 'recording') {
                         currentChapterIndex = i + 1;
@@ -1610,21 +1633,21 @@ Ch01. 오리엔테이션
                         renderChapters();
                     }
                 }, accumulatedTime);
-
+                
                 chapterTimers.push(timer);
             }
-
+            
             // 마지막 챕터 끝나면 자동 종료
             if (autoStopCheckbox.checked) {
                 accumulatedTime += chapters[chapters.length - 1].adjustedDuration * 1000;
-
+                
                 const autoStopTimer = setTimeout(() => {
                     if (mediaRecorder && mediaRecorder.state === 'recording') {
                         updateStatus('ready', '✅ 모든 강의 녹음 완료! 자동 종료됨');
                         stopRecording();
                     }
                 }, accumulatedTime);
-
+                
                 chapterTimers.push(autoStopTimer);
             }
         }
@@ -1638,19 +1661,19 @@ Ch01. 오리엔테이션
         function splitRecordingWithName(chapterName) {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 const saveName = chapterName;
-
+                
                 // 현재 녹음 중지 (이름 지정)
                 mediaRecorder.onstop = () => {
-                    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                        ? 'audio/webm;codecs=opus'
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+                        ? 'audio/webm;codecs=opus' 
                         : 'audio/webm';
                     const audioBlob = new Blob(audioChunks, { type: mimeType });
                     saveRecordingWithName(audioBlob, currentRecordingType, saveName);
                     audioChunks = [];
                 };
-
+                
                 mediaRecorder.stop();
-
+                
                 // 새 녹음 시작
                 setTimeout(() => {
                     if (streams.length > 0 && streams.some(s => s.active)) {
@@ -1660,30 +1683,30 @@ Ch01. 오리엔테이션
                         } else {
                             finalStream = streams[0];
                         }
-
-                        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                            ? 'audio/webm;codecs=opus'
+                        
+                        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+                            ? 'audio/webm;codecs=opus' 
                             : 'audio/webm';
-
+                        
                         mediaRecorder = new MediaRecorder(finalStream, { mimeType });
-
+                        
                         mediaRecorder.ondataavailable = (event) => {
                             if (event.data.size > 0) {
                                 audioChunks.push(event.data);
                             }
                         };
-
+                        
                         mediaRecorder.onstop = () => {
                             const audioBlob = new Blob(audioChunks, { type: mimeType });
                             // 마지막 챕터 이름으로 저장
                             const lastName = chapters[currentChapterIndex]?.name || `강의${lectureCount}`;
                             saveRecordingWithName(audioBlob, currentRecordingType, lastName);
                         };
-
+                        
                         mediaRecorder.start(1000);
                         startTime = Date.now();
                         pausedTime = 0;
-
+                        
                         const nextChapter = chapters[currentChapterIndex];
                         updateStatus('recording', `🔴 녹음 중... (${nextChapter?.name || ''})`);
                     }
@@ -1701,7 +1724,7 @@ Ch01. 오리엔테이션
                 url: URL.createObjectURL(blob),
                 type: type
             };
-
+            
             recordings.unshift(recording);
             renderRecordings();
         }
@@ -1712,7 +1735,7 @@ Ch01. 오리엔테이션
             chapters = parseCurriculum(text);
             currentChapterIndex = 0;
             renderChapters();
-
+            
             if (chapters.length > 0) {
                 updateStatus('ready', `✅ ${chapters.length}개 챕터 인식됨`);
             } else {
@@ -1743,5 +1766,4 @@ Ch01. 오리엔테이션
         }
     </script>
 </body>
-
 </html>
