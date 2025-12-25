@@ -847,7 +847,7 @@
 
 <body>
     <div class="container">
-        <div class="update-date">마지막 업데이트: 2025-12-26 02:51</div>
+        <div id="lastUpdate" class="update-date">마지막 업데이트: 확인 중...</div>
         <h1>🎧 시스템 오디오 녹음기</h1>
 
         <div class="help-icon">
@@ -1665,6 +1665,31 @@ Ch01. 오리엔테이션
             renderChapters();
         });
 
+        // GitHub API를 사용하여 마지막 커밋 날짜 가져오기
+        async function updateLastUpdateDate() {
+            const owner = 'Goldloom';
+            const repo = 'audio-recorder';
+            const path = 'index.html';
+            const url = `https://api.github.com/repos/${owner}/${repo}/commits?path=${path}&page=1&per_page=1`;
+
+            try {
+                const response = await fetch(url);
+                const commits = await response.json();
+                if (commits && commits.length > 0) {
+                    const lastCommitDate = new Date(commits[0].commit.committer.date);
+                    const formattedDate = lastCommitDate.getFullYear() + '-' +
+                        String(lastCommitDate.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(lastCommitDate.getDate()).padStart(2, '0') + ' ' +
+                        String(lastCommitDate.getHours()).padStart(2, '0') + ':' +
+                        String(lastCommitDate.getMinutes()).padStart(2, '0');
+                    document.getElementById('lastUpdate').textContent = `마지막 업데이트: ${formattedDate}`;
+                }
+            } catch (error) {
+                console.error('업데이트 날짜를 가져오는데 실패했습니다:', error);
+            }
+        }
+
+        updateLastUpdateDate();
         drawVisualizer();
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
