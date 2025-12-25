@@ -1784,13 +1784,246 @@ Ch01. 오리엔테이션
             }
         }
 
-        // 이하 parseCurriculum, adjustChapterTimes, renderChapters, startChapterTimers 등은
-        // 기존 코드 그대로 사용하되,
-        // startChapterTimers 맨 앞에 아래 한 줄만 추가해 주세요.
-        //
-        //   activeChapterName = chapters[0]?.name || '';
+        // 목차 파싱 함수
+        function parseCurriculum(text) {
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            const chapters = [];
 
-        // ... (기존 parseCurriculum ~ 마지막 초기화 코드까지 동일하게 유지) ...
+            let currentLectureNum = '';
+            let currentPart = '';
+            let currentChapter = '';
+
+            for (const line of lines) {
+                // 강의 번호 (숫자만 있는 줄, 1-3자리)
+                if (/^\d{1,3}$/.test(line)) {
+                    currentLectureNum = line;
+                    continue;
+                }
+
+                // Part 인식
+                const partMatch = line.match(/^Part\s*[\d.]+[.\s]*(.*)$/i);
+                if (partMatch) {
+                    currentPart = line;
+                    continue;
+                }
+
+                // Chapter 인식 (시간 없음)
+                const chapterMatch = line.match(/^Ch\d+[.\s]*(.*)$/i);
+                if (chapterMatch && !line.match(/\d+:\d+/)) {
+                    currentChapter = line;
+                    continue;
+                }
+
+                // 시간이 있는 줄 → 실제 챕터로 추가
+                const timeMatch = line.match(/(\d+):(\d+)/);
+                if (timeMatch) {
+                    const minutes = parseInt(timeMatch[1]);
+                    const seconds = parseInt(timeMatch[2]);
+                    const totalSeconds = minutes * 60 + seconds;
+
+                    // 챕터 이름 구성
+                    let name = '';
+                    if (currentLectureNum) name += currentLectureNum + ' ';
+                    if (currentPart) name += currentPart.replace(/^Part\s*[\d.]+[.\s]*/, 'Part ').split('.')[0] + ' - ';
+                    if (currentChapter) name += currentChapter.split('.')[0] + ' - ';
+
+                    // 현재 줄에서 시간 부분 제거하고 제목 추출
+                    const title = line.replace(/\s*\d+:\d+\s*$/, '').trim();
+                    name += title;
+
+                    chapters.push({
+                        name: name.trim(),
+                        shortName: title,
+                        originalDuration: totalSeconds,
+                        duration: totalSeconds
+                    });
+                }
+            }
+
+            return chapters;
+        }
+
+        // 챕터 렌더링
+        function renderChapters() {
+            if (chapters.length === 0) {
+                chapterList.innerHTML = '';
+                chapterProgress.innerHTML = '';
+                return;
+            }
+
+            const speed = parseFloat(playbackSpeed.value);
+
+            let totalOriginal = 0;
+            let totalAdjusted = 0;
+
+            chapterList.innerHTML = chapters.map((ch, i) => {
+                const adjustedDuration = Math.ceil(ch.originalDuration / speed);
+                ch.duration = adjustedDuration;
+                totalOriginal += ch.originalDuration;
+                totalAdjusted += adjustedDuration;
+
+                const isActive = i === currentChapterIndex;
+                const isDone = i < currentChapterIndex;
+
+                const originalTime = formatTime(ch.originalDuration * 1000);
+                const adjustedTime = formatTime(adjustedDuration * 1000);
+
+                return `
+                    <div class="chapter-item ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}">
+                        <span class="chapter-number">${i + 1}</span>
+                        <span class="chapter-name">${ch.shortName || ch.name}</span>
+                        <span class="chapter-time">${originalTime} → ${adjustedTime}</span>
+                    </div>
+                `;
+            }).join('');
+
+            chapterProgress.innerHTML = `
+                <div>총 ${chapters.length}개 챕터</div>
+                <div>원본: ${formatTime(totalOriginal * 1000)} → 조정: ${formatTime(totalAdjusted * 1000)}</div>
+            `;
+        }
+
+        // 챕터 타이머 시작
+        function startChapterTimers() {
+            clearChapterTimers();
+            activeChapterName = chapters[0]?.name || '';
+
+            let cumulativeTime = 0;
+
+            for (let i = 0; i < chapters.length; i++) {
+                const ch = chapters[i];
+                cumulativeTime += ch.duration * 1000;
+
+                const timer = setTimeout(() => {
+                    if (i < chapters.length - 1) {
+                        // 다음 챕터로 전환 준비
+                        chapterReadyToSplit = true;
+                        waitingForSilence = true;
+                        pendingSplitChapterIndex = i;
+                        silenceIndicator.textContent = '(무음 대기 중...)';
+                        silenceIndicator.className = 'silence-indicator active';
+                    } else if (autoStopCheckbox.checked) {
+                        // 마지막 챕터 → 자동 종료 준비
+                        readyToAutoStop = true;
+                        waitingForSilence = true;
+                        silenceIndicator.textContent = '(마지막 챕터, 무음 대기...)';
+                        silenceIndicator.className = 'silence-indicator active';
+                    }
+                }, cumulativeTime);
+
+                chapterTimers.push(timer);
+            }
+        }
+
+        // 챕터 타이머 클리어
+        function clearChapterTimers() {
+            chapterTimers.forEach(t => clearTimeout(t));
+            chapterTimers = [];
+            chapterReadyToSplit = false;
+            waitingForSilence = false;
+            pendingSplitChapterIndex = -1;
+            readyToAutoStop = false;
+            silenceStartForSplit = null;
+        }
+
+        // 수동 분할 (새 강의 버튼)
+        function splitRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                const currentName = activeChapterName || `강의${lectureCount}`;
+                lectureCount++;
+
+                stopCapture();
+                const imagesToSave = [...capturedImages];
+                capturedImages = [];
+                captureCount = 0;
+
+                mediaRecorder.onstop = () => {
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                        ? 'audio/webm;codecs=opus'
+                        : 'audio/webm';
+                    const audioBlob = new Blob(audioChunks, { type: mimeType });
+                    saveRecordingWithNameAndImages(audioBlob, currentRecordingType, currentName, imagesToSave);
+                    audioChunks = [];
+                };
+
+                mediaRecorder.stop();
+
+                setTimeout(() => {
+                    if (streams.length > 0 && streams.some(s => s.active)) {
+                        let finalStream;
+                        if (streams.length > 1) {
+                            finalStream = mergeAudioStreams(streams);
+                        } else {
+                            finalStream = streams[0];
+                        }
+
+                        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                            ? 'audio/webm;codecs=opus'
+                            : 'audio/webm';
+
+                        mediaRecorder = new MediaRecorder(finalStream, { mimeType });
+
+                        mediaRecorder.ondataavailable = (event) => {
+                            if (event.data.size > 0) {
+                                audioChunks.push(event.data);
+                            }
+                        };
+
+                        mediaRecorder.onstop = () => {
+                            const audioBlob = new Blob(audioChunks, { type: mimeType });
+                            const finalName = activeChapterName || `강의${lectureCount}`;
+                            saveRecordingWithName(audioBlob, currentRecordingType, finalName);
+                            audioChunks = [];
+                        };
+
+                        mediaRecorder.start(1000);
+                        startTime = Date.now();
+                        pausedTime = 0;
+
+                        if (captureEnabled.checked && videoElement) {
+                            startCapture();
+                        }
+
+                        activeChapterName = `강의${lectureCount}`;
+                        updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount})`);
+                    }
+                }, 100);
+            }
+        }
+
+        // 녹음 다운로드
+        function downloadRecording(id) {
+            const recording = recordings.find(r => r.id === id);
+            if (recording) {
+                const a = document.createElement('a');
+                a.href = recording.url;
+                a.download = `${recording.name}.webm`;
+                a.click();
+            }
+        }
+
+        // 녹음 삭제
+        function deleteRecording(id) {
+            const index = recordings.findIndex(r => r.id === id);
+            if (index > -1) {
+                URL.revokeObjectURL(recordings[index].url);
+                recordings.splice(index, 1);
+                renderRecordings();
+            }
+        }
+
+        // 전체 다운로드
+        async function downloadAll() {
+            for (const recording of recordings) {
+                const a = document.createElement('a');
+                a.href = recording.url;
+                a.download = `${recording.name}.webm`;
+                a.click();
+                await new Promise(r => setTimeout(r, 500));
+            }
+        }
+
+        downloadAllBtn.addEventListener('click', downloadAll);
 
         // 마지막 부분 예시
         parseBtn.addEventListener('click', () => {
