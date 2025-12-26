@@ -1972,7 +1972,7 @@ Ch01. 오리엔테이션
             // 화면 변화 감지 중지 (이미 실행 중이면)
             stopSceneChangeDetection();
 
-            // ✅ 템플릿 매칭: 30초 이상 재생 시 실시간 매칭
+            // ✅ 템플릿 매칭: 녹음 시작 즉시 실시간 매칭
             // 500ms마다 체크
             sceneChangeCheckInterval = setInterval(() => {
                 if (!waitingForSilence) {
@@ -1980,16 +1980,13 @@ Ch01. 오리엔테이션
                     return;
                 }
 
-                // ✅ 최소 30초 경과 체크
-                const recordingTime = startTime ? (Date.now() - startTime - pausedTime) / 1000 : 0;
-
-                // ✅ 30초 이상 재생 시 실시간 템플릿 매칭
-                if (recordingTime >= 30 && templateMatchingToggle.checked) {
+                // ✅ 템플릿 매칭 활성화 시 즉시 실시간 매칭
+                if (templateMatchingToggle.checked) {
                     // 템플릿 매처가 없으면 생성
                     if (templateImage && !templateMatcher) {
                         templateMatcher = new TemplateMatcher(videoElement, templateImage);
                         templateMatcher.similarityThreshold = parseInt(templateSimilarity.value) / 100;
-                        console.log('✅ 30초 경과 → 실시간 템플릿 매칭 시작');
+                        console.log('✅ 실시간 템플릿 매칭 시작');
                     }
 
                     // 실시간 템플릿 매칭 시도
@@ -2686,6 +2683,23 @@ Ch01. 오리엔테이션
         function startChapterTimers(startIndex = 0) {
             clearChapterTimers();
             activeChapterName = chapters[startIndex]?.name || '';
+
+            // ✅ 템플릿 매칭이 활성화되어 있으면 타이머 설정하지 않음
+            if (templateMatchingToggle.checked && templateImage) {
+                console.log('✅ 템플릿 매칭 모드: 챕터 타이머 비활성화');
+
+                // 템플릿 매칭으로만 분할 진행
+                chapterReadyToSplit = true;
+                waitingForSilence = true;
+                silenceWaitStartTime = Date.now();
+                pendingSplitChapterIndex = startIndex;
+                silenceIndicator.textContent = '(템플릿 매칭으로 자동분할 대기 중...)';
+                silenceIndicator.className = 'silence-indicator active';
+
+                // 화면 감지 시작
+                startSceneChangeDetection();
+                return;
+            }
 
             let cumulativeTime = 0;
 
