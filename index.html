@@ -1255,7 +1255,6 @@ Ch01. 오리엔테이션
         let templateImage = null; // 템플릿 이미지 데이터
         let templateMatcher = null;
         let templateCheckInterval = null;
-        let templateMatchingStartTime = null; // 템플릿 매칭 시작 시간 (무음 2초 후)
 
         function updateStatus(state, message) {
             statusDisplay.className = 'status ' + state;
@@ -1961,7 +1960,7 @@ Ch01. 오리엔테이션
 
         function startSceneChangeDetection() {
             // 화면 변화 감지가 비활성화되어 있으면 시작하지 않음
-            if (!sceneChangeDetectionToggle.checked) return;
+            if (!sceneChangeDetectionToggle.checked && !templateMatchingToggle.checked) return;
             if (!videoElement || !waitingForSilence) return;
 
             if (!sceneChangeDetector) {
@@ -1973,7 +1972,7 @@ Ch01. 오리엔테이션
             // 화면 변화 감지 중지 (이미 실행 중이면)
             stopSceneChangeDetection();
 
-            // ✅ 새 로직: 30초 경과 → 무음 2초 → 템플릿 매칭 시작 → 5초 내 매칭 시 자동분할
+            // ✅ 템플릿 매칭: 30초 이상 재생 시 실시간 매칭
             // 500ms마다 체크
             sceneChangeCheckInterval = setInterval(() => {
                 if (!waitingForSilence) {
@@ -1981,65 +1980,61 @@ Ch01. 오리엔테이션
                     return;
                 }
 
-                // 현재 오디오 레벨 확인
-                const average = dataArray ? dataArray.reduce((a, b) => a + b, 0) / dataArray.length : 0;
-                const isSilent = average < silenceThreshold;
+                // ✅ 최소 30초 경과 체크
+                const recordingTime = startTime ? (Date.now() - startTime - pausedTime) / 1000 : 0;
 
-                // 무음이 아닌 상태 (정상 재생 중)
-                if (!isSilent) {
-                    // 무음 타이머가 있었다면 리셋
-                    if (silenceStartForSplit && !detectedSceneChange) {
-                        console.log('❌ 무음 중단 (소리 감지) - 타이머 리셋');
-                        silenceStartForSplit = null;
-                        frameBeforeSilence = null;
-                        templateMatchingStartTime = null;
+                // ✅ 30초 이상 재생 시 실시간 템플릿 매칭
+                if (recordingTime >= 30 && templateMatchingToggle.checked) {
+                    // 템플릿 매처가 없으면 생성
+                    if (templateImage && !templateMatcher) {
+                        templateMatcher = new TemplateMatcher(videoElement, templateImage);
+                        templateMatcher.similarityThreshold = parseInt(templateSimilarity.value) / 100;
+                        console.log('✅ 30초 경과 → 실시간 템플릿 매칭 시작');
                     }
-                } else {
-                    // 무음 상태
-                    if (!silenceStartForSplit) {
-                        // ✅ 무음 시작 시점: 화면 캡처
-                        silenceStartForSplit = Date.now();
-                        frameBeforeSilence = sceneChangeDetector.captureFrame();
-                        console.log('🔇 무음 감지 시작 → 현재 화면 저장');
+
+                    // 실시간 템플릿 매칭 시도
+                    if (templateMatcher) {
+                        const result = templateMatcher.checkMatch();
+
+                        if (result.matched) {
+                            console.log(`🖼️ 템플릿 매칭 감지! 유사도: ${(result.similarity * 100).toFixed(1)}% → 자동분할`);
+                            triggerChapterTransition();
+                        }
+                    }
+                }
+
+                // 화면 전환 자동감지 (목차용) - 무음 기반
+                if (sceneChangeDetectionToggle.checked) {
+                    const average = dataArray ? dataArray.reduce((a, b) => a + b, 0) / dataArray.length : 0;
+                    const isSilent = average < silenceThreshold;
+
+                    if (!isSilent) {
+                        if (silenceStartForSplit && !detectedSceneChange) {
+                            console.log('❌ 무음 중단 (소리 감지) - 타이머 리셋');
+                            silenceStartForSplit = null;
+                            frameBeforeSilence = null;
+                        }
                     } else {
-                        const silentTime = Date.now() - silenceStartForSplit;
+                        if (!silenceStartForSplit) {
+                            silenceStartForSplit = Date.now();
+                            frameBeforeSilence = sceneChangeDetector.captureFrame();
+                            console.log('🔇 무음 감지 시작 → 현재 화면 저장');
+                        } else {
+                            const silentTime = Date.now() - silenceStartForSplit;
 
-                        // ✅ 최소 30초 경과 체크
-                        const recordingTime = startTime ? (Date.now() - startTime - pausedTime) / 1000 : 0;
-
-                        // ✅ 무음 2초 경과 → 템플릿 매칭 시작 (30초 이상 재생된 경우만)
-                        if (silentTime >= 2000 && !detectedSceneChange && recordingTime >= 30) {
-                            detectedSceneChange = true;
-                            templateMatchingStartTime = Date.now();
-
-                            // 템플릿 매칭 활성화 시 템플릿 매처 생성
-                            if (templateMatchingToggle.checked && templateImage && !templateMatcher) {
-                                templateMatcher = new TemplateMatcher(videoElement, templateImage);
-                                templateMatcher.similarityThreshold = parseInt(templateSimilarity.value) / 100;
-                                console.log('✅ 템플릿 매처 생성 완료');
+                            if (silentTime >= 2000 && !detectedSceneChange) {
+                                detectedSceneChange = true;
+                                console.log('✅ 무음 2초 경과 → 화면 전환 감지 시작');
                             }
 
-                            console.log('✅ 무음 2초 경과 (30초+ 재생) → 템플릿 매칭 시작 (5초 내 감지 시 자동분할)');
-                        }
+                            if (detectedSceneChange) {
+                                const currentFrame = sceneChangeDetector.captureFrame();
+                                const diff = sceneChangeDetector.calculateDifference(frameBeforeSilence, currentFrame);
 
-                        // ✅ 템플릿 매칭 모드 (무음 2초 후 ~ 5초 동안)
-                        if (detectedSceneChange && templateMatchingStartTime) {
-                            const detectionTime = Date.now() - templateMatchingStartTime;
-
-                            if (detectionTime <= 5000) {
-                                // 5초 내: 템플릿 매칭 시도
-                                if (templateMatchingToggle.checked && templateMatcher) {
-                                    const result = templateMatcher.checkMatch();
-
-                                    if (result.matched) {
-                                        console.log(`🖼️ 템플릿 매칭 감지! 유사도: ${(result.similarity * 100).toFixed(1)}% → 자동분할`);
-                                        triggerChapterTransition();
-                                    }
+                                if (diff >= sceneChangeDetector.changeThreshold) {
+                                    console.log(`🎬 화면 전환 감지! 변화율: ${(diff * 100).toFixed(1)}% → 자동분할`);
+                                    triggerChapterTransition();
                                 }
-                            } else {
-                                // 5초 초과: 템플릿 매칭 미감지
-                                console.log('⚠️ 무음 2초 후 5초 동안 템플릿 미감지 → 자동분할 안 함');
-                                stopSceneChangeDetection();
                             }
                         }
                     }
@@ -2054,9 +2049,8 @@ Ch01. 오리엔테이션
             }
             detectedSceneChange = false;
             sceneChangeTime = null;
-            silenceStartForSplit = null; // ✅ 무음 타이머 리셋
-            frameBeforeSilence = null; // ✅ 저장된 화면 리셋
-            templateMatchingStartTime = null; // ✅ 템플릿 매칭 시작 시간 리셋
+            silenceStartForSplit = null;
+            frameBeforeSilence = null;
         }
 
         // 템플릿 매칭 중지 (cleanup용)
