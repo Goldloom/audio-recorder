@@ -1349,10 +1349,26 @@ Ch01. 오리엔테이션
 
                 setupVisualizer();
 
-                const mimeType = MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
-                    ? 'audio/ogg;codecs=opus'
-                    : 'audio/ogg';
+                // 브라우저가 지원하는 최적의 타입 선택
+                const types = [
+                    'audio/webm;codecs=opus',
+                    'audio/ogg;codecs=opus',
+                    'audio/webm',
+                    'audio/ogg'
+                ];
+                let mimeType = '';
+                for (const t of types) {
+                    if (MediaRecorder.isTypeSupported(t)) {
+                        mimeType = t;
+                        break;
+                    }
+                }
 
+                if (!mimeType) {
+                    throw new Error('브라우저가 지원하는 녹음 형식을 찾을 수 없습니다.');
+                }
+
+                console.log('Using MIME type:', mimeType);
                 mediaRecorder = new MediaRecorder(finalStream, { mimeType });
                 audioChunks = [];
 
@@ -1412,18 +1428,16 @@ Ch01. 오리엔테이션
 
                 if (err.name === 'NotAllowedError') {
                     updateStatus('error', '❌ 권한이 거부되었습니다. 공유 창에서 [공유]를 누르고 [오디오 공유]를 체크했는지 확인해주세요.');
-                } else if (err.name === 'NotSupportedError' || !navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                } else if (err.name === 'NotSupportedError') {
                     let reason = '이 브라우저는 시스템 오디오 캡처를 지원하지 않습니다.';
                     if (!window.isSecureContext) {
-                        reason = '보안 연결(HTTPS) 환경이 아닙니다. 로컬 테스트가 아닌 경우 HTTPS 주소로 접속해야 합니다.';
-                    } else if (window.location.protocol === 'file:') {
-                        reason = '로컬 파일(file://)로 실행 중입니다. 웹 서버(http://localhost 또는 HTTPS)를 통해 실행해야 시스템 오디오 기능이 작동합니다.';
-                    } else if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
-                        reason = '모바일 브라우저에서는 시스템 오디오 캡처를 지원하지 않습니다. PC를 사용해주세요.';
+                        reason = '보안 연결(HTTPS) 환경이 아닙니다. HTTPS 주소로 접속해야 합니다.';
                     }
-                    updateStatus('error', `❌ ${reason} (Chrome 또는 Edge 브라우저 권장)`);
+                    updateStatus('error', `❌ ${reason} (Chrome/Edge 권장)`);
                 } else {
-                    updateStatus('error', `❌ 오류: ${err.message}`);
+                    // 실제 발생한 에러의 이름과 메시지를 상세히 전달
+                    const debugInfo = `(에러명: ${err.name}, 메시지: ${err.message})`;
+                    updateStatus('error', `❌ 녹음 시작 실패: ${debugInfo}`);
                 }
             }
         }
