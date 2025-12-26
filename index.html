@@ -1098,6 +1098,7 @@ Ch01. 오리엔테이션
         let pendingSplitChapterIndex = -1;
         let readyToAutoStop = false;
         let silenceStartForSplit = null;
+        let silenceWaitStartTime = null; // ✅ 챕터 종료 대기 시작 시간
         const silenceDurationForSplit = 2000; // ✅ 2초 무음 (기존 3000ms → 2000ms)
 
         // ✅ 현재 녹음 중인 챕터 이름
@@ -1206,6 +1207,30 @@ Ch01. 오리엔테이션
 
             // ✅ 챕터 자동 분할용 무음 감지 (2초)
             if (waitingForSilence && mediaRecorder && mediaRecorder.state === 'recording') {
+                // 10초 강제 종료/분할 로직 추가 (페일세이프)
+                if (silenceWaitStartTime && (Date.now() - silenceWaitStartTime >= 10000)) {
+                    if (readyToAutoStop) {
+                        updateStatus('ready', '✅ 모든 강의 녹음 완료! (10초 경과로 강제 종료됨)');
+                        stopRecording();
+                    } else if (chapterReadyToSplit && pendingSplitChapterIndex >= 0) {
+                        const endedIdx = pendingSplitChapterIndex;
+                        const endedName = chapters[endedIdx].name;
+                        currentChapterIndex = endedIdx + 1;
+
+                        splitRecordingWithName(endedName);
+                        renderChapters();
+
+                        chapterReadyToSplit = false;
+                        waitingForSilence = false;
+                        pendingSplitChapterIndex = -1;
+                        silenceIndicator.textContent = '(10초 경과, 강제 분할됨!)';
+                        silenceIndicator.className = 'silence-indicator active';
+                    }
+                    silenceWaitStartTime = null;
+                    silenceStartForSplit = null;
+                    return;
+                }
+
                 const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
 
                 if (average < silenceThreshold) {
@@ -1217,6 +1242,7 @@ Ch01. 오리엔테이션
                         silenceIndicator.className = 'silence-indicator active';
 
                         if (silentTime >= silenceDurationForSplit) {
+                            silenceWaitStartTime = null; // ✅ 정상 감지 시 대기 시작 시간 초기화
                             if (readyToAutoStop) {
                                 updateStatus('ready', '✅ 모든 강의 녹음 완료! 자동 종료됨');
                                 stopRecording();
@@ -1560,7 +1586,14 @@ Ch01. 오리엔테이션
             }
 
             try {
-                updateStatus('ready', `📄 PDF 생성 중... (${images.length}장)`);
+                const isRecording = mediaRecorder && mediaRecorder.state === 'recording';
+                const statusMsg = `📄 PDF 생성 중... (${images.length}장)`;
+
+                if (isRecording) {
+                    captureStatus.textContent = statusMsg;
+                } else {
+                    updateStatus('ready', statusMsg);
+                }
 
                 // jsPDF 로드
                 const jsPdfLib = await loadJsPdf();
@@ -1591,7 +1624,12 @@ Ch01. 오리엔테이션
 
                     // 진행 상황 업데이트
                     if (i % 10 === 0 || i === images.length - 1) {
-                        updateStatus('ready', `📄 PDF 생성 중... (${i + 1}/${images.length})`);
+                        const progressMsg = `📄 PDF 생성 중... (${i + 1}/${images.length})`;
+                        if (mediaRecorder && mediaRecorder.state === 'recording') {
+                            captureStatus.textContent = progressMsg;
+                        } else {
+                            updateStatus('ready', progressMsg);
+                        }
                     }
                 }
 
@@ -1599,7 +1637,20 @@ Ch01. 오리엔테이션
                 const pdfFilename = `${filename}.pdf`;
                 pdf.save(pdfFilename);
 
-                updateStatus('ready', `✅ PDF 저장 완료: ${pdfFilename} (${images.length}페이지)`);
+                const finalMsg = `✅ PDF 저장 완료: ${pdfFilename} (${images.length}페이지)`;
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    captureStatus.textContent = finalMsg;
+                    // 5초 후에 원래의 캡처 상태(📸 N장)로 복구하거나 비우기
+                    setTimeout(() => {
+                        if (mediaRecorder && mediaRecorder.state === 'recording') {
+                            updateCaptureStatus();
+                        } else {
+                            captureStatus.textContent = '';
+                        }
+                    }, 5000);
+                } else {
+                    updateStatus('ready', finalMsg);
+                }
                 console.log(`PDF 저장 완료: ${pdfFilename}`);
 
             } catch (error) {
@@ -2018,6 +2069,7 @@ Ch01. 오리엔테이션
                         // 다음 챕터로 전환 준비
                         chapterReadyToSplit = true;
                         waitingForSilence = true;
+                        silenceWaitStartTime = Date.now(); // ✅ 대기 시작 시간 기록
                         pendingSplitChapterIndex = i;
                         silenceIndicator.textContent = '(무음 대기 중...)';
                         silenceIndicator.className = 'silence-indicator active';
@@ -2025,6 +2077,7 @@ Ch01. 오리엔테이션
                         // 마지막 챕터 → 자동 종료 준비
                         readyToAutoStop = true;
                         waitingForSilence = true;
+                        silenceWaitStartTime = Date.now(); // ✅ 대기 시작 시간 기록
                         silenceIndicator.textContent = '(마지막 챕터, 무음 대기...)';
                         silenceIndicator.className = 'silence-indicator active';
                     }
@@ -2043,6 +2096,7 @@ Ch01. 오리엔테이션
             pendingSplitChapterIndex = -1;
             readyToAutoStop = false;
             silenceStartForSplit = null;
+            silenceWaitStartTime = null; // ✅ 초기화
         }
 
         // 수동 분할 (새 강의 버튼)
