@@ -975,7 +975,7 @@
             <div class="toggle-container">
                 <span class="toggle-label">🔇 무음 감지 자동분할</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="silenceDetection" checked>
+                    <input type="checkbox" id="silenceDetection">
                     <span class="toggle-slider"></span>
                 </label>
                 <select id="silenceDurationSelect" style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
@@ -989,13 +989,32 @@
             <div class="toggle-container">
                 <span class="toggle-label">🎬 화면 전환 자동감지 (목차용)</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="sceneChangeDetection">
+                    <input type="checkbox" id="sceneChangeDetection" checked>
                     <span class="toggle-slider"></span>
                 </label>
                 <div class="sensitivity-slider">
                     <span style="font-size: 11px; color: #666;">민감도:</span>
                     <input type="range" id="sceneChangeSensitivity" min="5" max="30" value="15" step="1">
                     <span class="sensitivity-value" id="sensitivityValue">15%</span>
+                </div>
+            </div>
+            <div class="toggle-container">
+                <span class="toggle-label">🖼️ 템플릿 매칭 자동분할</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="templateMatching">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div style="margin-left: 10px; display: flex; gap: 10px; align-items: center;">
+                    <input type="file" id="templateImageInput" accept="image/*" style="display: none;">
+                    <button id="uploadTemplateBtn" style="padding: 4px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px;">
+                        📁 이미지 업로드
+                    </button>
+                    <span id="templateStatus" style="font-size: 11px; color: #666;"></span>
+                    <div class="sensitivity-slider" style="margin-left: auto;">
+                        <span style="font-size: 11px; color: #666;">유사도:</span>
+                        <input type="range" id="templateSimilarity" min="70" max="99" value="90" step="1">
+                        <span class="sensitivity-value" id="similarityValue">90%</span>
+                    </div>
                 </div>
             </div>
             <button class="btn-new-lecture" id="newLectureBtn" disabled>
@@ -1176,6 +1195,12 @@ Ch01. 오리엔테이션
         const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
         const sceneChangeSensitivity = document.getElementById('sceneChangeSensitivity');
         const sensitivityValue = document.getElementById('sensitivityValue');
+        const templateMatchingToggle = document.getElementById('templateMatching');
+        const templateImageInput = document.getElementById('templateImageInput');
+        const uploadTemplateBtn = document.getElementById('uploadTemplateBtn');
+        const templateStatus = document.getElementById('templateStatus');
+        const templateSimilarity = document.getElementById('templateSimilarity');
+        const similarityValue = document.getElementById('similarityValue');
         const newLectureBtn = document.getElementById('newLectureBtn');
         const curriculumInput = document.getElementById('curriculumInput');
         const parseBtn = document.getElementById('parseBtn');
@@ -1225,6 +1250,12 @@ Ch01. 오리엔테이션
         let detectedSceneChange = false;
         let sceneChangeTime = null;
         let frameBeforeSilence = null; // ✅ 무음 시작 직전 화면 저장
+
+        // 템플릿 매칭 변수들
+        let templateImage = null; // 템플릿 이미지 데이터
+        let templateMatcher = null;
+        let templateCheckInterval = null;
+        let templateMatchingStartTime = null; // 템플릿 매칭 시작 시간 (무음 2초 후)
 
         function updateStatus(state, message) {
             statusDisplay.className = 'status ' + state;
@@ -1684,6 +1715,13 @@ Ch01. 오리엔테이션
                 sceneChangeDetector.destroy();
                 sceneChangeDetector = null;
             }
+
+            // 템플릿 매칭 정리
+            stopTemplateMatching();
+            if (templateMatcher) {
+                templateMatcher.destroy();
+                templateMatcher = null;
+            }
         }
 
         // 캡처 관련 상수
@@ -1854,6 +1892,73 @@ Ch01. 오리엔테이션
             }
         }
 
+        // 템플릿 매칭 감지 시스템
+        class TemplateMatcher {
+            constructor(videoElement, templateImageData) {
+                this.video = videoElement;
+                this.template = templateImageData;
+                this.canvas = document.createElement('canvas');
+                this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+                this.similarityThreshold = 0.90; // 90% 유사도
+
+                // 템플릿 크기로 캔버스 설정
+                this.canvas.width = this.template.width;
+                this.canvas.height = this.template.height;
+            }
+
+            captureVideoFrame() {
+                if (!this.video || this.video.readyState < 2) return null;
+
+                this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            calculateSimilarity(frame1, frame2) {
+                if (!frame1 || !frame2) return 0;
+
+                const data1 = frame1.data;
+                const data2 = frame2.data;
+                let matchingPixels = 0;
+                const totalPixels = data1.length / 4;
+
+                // 픽셀 단위로 RGB 비교
+                for (let i = 0; i < data1.length; i += 4) {
+                    const r1 = data1[i];
+                    const g1 = data1[i + 1];
+                    const b1 = data1[i + 2];
+                    const r2 = data2[i];
+                    const g2 = data2[i + 1];
+                    const b2 = data2[i + 2];
+
+                    // RGB 각각의 차이 계산
+                    const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+
+                    // 차이가 30 이하면 유사한 픽셀로 판단
+                    if (diff <= 30) {
+                        matchingPixels++;
+                    }
+                }
+
+                return matchingPixels / totalPixels;
+            }
+
+            checkMatch() {
+                const currentFrame = this.captureVideoFrame();
+                if (!currentFrame) return { matched: false, similarity: 0 };
+
+                const similarity = this.calculateSimilarity(this.template, currentFrame);
+                const matched = similarity >= this.similarityThreshold;
+
+                return { matched, similarity };
+            }
+
+            destroy() {
+                this.template = null;
+                this.canvas = null;
+                this.ctx = null;
+            }
+        }
+
         function startSceneChangeDetection() {
             // 화면 변화 감지가 비활성화되어 있으면 시작하지 않음
             if (!sceneChangeDetectionToggle.checked) return;
@@ -1868,8 +1973,8 @@ Ch01. 오리엔테이션
             // 화면 변화 감지 중지 (이미 실행 중이면)
             stopSceneChangeDetection();
 
-            // ✅ 최적화된 로직: 무음 시작/2초 경과 시점에만 화면 캡처
-            // 500ms마다 오디오만 체크
+            // ✅ 새 로직: 30초 경과 → 무음 2초 → 템플릿 매칭 시작 → 5초 내 매칭 시 자동분할
+            // 500ms마다 체크
             sceneChangeCheckInterval = setInterval(() => {
                 if (!waitingForSilence) {
                     stopSceneChangeDetection();
@@ -1883,42 +1988,57 @@ Ch01. 오리엔테이션
                 // 무음이 아닌 상태 (정상 재생 중)
                 if (!isSilent) {
                     // 무음 타이머가 있었다면 리셋
-                    if (silenceStartForSplit) {
+                    if (silenceStartForSplit && !detectedSceneChange) {
                         console.log('❌ 무음 중단 (소리 감지) - 타이머 리셋');
                         silenceStartForSplit = null;
-                        detectedSceneChange = false;
                         frameBeforeSilence = null;
+                        templateMatchingStartTime = null;
                     }
                 } else {
                     // 무음 상태
                     if (!silenceStartForSplit) {
-                        // ✅ 무음 시작 시점: 딱 1번만 화면 캡처
+                        // ✅ 무음 시작 시점: 화면 캡처
                         silenceStartForSplit = Date.now();
                         frameBeforeSilence = sceneChangeDetector.captureFrame();
-                        console.log('🔇 무음 감지 시작 → 현재 화면 저장 (무음 직전 화면)');
+                        console.log('🔇 무음 감지 시작 → 현재 화면 저장');
                     } else {
-                        // 무음 지속 중
                         const silentTime = Date.now() - silenceStartForSplit;
 
-                        // ✅ 무음 2초 경과 시점: 딱 1번만 화면 비교
-                        if (silentTime >= 2000 && !detectedSceneChange) {
-                            detectedSceneChange = true; // 중복 체크 방지
+                        // ✅ 최소 30초 경과 체크
+                        const recordingTime = startTime ? (Date.now() - startTime - pausedTime) / 1000 : 0;
 
-                            const currentFrame = sceneChangeDetector.captureFrame();
+                        // ✅ 무음 2초 경과 → 템플릿 매칭 시작 (30초 이상 재생된 경우만)
+                        if (silentTime >= 2000 && !detectedSceneChange && recordingTime >= 30) {
+                            detectedSceneChange = true;
+                            templateMatchingStartTime = Date.now();
 
-                            if (frameBeforeSilence && currentFrame) {
-                                const diff = sceneChangeDetector.calculateDifference(frameBeforeSilence, currentFrame);
-                                const threshold = sceneChangeDetector.changeThreshold;
+                            // 템플릿 매칭 활성화 시 템플릿 매처 생성
+                            if (templateMatchingToggle.checked && templateImage && !templateMatcher) {
+                                templateMatcher = new TemplateMatcher(videoElement, templateImage);
+                                templateMatcher.similarityThreshold = parseInt(templateSimilarity.value) / 100;
+                            }
 
-                                console.log(`📊 무음 2초 경과 - 화면 변화율: ${(diff.changeRatio * 100).toFixed(1)}% (임계값: ${(threshold * 100)}%)`);
+                            console.log('✅ 무음 2초 경과 (30초+ 재생) → 템플릿 매칭 시작 (5초 내 감지 시 자동분할)');
+                        }
 
-                                // 화면 변화가 임계값 이상이면 다음 클립으로 전환
-                                if (diff.changeRatio > threshold && diff.diffPixels > sceneChangeDetector.minChangePixels) {
-                                    console.log('🎬 화면 전환 감지! → 다음 클립 시작 시점');
-                                    triggerChapterTransition();
-                                } else {
-                                    console.log('⚠️ 무음 2초 경과했지만 화면 변화 없음 (같은 클립 내 무음으로 판단)');
+                        // ✅ 템플릿 매칭 모드 (무음 2초 후 ~ 5초 동안)
+                        if (detectedSceneChange && templateMatchingStartTime) {
+                            const detectionTime = Date.now() - templateMatchingStartTime;
+
+                            if (detectionTime <= 5000) {
+                                // 5초 내: 템플릿 매칭 시도
+                                if (templateMatchingToggle.checked && templateMatcher) {
+                                    const result = templateMatcher.checkMatch();
+
+                                    if (result.matched) {
+                                        console.log(`🖼️ 템플릿 매칭 감지! 유사도: ${(result.similarity * 100).toFixed(1)}% → 자동분할`);
+                                        triggerChapterTransition();
+                                    }
                                 }
+                            } else {
+                                // 5초 초과: 템플릿 매칭 미감지
+                                console.log('⚠️ 무음 2초 후 5초 동안 템플릿 미감지 → 자동분할 안 함');
+                                stopSceneChangeDetection();
                             }
                         }
                     }
@@ -1935,6 +2055,15 @@ Ch01. 오리엔테이션
             sceneChangeTime = null;
             silenceStartForSplit = null; // ✅ 무음 타이머 리셋
             frameBeforeSilence = null; // ✅ 저장된 화면 리셋
+            templateMatchingStartTime = null; // ✅ 템플릿 매칭 시작 시간 리셋
+        }
+
+        // 템플릿 매칭 중지 (cleanup용)
+        function stopTemplateMatching() {
+            if (templateCheckInterval) {
+                clearInterval(templateCheckInterval);
+                templateCheckInterval = null;
+            }
         }
 
         function triggerChapterTransition() {
@@ -2787,6 +2916,58 @@ Ch01. 오리엔테이션
             // 현재 감지기가 있으면 민감도 업데이트
             if (sceneChangeDetector) {
                 sceneChangeDetector.changeThreshold = value / 100;
+            }
+        });
+
+        // 템플릿 유사도 슬라이더 이벤트
+        templateSimilarity.addEventListener('input', (e) => {
+            const value = e.target.value;
+            document.getElementById('similarityValue').textContent = `${value}%`;
+
+            // 현재 매처가 있으면 유사도 업데이트
+            if (templateMatcher) {
+                templateMatcher.similarityThreshold = value / 100;
+            }
+        });
+
+        // 템플릿 업로드 버튼 클릭
+        uploadTemplateBtn.addEventListener('click', () => {
+            templateImageInput.click();
+        });
+
+        // 템플릿 이미지 파일 선택
+        templateImageInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const img = new Image();
+                const reader = new FileReader();
+
+                reader.onload = (event) => {
+                    img.onload = () => {
+                        // 캔버스에 이미지 그리기
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+
+                        // ImageData 저장
+                        templateImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        templateStatus.textContent = `✅ ${file.name} (${img.width}x${img.height})`;
+                        templateStatus.style.color = '#27ae60';
+
+                        console.log(`✅ 템플릿 이미지 로드 완료: ${img.width}x${img.height}`);
+                    };
+                    img.src = event.target.result;
+                };
+
+                reader.readAsDataURL(file);
+            } catch (err) {
+                console.error('템플릿 이미지 로드 실패:', err);
+                templateStatus.textContent = '❌ 이미지 로드 실패';
+                templateStatus.style.color = '#e74c3c';
             }
         });
 
