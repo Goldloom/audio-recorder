@@ -1566,14 +1566,14 @@ Ch01. 오리엔테이션
 
             timerDisplay.textContent = formatTime(elapsedTime);
 
-            // Progress bar update logic
+            // Progress bar update logic - 각 챕터별 실시간 진행률
             if (chapters.length > 0 && currentChapterIndex >= 0 && currentChapterIndex < chapters.length) {
                 const currentChapter = chapters[currentChapterIndex];
                 const chapterDuration = currentChapter.duration; // duration in seconds
 
                 if (chapterDuration && chapterDuration > 0) {
-                    const chapterElapsedTimeMs = chapterTimers[currentChapterIndex] || 0;
-                    const chapterElapsedTimeSec = chapterElapsedTimeMs / 1000;
+                    // 현재 챕터의 실제 경과 시간 계산 (startTime 기준)
+                    const chapterElapsedTimeSec = elapsedTime / 1000;
 
                     let percentage = (chapterElapsedTimeSec / chapterDuration) * 100;
                     percentage = Math.min(100, Math.max(0, percentage)); // Clamp between 0 and 100
@@ -1581,18 +1581,19 @@ Ch01. 오리엔테이션
                     const remainingTimeSec = Math.max(0, chapterDuration - chapterElapsedTimeSec);
 
                     progressBar.style.width = `${percentage}%`;
-                    progressInfo.textContent =
-                        `${currentChapter.shortName || currentChapter.name}: ${percentage.toFixed(1)}% 완료 (${formatTime(remainingTimeSec * 1000)} 남음)`;
+                    progressElapsed.textContent = formatTime(elapsedTime);
+                    progressRemaining.textContent = `남은 시간: ${formatTime(remainingTimeSec * 1000)}`;
                 } else {
                     // Chapter has no duration defined, show total elapsed time
-                    progressBar.style.width = '0%'; // No progress to show
-                    progressInfo.textContent =
-                        `${currentChapter.shortName || currentChapter.name}: 총 ${formatTime(elapsedTime)}`;
+                    progressBar.style.width = '100%';
+                    progressElapsed.textContent = formatTime(elapsedTime);
+                    progressRemaining.textContent = '연속 녹음 중';
                 }
             } else {
                 // No curriculum or invalid chapter index, show total elapsed time
-                progressBar.style.width = '0%'; // No progress to show
-                progressInfo.textContent = `총 녹음 시간: ${formatTime(elapsedTime)}`;
+                progressBar.style.width = '100%';
+                progressElapsed.textContent = formatTime(elapsedTime);
+                progressRemaining.textContent = '연속 녹음 중';
             }
         }
 
@@ -1601,7 +1602,7 @@ Ch01. 오리엔테이션
 
             isWaitingForFirstSound = false;
             mediaRecorder.start(1000);
-            startTime = Date.now();
+            startTime = Date.now(); // 새 챕터 시작 시간 리셋
             pausedTime = 0;
             isPaused = false;
             isRecording = true; // 녹음 상태 시작
@@ -1620,11 +1621,15 @@ Ch01. 오리엔테이션
             newLectureBtn.disabled = false;
 
             if (chapters.length > 0) {
-                // 현재 챕터부터 타이머 시작
-                startChapterTimers(currentChapterIndex);
+                // 현재 챕터의 이름 설정
                 const currentChapter = chapters[currentChapterIndex];
                 activeChapterName = currentChapter.name;
                 updateStatus('recording', `🔴 녹음 중... (${currentChapter.shortName || currentChapter.name})`);
+
+                // 챕터 타이머는 첫 녹음 시작 시에만 시작 (분할 시에는 이미 시작됨)
+                if (currentChapterIndex === 0 || chapterTimers.length === 0) {
+                    startChapterTimers(currentChapterIndex);
+                }
             } else {
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
                     currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
@@ -2154,7 +2159,6 @@ Ch01. 오리엔테이션
         }
 
         function renderRecordings() {
-            // 그대로
             if (recordings.length === 0) {
                 recordingsList.innerHTML = '<div class="empty-state">녹음된 파일이 없습니다</div>';
                 downloadAllBtn.disabled = true;
@@ -2163,15 +2167,17 @@ Ch01. 오리엔테이션
 
             downloadAllBtn.disabled = false;
 
-            recordingsList.innerHTML = recordings.map(rec => `
+            recordingsList.innerHTML = recordings.map(rec => {
+                const durationText = rec.duration ? ` • 재생시간: ${rec.duration}` : '';
+                return `
                 <div class="recording-item" data-id="${rec.id}">
                     <div class="recording-header">
                         <div class="recording-info">
                             <div class="recording-name">${rec.name}</div>
-                            <div class="recording-meta">${rec.date} ${getTypeBadge(rec.type)}</div>
+                            <div class="recording-meta">${rec.date} ${getTypeBadge(rec.type)}${durationText}</div>
                         </div>
                         <div class="recording-actions">
-                            <button class="btn-small btn-download" onclick="downloadRecording(${rec.id})" title="डाउन로드">
+                            <button class="btn-small btn-download" onclick="downloadRecording(${rec.id})" title="다운로드">
                                 <svg viewBox="0 0 24 24">
                                     <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
                                 </svg>
@@ -2183,9 +2189,65 @@ Ch01. 오리엔테이션
                             </button>
                         </div>
                     </div>
-                    <audio controls src="${rec.url}"></audio>
+                    <audio controls src="${rec.url}" onloadedmetadata="updateRecordingDuration(${rec.id}, this)"></audio>
                 </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+
+        // 오디오 메타데이터 로드 후 재생시간 업데이트
+        function updateRecordingDuration(id, audioElement) {
+            const recording = recordings.find(r => r.id === id);
+            if (recording && audioElement.duration && !isNaN(audioElement.duration)) {
+                const actualDuration = Math.floor(audioElement.duration); // 실제 재생시간 (초)
+                const hours = Math.floor(actualDuration / 3600);
+                const minutes = Math.floor((actualDuration % 3600) / 60);
+                const seconds = actualDuration % 60;
+
+                let durationText;
+                if (hours > 0) {
+                    durationText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    durationText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+
+                // 예상 시간과의 차이 계산
+                let diffText = '';
+                if (recording.expectedDuration) {
+                    const expectedSec = recording.expectedDuration;
+                    const diff = actualDuration - expectedSec;
+                    const absDiff = Math.abs(diff);
+                    const diffMin = Math.floor(absDiff / 60);
+                    const diffSec = absDiff % 60;
+
+                    let diffTimeStr;
+                    if (diffMin > 0) {
+                        diffTimeStr = `${diffMin}:${diffSec.toString().padStart(2, '0')}`;
+                    } else {
+                        diffTimeStr = `${diffSec}초`;
+                    }
+
+                    if (diff > 0) {
+                        diffText = ` <span style="color: #e74c3c;">(+${diffTimeStr} 초과)</span>`;
+                    } else if (diff < 0) {
+                        diffText = ` <span style="color: #27ae60;">(-${diffTimeStr} 부족)</span>`;
+                    } else {
+                        diffText = ` <span style="color: #27ae60;">(정확)</span>`;
+                    }
+                }
+
+                recording.duration = durationText;
+                recording.actualDuration = actualDuration;
+
+                // UI 업데이트 (해당 항목만)
+                const item = document.querySelector(`.recording-item[data-id="${id}"]`);
+                if (item) {
+                    const metaDiv = item.querySelector('.recording-meta');
+                    if (metaDiv && !metaDiv.textContent.includes('재생시간:')) {
+                        metaDiv.innerHTML = metaDiv.innerHTML + ` • 재생시간: ${durationText}${diffText}`;
+                    }
+                }
+            }
         }
 
         // (downloadAll / downloadRecording / deleteRecording / splitRecording 함수는 기존과 동일)
@@ -2268,13 +2330,22 @@ Ch01. 오리엔테이션
 
         function saveRecordingWithNameAndImages(blob, type, name, images) {
             const now = new Date();
+
+            // 해당 챕터의 예상 재생시간 찾기
+            let expectedDuration = null;
+            const matchedChapter = chapters.find(ch => ch.name === name);
+            if (matchedChapter && matchedChapter.duration) {
+                expectedDuration = matchedChapter.duration; // seconds
+            }
+
             const recording = {
                 id: Date.now(),
                 blob: blob,
                 name: name,
                 date: now.toLocaleString('ko-KR'),
                 url: URL.createObjectURL(blob),
-                type: type
+                type: type,
+                expectedDuration: expectedDuration
             };
 
             recordings.unshift(recording);
@@ -2287,13 +2358,22 @@ Ch01. 오리엔테이션
 
         function saveRecordingWithName(blob, type, name) {
             const now = new Date();
+
+            // 해당 챕터의 예상 재생시간 찾기
+            let expectedDuration = null;
+            const matchedChapter = chapters.find(ch => ch.name === name);
+            if (matchedChapter && matchedChapter.duration) {
+                expectedDuration = matchedChapter.duration; // seconds
+            }
+
             const recording = {
                 id: Date.now(),
                 blob: blob,
                 name: name,
                 date: now.toLocaleString('ko-KR'),
                 url: URL.createObjectURL(blob),
-                type: type
+                type: type,
+                expectedDuration: expectedDuration
             };
 
             recordings.unshift(recording);
