@@ -1890,52 +1890,73 @@ Ch01. 오리엔테이션
             let currentLectureNum = '';
             let currentPart = '';
             let currentChapter = '';
+            let lastTitleLine = '';
 
             for (const line of lines) {
-                // 강의 번호 (숫자만 있는 줄, 1-3자리)
+                // 1. 강의 번호 (숫자만 있는 줄, 1-3자리)
                 if (/^\d{1,3}$/.test(line)) {
                     currentLectureNum = line;
+                    lastTitleLine = '';
                     continue;
                 }
 
-                // Part 인식
-                const partMatch = line.match(/^Part\s*[\d.]+[.\s]*(.*)$/i);
+                // 2. Part 인식 (Part 1. ...)
+                const partMatch = line.match(/^Part\s*(\d+)/i);
                 if (partMatch) {
-                    currentPart = line;
+                    currentPart = `Part ${partMatch[1]}`;
+                    lastTitleLine = '';
                     continue;
                 }
 
-                // Chapter 인식 (시간 없음)
-                const chapterMatch = line.match(/^Ch\d+[.\s]*(.*)$/i);
-                if (chapterMatch && !line.match(/\d+:\d+/)) {
-                    currentChapter = line;
+                // 3. Chapter 인식 (Ch 3. ..., Chapter 3. ...)
+                const chapterMatch = line.match(/^(?:Ch|Chapter)\s*(\d+)/i);
+                if (chapterMatch) {
+                    currentChapter = `Ch ${chapterMatch[1]}`;
+                    lastTitleLine = '';
                     continue;
                 }
 
-                // 시간이 있는 줄 → 실제 챕터로 추가
+                // 4. 시간이 포함된 줄인지 확인 (MM:SS)
                 const timeMatch = line.match(/(\d+):(\d+)/);
                 if (timeMatch) {
                     const minutes = parseInt(timeMatch[1]);
                     const seconds = parseInt(timeMatch[2]);
                     const totalSeconds = minutes * 60 + seconds;
 
-                    // 챕터 이름 구성
-                    let name = '';
-                    if (currentLectureNum) name += currentLectureNum + ' ';
-                    if (currentPart) name += currentPart.replace(/^Part\s*[\d.]+[.\s]*/, 'Part ').split('.')[0] + ' - ';
-                    if (currentChapter) name += currentChapter.split('.')[0] + ' - ';
+                    // 현재 줄에서 시간 부분을 제외한 것이 제목인지 확인
+                    let title = line.replace(/(\d+):(\d+)/, '').replace(/^[.\s-]+/, '').trim();
 
-                    // 현재 줄에서 시간 부분 제거하고 제목 추출
-                    const title = line.replace(/\s*\d+:\d+\s*$/, '').trim();
-                    name += title;
+                    // 제목이 비어있다면 이전 줄을 제목으로 사용
+                    if (!title && lastTitleLine) {
+                        title = lastTitleLine;
+                    }
 
-                    chapters.push({
-                        name: name.trim(),
-                        shortName: title,
-                        originalDuration: totalSeconds,
-                        duration: totalSeconds
-                    });
+                    if (title) {
+                        let nameParts = [];
+                        if (currentLectureNum) nameParts.push(currentLectureNum);
+                        if (currentPart) nameParts.push(currentPart);
+                        if (currentChapter) nameParts.push(currentChapter);
+                        nameParts.push(title);
+
+                        const fullName = nameParts.join(' - ');
+
+                        chapters.push({
+                            name: fullName,
+                            shortName: title,
+                            originalDuration: totalSeconds,
+                            duration: totalSeconds
+                        });
+                        lastTitleLine = '';
+                    }
+                    continue;
                 }
+
+                // 5. 기타 일반 텍스트 (제목 후보)
+                // 진행률 표시(0/4)나 특정 불필요 패턴 제외
+                if (/^\d+\/\d+$/.test(line)) continue;
+                if (/^\d{2}:\d{2}$/.test(line)) continue;
+
+                lastTitleLine = line;
             }
 
             return chapters;
@@ -1969,7 +1990,7 @@ Ch01. 오리엔테이션
                 return `
                     <div class="chapter-item ${isActive ? 'active' : ''} ${isDone ? 'done' : ''}">
                         <span class="chapter-number">${i + 1}</span>
-                        <span class="chapter-name">${ch.shortName || ch.name}</span>
+                        <span class="chapter-name">${ch.name}</span>
                         <span class="chapter-time">${originalTime} → ${adjustedTime}</span>
                     </div>
                 `;
