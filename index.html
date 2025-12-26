@@ -1048,6 +1048,7 @@ Ch01. 오리엔테이션
         let dataArray;
         let animationId;
         let streams = [];
+        let currentMimeType = ''; // 추가: 실제 사용 중인 녹음 형식
         let silenceStart = null;
         let silenceThreshold = 15; // 볼륨 임계값 (0-255)
         let silenceDuration = 4000; // 4초 무음 시 분할
@@ -1368,7 +1369,7 @@ Ch01. 오리엔테이션
                     throw new Error('브라우저가 지원하는 녹음 형식을 찾을 수 없습니다.');
                 }
 
-                console.log('Using MIME type:', mimeType);
+                currentMimeType = mimeType;
                 mediaRecorder = new MediaRecorder(finalStream, { mimeType });
                 audioChunks = [];
 
@@ -1380,7 +1381,7 @@ Ch01. 오리엔테이션
 
                 // 첫 녹음 onstop 은 activeChapterName 기준
                 mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(audioChunks, { type: mimeType });
+                    const audioBlob = new Blob(audioChunks, { type: currentMimeType });
                     const baseName =
                         activeChapterName ||
                         (chapters[currentChapterIndex]?.name) ||
@@ -1783,10 +1784,7 @@ Ch01. 오리엔테이션
                 captureCount = 0;
 
                 mediaRecorder.onstop = () => {
-                    const mimeType = MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
-                        ? 'audio/ogg;codecs=opus'
-                        : 'audio/ogg';
-                    const audioBlob = new Blob(audioChunks, { type: mimeType });
+                    const audioBlob = new Blob(audioChunks, { type: currentMimeType });
                     saveRecordingWithNameAndImages(audioBlob, currentRecordingType, endedChapterName, imagesToSave);
                     audioChunks = [];
                 };
@@ -1815,7 +1813,7 @@ Ch01. 오리엔테이션
                         };
 
                         mediaRecorder.onstop = () => {
-                            const audioBlob = new Blob(audioChunks, { type: mimeType });
+                            const audioBlob = new Blob(audioChunks, { type: currentMimeType });
                             const finalName =
                                 activeChapterName ||
                                 (chapters[currentChapterIndex]?.name) ||
@@ -2038,10 +2036,7 @@ Ch01. 오리엔테이션
                 captureCount = 0;
 
                 mediaRecorder.onstop = () => {
-                    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                        ? 'audio/webm;codecs=opus'
-                        : 'audio/webm';
-                    const audioBlob = new Blob(audioChunks, { type: mimeType });
+                    const audioBlob = new Blob(audioChunks, { type: currentMimeType });
                     saveRecordingWithNameAndImages(audioBlob, currentRecordingType, currentName, imagesToSave);
                     audioChunks = [];
                 };
@@ -2095,9 +2090,10 @@ Ch01. 오리엔테이션
         function downloadRecording(id) {
             const recording = recordings.find(r => r.id === id);
             if (recording) {
+                const ext = currentMimeType.includes('ogg') ? 'ogg' : 'webm';
                 const a = document.createElement('a');
                 a.href = recording.url;
-                a.download = `${recording.name}.ogg`;
+                a.download = `${recording.name}.${ext}`;
                 a.click();
             }
         }
@@ -2114,10 +2110,11 @@ Ch01. 오리엔테이션
 
         // 전체 다운로드
         async function downloadAll() {
+            const ext = currentMimeType.includes('ogg') ? 'ogg' : 'webm';
             for (const recording of recordings) {
                 const a = document.createElement('a');
                 a.href = recording.url;
-                a.download = `${recording.name}.ogg`;
+                a.download = `${recording.name}.${ext}`;
                 a.click();
                 await new Promise(r => setTimeout(r, 500));
             }
