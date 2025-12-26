@@ -47,6 +47,22 @@
             font-size: 14px;
         }
 
+        .format-badge {
+            text-align: center;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 0 auto 20px;
+            width: fit-content;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
         .help-icon {
             position: absolute;
             top: 15px;
@@ -849,6 +865,7 @@
     <div class="container">
         <div id="lastUpdate" class="update-date">마지막 업데이트: 확인 중...</div>
         <h1>🎧 시스템 오디오 녹음기</h1>
+        <div class="format-badge">🎵 녹음 형식: OGG/Opus</div>
 
         <div class="help-icon">
             ?
@@ -1332,9 +1349,9 @@ Ch01. 오리엔테이션
 
                 setupVisualizer();
 
-                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                    ? 'audio/webm;codecs=opus'
-                    : 'audio/webm';
+                const mimeType = MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+                    ? 'audio/ogg;codecs=opus'
+                    : 'audio/ogg';
 
                 mediaRecorder = new MediaRecorder(finalStream, { mimeType });
                 audioChunks = [];
@@ -1744,9 +1761,9 @@ Ch01. 오리엔테이션
                 captureCount = 0;
 
                 mediaRecorder.onstop = () => {
-                    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                        ? 'audio/webm;codecs=opus'
-                        : 'audio/webm';
+                    const mimeType = MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+                        ? 'audio/ogg;codecs=opus'
+                        : 'audio/ogg';
                     const audioBlob = new Blob(audioChunks, { type: mimeType });
                     saveRecordingWithNameAndImages(audioBlob, currentRecordingType, endedChapterName, imagesToSave);
                     audioChunks = [];
@@ -2058,7 +2075,7 @@ Ch01. 오리엔테이션
             if (recording) {
                 const a = document.createElement('a');
                 a.href = recording.url;
-                a.download = `${recording.name}.webm`;
+                a.download = `${recording.name}.ogg`;
                 a.click();
             }
         }
@@ -2078,7 +2095,7 @@ Ch01. 오리엔테이션
             for (const recording of recordings) {
                 const a = document.createElement('a');
                 a.href = recording.url;
-                a.download = `${recording.name}.webm`;
+                a.download = `${recording.name}.ogg`;
                 a.click();
                 await new Promise(r => setTimeout(r, 500));
             }
