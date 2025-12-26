@@ -1944,27 +1944,35 @@ Ch01. 오리엔테이션
             let lastTitleLine = '';
 
             for (const line of lines) {
-                // 1. 강의 번호 (숫자만 있는 줄, 1-3자리)
+                // 1. 강의 번호 (숫자만 있는 줄, 1-3자리 - 예: 24)
                 if (/^\d{1,3}$/.test(line)) {
                     currentLectureNum = line;
-                    lastTitleLine = '';
+                    // 번호만 있는 줄은 제목 후보로 쓰지 않음
                     continue;
                 }
 
-                // 2. Part 인식 (Part 1. ...)
-                const partMatch = line.match(/^Part\s*(\d+)/i);
+                // 2. Part 인식 (Part 1. ..., Part 1)
+                const partMatch = line.match(/^Part\s*(\d+)[.\s-]*(.*)/i);
                 if (partMatch) {
                     currentPart = `Part ${partMatch[1]}`;
-                    lastTitleLine = '';
-                    continue;
+                    const remaining = partMatch[2].trim();
+                    if (remaining) {
+                        lastTitleLine = remaining;
+                    }
+                    // 내용이 있으면 이 줄 자체가 제목 후보가 됨
+                    if (!remaining) continue;
                 }
 
                 // 3. Chapter 인식 (Ch 3. ..., Chapter 3. ...)
-                const chapterMatch = line.match(/^(?:Ch|Chapter)\s*(\d+)/i);
+                const chapterMatch = line.match(/^(?:Ch|Chapter)\s*(\d+)[.\s-]*(.*)/i);
                 if (chapterMatch) {
                     currentChapter = `Ch ${chapterMatch[1]}`;
-                    lastTitleLine = '';
-                    continue;
+                    const remaining = chapterMatch[2].trim();
+                    if (remaining) {
+                        lastTitleLine = remaining;
+                    }
+                    // 내용이 있으면 이 줄 자체가 제목 후보가 됨 (continue 하지 않음)
+                    if (!remaining) continue;
                 }
 
                 // 4. 시간이 포함된 줄인지 확인 (MM:SS)
@@ -1975,39 +1983,40 @@ Ch01. 오리엔테이션
                     const totalSeconds = minutes * 60 + seconds;
 
                     // 현재 줄에서 시간 부분을 제외한 것이 제목인지 확인
-                    let title = line.replace(/(\d+):(\d+)/, '').replace(/^[.\s-]+/, '').trim();
+                    let titleInLine = line.replace(/(\d+):(\d+)/, '').replace(/^[.\s-]+/, '').trim();
 
-                    // 제목이 비어있다면 이전 줄을 제목으로 사용
-                    if (!title && lastTitleLine) {
-                        title = lastTitleLine;
-                    }
+                    // 제목 결정: 현재 줄에 제목이 없으면 이전 줄(lastTitleLine) 사용
+                    let finalTitle = titleInLine || lastTitleLine;
 
-                    if (title) {
+                    if (finalTitle) {
                         let nameParts = [];
                         if (currentLectureNum) nameParts.push(currentLectureNum);
                         if (currentPart) nameParts.push(currentPart);
                         if (currentChapter) nameParts.push(currentChapter);
-                        nameParts.push(title);
+                        nameParts.push(finalTitle);
 
                         const fullName = nameParts.join(' - ');
 
                         chapters.push({
                             name: fullName,
-                            shortName: title,
+                            shortName: finalTitle,
                             originalDuration: totalSeconds,
                             duration: totalSeconds
                         });
+
+                        // 사용한 제목은 비워줌 (다음 챕터 오인 방지)
                         lastTitleLine = '';
                     }
                     continue;
                 }
 
                 // 5. 기타 일반 텍스트 (제목 후보)
-                // 진행률 표시(0/4)나 특정 불필요 패턴 제외
+                // 진행률 표시(0/4)나 날짜 등 불필요 패턴 제외
                 if (/^\d+\/\d+$/.test(line)) continue;
-                if (/^\d{2}:\d{2}$/.test(line)) continue;
+                if (/^\d{2}:\d{2}$/.test(line)) continue; // 시간만 있는 줄은 위 4번에서 처리됨
 
-                lastTitleLine = line;
+                // 불필요한 장식 제거하고 제목 후보로 저장
+                lastTitleLine = line.replace(/^[.\s-]+/, '').trim();
             }
 
             return chapters;
