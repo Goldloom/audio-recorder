@@ -2168,18 +2168,24 @@ Ch01. 오리엔테이션
         drawVisualizer();
 
         function checkBrowserSupport() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+            const hasMediaDevices = !!(navigator.mediaDevices);
+            const hasGetDisplayMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+            const isSecure = window.isSecureContext;
+            const protocol = window.location.protocol;
+
+            if (!hasMediaDevices || !hasGetDisplayMedia) {
                 let reason = "이 브라우저는 시스템 오디오 캡처를 지원하지 않습니다.";
 
-                if (!window.isSecureContext) {
-                    reason = "보안 연결(HTTPS)이 아니어서 시스템 오디오 기능을 사용할 수 없습니다. HTTPS 주소로 접속하거나 localhost에서 테스트해주세요.";
-                } else if (window.location.protocol === 'file:') {
-                    reason = "로컬 파일(file://) 환경에서는 시스템 오디오 캡처가 동작하지 않을 수 있습니다. 웹 서버(http://localhost 등)를 통해 실행해주세요.";
+                if (!isSecure && protocol !== 'localhost:' && protocol !== '127.0.0.1:') {
+                    reason = "보안 연결(HTTPS) 환경이 아니어서 기능이 차단되었습니다. 주소창의 주소가 https:// 로 시작하는지 확인해주세요.";
+                } else if (protocol === 'file:') {
+                    reason = "로컬 파일(file://)로 실행 중입니다. 웹 서버(http://localhost 등)를 통해 실행해야 기능이 작동합니다.";
                 } else if (/Android|iPhone|iPad/i.test(navigator.userAgent)) {
-                    reason = "모바일 브라우저에서는 시스템 오디오 캡처를 지원하지 않습니다. PC의 Chrome 또는 Edge를 사용해주세요.";
+                    reason = "모바일 브라우저에서는 시스템 오디오 캡처를 지원하지 않습니다. PC를 사용해주세요.";
                 }
 
-                updateStatus('error', `❌ ${reason}`);
+                const debugInfo = `(진단: MD=${hasMediaDevices}, GDM=${hasGetDisplayMedia}, Sec=${isSecure}, Proto=${protocol})`;
+                updateStatus('error', `❌ ${reason} ${debugInfo}`);
                 recordBtn.disabled = true;
             }
         }
