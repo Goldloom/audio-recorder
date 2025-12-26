@@ -1959,8 +1959,7 @@ Ch01. 오리엔테이션
                     if (remaining) {
                         lastTitleLine = remaining;
                     }
-                    // 내용이 있으면 이 줄 자체가 제목 후보가 됨
-                    if (!remaining) continue;
+                    continue; // ✅ 메타데이터 처리 후 다음 줄로 (중복 방지)
                 }
 
                 // 3. Chapter 인식 (Ch 3. ..., Chapter 3. ...)
@@ -1971,8 +1970,7 @@ Ch01. 오리엔테이션
                     if (remaining) {
                         lastTitleLine = remaining;
                     }
-                    // 내용이 있으면 이 줄 자체가 제목 후보가 됨 (continue 하지 않음)
-                    if (!remaining) continue;
+                    continue; // ✅ 메타데이터 처리 후 다음 줄로 (중복 방지)
                 }
 
                 // 4. 시간이 포함된 줄인지 확인 (MM:SS)
