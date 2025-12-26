@@ -989,7 +989,7 @@
             <div class="toggle-container">
                 <span class="toggle-label">🎬 화면 전환 자동감지 (목차용)</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="sceneChangeDetection" checked>
+                    <input type="checkbox" id="sceneChangeDetection">
                     <span class="toggle-slider"></span>
                 </label>
                 <div class="sensitivity-slider">
@@ -1001,7 +1001,7 @@
             <div class="toggle-container">
                 <span class="toggle-label">🖼️ 템플릿 매칭 자동분할</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="templateMatching">
+                    <input type="checkbox" id="templateMatching" checked>
                     <span class="toggle-slider"></span>
                 </label>
                 <div style="margin-left: 10px; display: flex; gap: 10px; align-items: center;">
@@ -2012,12 +2012,11 @@ Ch01. 오리엔테이션
                             detectedSceneChange = true;
                             templateMatchingStartTime = Date.now();
 
-                            // 템플릿 매칭 활성화 시 템플릿 매처 생성 (복호화)
+                            // 템플릿 매칭 활성화 시 템플릿 매처 생성
                             if (templateMatchingToggle.checked && templateImage && !templateMatcher) {
-                                const decryptedTemplate = decryptImageData(templateImage);
-                                templateMatcher = new TemplateMatcher(videoElement, decryptedTemplate);
+                                templateMatcher = new TemplateMatcher(videoElement, templateImage);
                                 templateMatcher.similarityThreshold = parseInt(templateSimilarity.value) / 100;
-                                console.log('🔓 템플릿 이미지 복호화 완료');
+                                console.log('✅ 템플릿 매처 생성 완료');
                             }
 
                             console.log('✅ 무음 2초 경과 (30초+ 재생) → 템플릿 매칭 시작 (5초 내 감지 시 자동분할)');
@@ -2955,13 +2954,12 @@ Ch01. 오리엔테이션
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0);
 
-                        // ImageData 암호화하여 저장
-                        const originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        templateImage = encryptImageData(originalImageData);
-                        templateStatus.textContent = `✅ ${file.name} (${img.width}x${img.height}) 🔒`;
+                        // ImageData 저장
+                        templateImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        templateStatus.textContent = `✅ ${file.name} (${img.width}x${img.height})`;
                         templateStatus.style.color = '#27ae60';
 
-                        console.log(`✅ 템플릿 이미지 암호화 완료: ${img.width}x${img.height}`);
+                        console.log(`✅ 템플릿 이미지 로드 완료: ${img.width}x${img.height}`);
                     };
                     img.src = event.target.result;
                 };
@@ -2973,39 +2971,6 @@ Ch01. 오리엔테이션
                 templateStatus.style.color = '#e74c3c';
             }
         });
-
-        // 템플릿 이미지 암호화/복호화 (XOR 기반)
-        function encryptImageData(imageData) {
-            const key = 'audio-recorder-template-key-2024'; // 암호화 키
-            const encrypted = new Uint8ClampedArray(imageData.data.length);
-
-            for (let i = 0; i < imageData.data.length; i++) {
-                encrypted[i] = imageData.data[i] ^ key.charCodeAt(i % key.length);
-            }
-
-            return {
-                width: imageData.width,
-                height: imageData.height,
-                data: Array.from(encrypted) // 저장을 위해 배열로 변환
-            };
-        }
-
-        function decryptImageData(encryptedData) {
-            const key = 'audio-recorder-template-key-2024'; // 복호화 키
-            const decrypted = new Uint8ClampedArray(encryptedData.data.length);
-
-            for (let i = 0; i < encryptedData.data.length; i++) {
-                decrypted[i] = encryptedData.data[i] ^ key.charCodeAt(i % key.length);
-            }
-
-            // ImageData 객체 생성
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const imageData = ctx.createImageData(encryptedData.width, encryptedData.height);
-            imageData.data.set(decrypted);
-
-            return imageData;
-        }
 
         // GitHub API를 사용하여 마지막 커밋 날짜 가져오기
         async function updateLastUpdateDate() {
