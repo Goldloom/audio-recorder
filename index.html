@@ -2235,7 +2235,7 @@ Ch01. 오리엔테이션
         // 오디오 메타데이터 로드 후 재생시간 업데이트
         function updateRecordingDuration(id, audioElement) {
             const recording = recordings.find(r => r.id === id);
-            if (recording && audioElement.duration && !isNaN(audioElement.duration)) {
+            if (recording && audioElement.duration && !isNaN(audioElement.duration) && isFinite(audioElement.duration)) {
                 const actualDuration = Math.floor(audioElement.duration); // 실제 재생시간 (초)
                 const hours = Math.floor(actualDuration / 3600);
                 const minutes = Math.floor((actualDuration % 3600) / 60);
