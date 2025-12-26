@@ -899,6 +899,13 @@
 
         <div class="extra-controls">
             <div class="toggle-container">
+                <span class="toggle-label">🎬 소리 감지 시 자동 시작</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="autoStartOnSound" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="toggle-container">
                 <span class="toggle-label">🔇 무음 감지 자동분할</span>
                 <label class="toggle-switch">
                     <input type="checkbox" id="silenceDetection">
@@ -1042,6 +1049,8 @@ Ch01. 오리엔테이션
         let startTime;
         let timerInterval;
         let isPaused = false;
+        let isRecording = false; // 추가: 녹음 진행 여부 플래그
+        let isWaitingForFirstSound = false; // 추가: 첫 소리 대기 여부
         let pausedTime = 0;
         let audioContext;
         let analyser;
@@ -1049,6 +1058,7 @@ Ch01. 오리엔테이션
         let animationId;
         let streams = [];
         let currentMimeType = ''; // 추가: 실제 사용 중인 녹음 형식
+        let currentRecordingType = ''; // 추가: 녹음 소스 타입 (system, mic, both)
         let silenceStart = null;
         let silenceThreshold = 15; // 볼륨 임계값 (0-255)
         let silenceDuration = 4000; // 4초 무음 시 분할
@@ -1064,6 +1074,7 @@ Ch01. 오리엔테이션
         const canvasCtx = canvas.getContext('2d');
         const includeSystemAudio = document.getElementById('includeSystemAudio');
         const includeMic = document.getElementById('includeMic');
+        const autoStartOnSound = document.getElementById('autoStartOnSound'); // 추가
         const silenceDetection = document.getElementById('silenceDetection');
         const silenceIndicator = document.getElementById('silenceIndicator');
         const newLectureBtn = document.getElementById('newLectureBtn');
@@ -1118,7 +1129,7 @@ Ch01. 오리엔테이션
         }
 
         function updateTimer() {
-            if (!isPaused) {
+            if (isRecording && !isPaused) {
                 const elapsed = Date.now() - startTime + pausedTime;
                 timerDisplay.textContent = formatTime(elapsed);
             }
@@ -1179,11 +1190,20 @@ Ch01. 오리엔테이션
 
             analyser.getByteFrequencyData(dataArray);
 
+            const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+
+            // ✅ 최초 소리 감지 대기 로직
+            if (isWaitingForFirstSound) {
+                if (average > silenceThreshold) {
+                    actuallyStartRecording();
+                } else {
+                    // 대기 상태 시각적 피드백 (필요 시)
+                }
+            }
+
             // (기존 무음 감지 로직 그대로)
 
             if (silenceDetection.checked && mediaRecorder && mediaRecorder.state === 'recording' && !waitingForSilence) {
-                const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-
                 if (average < silenceThreshold) {
                     if (!silenceStart) {
                         silenceStart = Date.now();
@@ -1412,41 +1432,24 @@ Ch01. 오리엔테이션
                         activeChapterName ||
                         (chapters[currentChapterIndex]?.name) ||
                         `강의${lectureCount}`;
-                    saveRecordingWithName(audioBlob, recordingType, baseName);
+                    saveRecordingWithName(audioBlob, currentRecordingType, baseName);
                     cleanup();
                 };
 
-                mediaRecorder.start(1000);
-                startTime = Date.now();
-                pausedTime = 0;
-                isPaused = false;
-                timerInterval = setInterval(updateTimer, 100);
-
-                // 캡처 시작
-                if (captureEnabled.checked && videoElement) {
-                    startCapture();
-                }
-
-                recordBtn.classList.add('recording');
-                recordBtn.disabled = true;
-                pauseBtn.disabled = false;
-                stopBtn.disabled = false;
-                newLectureBtn.disabled = false;
-                includeSystemAudio.disabled = true;
-                includeMic.disabled = true;
-                currentRecordingType = recordingType;
+                currentRecordingType = recordingType; // 변수 대입
                 lectureCount = 1;
 
-                if (chapters.length > 0) {
-                    startChapterTimers();
-                    const firstChapter = chapters[0];
-                    activeChapterName = firstChapter.name;
-                    updateStatus('recording', `🔴 녹음 중... (${firstChapter.name})`);
+                if (autoStartOnSound.checked) {
+                    isWaitingForFirstSound = true;
+                    updateStatus('recording', '🎵 소리 대기 중... 소리가 감지되면 녹음이 시작됩니다.');
+                    recordBtn.classList.add('recording');
+                    recordBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    pauseBtn.disabled = true;
+                    includeSystemAudio.disabled = true;
+                    includeMic.disabled = true;
                 } else {
-                    activeChapterName = '';
-                    const sourceText = recordingType === 'both' ? '시스템 + 마이크' :
-                        recordingType === 'system' ? '시스템 오디오' : '마이크';
-                    updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount}, ${sourceText})`);
+                    actuallyStartRecording();
                 }
 
             } catch (err) {
@@ -1466,6 +1469,41 @@ Ch01. 오리엔테이션
                     const debugInfo = `(에러명: ${err.name}, 메시지: ${err.message})`;
                     updateStatus('error', `❌ 녹음 시작 실패: ${debugInfo}`);
                 }
+            }
+        }
+
+        function actuallyStartRecording() {
+            if (!mediaRecorder) return;
+
+            isWaitingForFirstSound = false;
+            mediaRecorder.start(1000);
+            startTime = Date.now();
+            pausedTime = 0;
+            isPaused = false;
+            isRecording = true;
+            timerInterval = setInterval(updateTimer, 100);
+
+            // 캡처 시작
+            if (captureEnabled.checked && videoElement) {
+                startCapture();
+            }
+
+            recordBtn.classList.add('recording');
+            recordBtn.disabled = true;
+            pauseBtn.disabled = false;
+            stopBtn.disabled = false;
+            newLectureBtn.disabled = false;
+
+            if (chapters.length > 0) {
+                // 현재 챕터부터 타이머 시작
+                startChapterTimers(currentChapterIndex);
+                const currentChapter = chapters[currentChapterIndex];
+                activeChapterName = currentChapter.name;
+                updateStatus('recording', `🔴 녹음 중... (${currentChapter.shortName || currentChapter.name})`);
+            } else {
+                const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
+                    currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
+                updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount}, ${sourceText})`);
             }
         }
 
@@ -1710,10 +1748,17 @@ Ch01. 오리엔테이션
         }
 
         function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
+            try {
+                isRecording = false; // 정지 상태로 변경
+                isWaitingForFirstSound = false; // 최초 대기 상태 해제
                 clearInterval(timerInterval);
+                clearChapterTimers();
 
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+
+                // UI 상태 즉시 업데이트
                 recordBtn.classList.remove('recording');
                 recordBtn.disabled = false;
                 pauseBtn.disabled = true;
@@ -1723,9 +1768,8 @@ Ch01. 오리엔테이션
                 includeMic.disabled = false;
                 silenceIndicator.textContent = '';
                 silenceStart = null;
-                clearChapterTimers();
                 currentChapterIndex = 0;
-                activeChapterName = '';   // ✅ 초기화
+                activeChapterName = '';
                 renderChapters();
 
                 pauseBtn.innerHTML = `
@@ -1735,9 +1779,16 @@ Ch01. 오리엔테이션
                     </svg>
                 `;
                 pauseBtn.title = '일시정지';
-
                 timerDisplay.textContent = '00:00:00';
+
+                // 리소스 정리 (모든 스트림 중단)
+                cleanup();
+
                 updateStatus('ready', '✅ 녹음 완료! 새 녹음을 시작할 수 있습니다.');
+            } catch (err) {
+                console.error('녹음 정지 중 오류:', err);
+                updateStatus('error', '❌ 녹음 정지 중 오류 발생: ' + err.message);
+                cleanup(); // 오류가 발생하더라도 리소스 정리 시도
             }
         }
 
@@ -1843,6 +1894,9 @@ Ch01. 오리엔테이션
                 mediaRecorder.stop();
 
                 setTimeout(() => {
+                    // 정지 버튼이 눌렸다면 새로운 녹음을 시작하지 않음
+                    if (!isRecording && !isWaitingForFirstSound) return;
+
                     if (streams.length > 0 && streams.some(s => s.active)) {
                         let finalStream;
                         if (streams.length > 1) {
@@ -1873,20 +1927,16 @@ Ch01. 오리엔테이션
                             audioChunks = [];
                         };
 
-                        mediaRecorder.start(1000);
-                        startTime = Date.now();
-                        pausedTime = 0;
-
-                        if (captureEnabled.checked && videoElement) {
-                            startCapture();
+                        // ✅ 분할 시에도 소리 감지 체크
+                        if (autoStartOnSound.checked) {
+                            isWaitingForFirstSound = true;
+                            isRecording = false; // 실제 녹음 전까지는 false
+                            const nextName = chapters[currentChapterIndex]?.shortName || chapters[currentChapterIndex]?.name || `강의 ${lectureCount}`;
+                            updateStatus('recording', `🎵 소리 대기 중... (${nextName})`);
+                            // actuallyStartRecording()이 루프에서 호출될 것임
+                        } else {
+                            actuallyStartRecording();
                         }
-
-                        activeChapterName = chapters[currentChapterIndex]?.name || activeChapterName; // ✅ 다음 챕터 이름으로 갱신
-                        const nextChapter = chapters[currentChapterIndex];
-                        updateStatus(
-                            'recording',
-                            `🔴 녹음 중... (${nextChapter?.shortName || nextChapter?.name || '강의'})`
-                        );
                     }
                 }, 100);
             }
@@ -2061,13 +2111,13 @@ Ch01. 오리엔테이션
         }
 
         // 챕터 타이머 시작
-        function startChapterTimers() {
+        function startChapterTimers(startIndex = 0) {
             clearChapterTimers();
-            activeChapterName = chapters[0]?.name || '';
+            activeChapterName = chapters[startIndex]?.name || '';
 
             let cumulativeTime = 0;
 
-            for (let i = 0; i < chapters.length; i++) {
+            for (let i = startIndex; i < chapters.length; i++) {
                 const ch = chapters[i];
                 cumulativeTime += ch.duration * 1000;
 
@@ -2126,6 +2176,9 @@ Ch01. 오리엔테이션
                 mediaRecorder.stop();
 
                 setTimeout(() => {
+                    // 정지 버튼이 눌렸다면 새로운 녹음을 시작하지 않음
+                    if (!isRecording && !isWaitingForFirstSound) return;
+
                     if (streams.length > 0 && streams.some(s => s.active)) {
                         let finalStream;
                         if (streams.length > 1) {
@@ -2153,16 +2206,15 @@ Ch01. 오리엔테이션
                             audioChunks = [];
                         };
 
-                        mediaRecorder.start(1000);
-                        startTime = Date.now();
-                        pausedTime = 0;
-
-                        if (captureEnabled.checked && videoElement) {
-                            startCapture();
+                        // ✅ 분할 시에도 소리 감지 체크
+                        if (autoStartOnSound.checked) {
+                            isWaitingForFirstSound = true;
+                            isRecording = false;
+                            activeChapterName = `강의${lectureCount}`;
+                            updateStatus('recording', `🎵 소리 대기 중... (강의 ${lectureCount})`);
+                        } else {
+                            actuallyStartRecording();
                         }
-
-                        activeChapterName = `강의${lectureCount}`;
-                        updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount})`);
                     }
                 }, 100);
             }
