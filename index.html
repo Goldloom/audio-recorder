@@ -2062,11 +2062,16 @@ Ch01. 오리엔테이션
         }
 
         function triggerChapterTransition() {
-            stopSceneChangeDetection();
+            // ✅ 템플릿 매칭 후에도 계속 감지하기 위해 stopSceneChangeDetection 호출 안 함
+            // 대신 화면 전환 감지 관련 변수만 리셋
+            detectedSceneChange = false;
+            sceneChangeTime = null;
+            silenceStartForSplit = null;
+            frameBeforeSilence = null;
             silenceWaitStartTime = null;
 
             if (readyToAutoStop) {
-                updateStatus('ready', '✅ 모든 강의 녹음 완료! (화면 전환 감지)');
+                updateStatus('ready', '✅ 모든 강의 녹음 완료! (템플릿 매칭 감지)');
                 stopRecording();
             } else if (chapterReadyToSplit && pendingSplitChapterIndex >= 0) {
                 const endedIdx = pendingSplitChapterIndex;
@@ -2082,13 +2087,15 @@ Ch01. 오리엔테이션
                 silenceIndicator.textContent = '(전환 완료!)';
                 silenceIndicator.className = 'silence-indicator';
 
-                // 다음 챕터를 위해 감지기 리셋
+                // 다음 챕터를 위해 화면 감지기만 리셋 (템플릿 매처는 유지)
                 if (sceneChangeDetector) {
                     sceneChangeDetector.reset();
                 }
-            }
 
-            silenceStartForSplit = null;
+                // ✅ 타이머와 startTime 리셋하여 다음 녹음의 30초 카운트 다시 시작
+                startTime = Date.now();
+                pausedTime = 0;
+            }
         }
 
         // jsPDF 라이브러리 동적 로드
@@ -2440,53 +2447,52 @@ Ch01. 오리엔테이션
 
                 mediaRecorder.stop();
 
-                setTimeout(() => {
-                    // 정지 버튼이 눌렸다면 새로운 녹음을 시작하지 않음
-                    if (!isRecording && !isWaitingForFirstSound) return;
+                // ✅ 즉시 다음 녹음 시작 (딜레이 제거)
+                // 정지 버튼이 눌렸다면 새로운 녹음을 시작하지 않음
+                if (!isRecording && !isWaitingForFirstSound) return;
 
-                    if (streams.length > 0 && streams.some(s => s.active)) {
-                        let finalStream;
-                        if (streams.length > 1) {
-                            finalStream = mergeAudioStreams(streams);
-                        } else {
-                            finalStream = streams[0];
-                        }
-
-                        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                            ? 'audio/webm;codecs=opus'
-                            : 'audio/webm';
-
-                        mediaRecorder = new MediaRecorder(finalStream, { mimeType });
-
-                        mediaRecorder.ondataavailable = (event) => {
-                            if (event.data.size > 0) {
-                                audioChunks.push(event.data);
-                            }
-                        };
-
-                        mediaRecorder.onstop = () => {
-                            const audioBlob = new Blob(audioChunks, { type: currentMimeType });
-                            const finalName =
-                                activeChapterName ||
-                                (chapters[currentChapterIndex]?.name) ||
-                                `강의${lectureCount}`;
-                            saveRecordingWithName(audioBlob, currentRecordingType, finalName);
-                            audioChunks = [];
-                        };
-
-                        // ✅ 분할 시에도 소리 감지 체크
-                        if (autoStartOnSound.checked) {
-                            isWaitingForFirstSound = true;
-                            isRecording = false; // 실제 녹음 전까지는 false
-                            const nextName = chapters[currentChapterIndex]?.shortName || chapters[currentChapterIndex]?.name || `강의 ${lectureCount}`;
-                            updateStatus('recording', `🎵 소리 대기 중... (${nextName})`);
-                            // actuallyStartRecording()이 루프에서 호출될 것임
-                        } else {
-                            // ✅ 분할 후에는 바로 시작 (딜레이 없음)
-                            actuallyStartRecording();
-                        }
+                if (streams.length > 0 && streams.some(s => s.active)) {
+                    let finalStream;
+                    if (streams.length > 1) {
+                        finalStream = mergeAudioStreams(streams);
+                    } else {
+                        finalStream = streams[0];
                     }
-                }, 100);
+
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                        ? 'audio/webm;codecs=opus'
+                        : 'audio/webm';
+
+                    mediaRecorder = new MediaRecorder(finalStream, { mimeType });
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            audioChunks.push(event.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: currentMimeType });
+                        const finalName =
+                            activeChapterName ||
+                            (chapters[currentChapterIndex]?.name) ||
+                            `강의${lectureCount}`;
+                        saveRecordingWithName(audioBlob, currentRecordingType, finalName);
+                        audioChunks = [];
+                    };
+
+                    // ✅ 분할 시에도 소리 감지 체크
+                    if (autoStartOnSound.checked) {
+                        isWaitingForFirstSound = true;
+                        isRecording = false; // 실제 녹음 전까지는 false
+                        const nextName = chapters[currentChapterIndex]?.shortName || chapters[currentChapterIndex]?.name || `강의 ${lectureCount}`;
+                        updateStatus('recording', `🎵 소리 대기 중... (${nextName})`);
+                        // actuallyStartRecording()이 루프에서 호출될 것임
+                    } else {
+                        // ✅ 분할 후에는 바로 시작 (딜레이 없음)
+                        actuallyStartRecording();
+                    }
+                }
             }
         }
 
