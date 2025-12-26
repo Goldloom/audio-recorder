@@ -968,22 +968,28 @@
             <div class="toggle-container">
                 <span class="toggle-label">🎬 소리 감지 시 자동 시작</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="autoStartOnSound" checked>
+                    <input type="checkbox" id="autoStartOnSound">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
             <div class="toggle-container">
                 <span class="toggle-label">🔇 무음 감지 자동분할</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="silenceDetection">
+                    <input type="checkbox" id="silenceDetection" checked>
                     <span class="toggle-slider"></span>
                 </label>
+                <select id="silenceDurationSelect" style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                    <option value="2000">2초</option>
+                    <option value="3000">3초</option>
+                    <option value="4000" selected>4초</option>
+                    <option value="5000">5초</option>
+                </select>
                 <span id="silenceIndicator" class="silence-indicator"></span>
             </div>
             <div class="toggle-container">
                 <span class="toggle-label">🎬 화면 전환 자동감지 (목차용)</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="sceneChangeDetection" checked>
+                    <input type="checkbox" id="sceneChangeDetection">
                     <span class="toggle-slider"></span>
                 </label>
                 <div class="sensitivity-slider">
@@ -1165,6 +1171,7 @@ Ch01. 오리엔테이션
         const includeMic = document.getElementById('includeMic');
         const autoStartOnSound = document.getElementById('autoStartOnSound'); // 추가
         const silenceDetection = document.getElementById('silenceDetection');
+        const silenceDurationSelect = document.getElementById('silenceDurationSelect'); // ✅ 드롭다운
         const silenceIndicator = document.getElementById('silenceIndicator');
         const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
         const sceneChangeSensitivity = document.getElementById('sceneChangeSensitivity');
@@ -1217,6 +1224,7 @@ Ch01. 오리엔테이션
         let sceneChangeCheckInterval = null;
         let detectedSceneChange = false;
         let sceneChangeTime = null;
+        let frameBeforeSilence = null; // ✅ 무음 시작 직전 화면 저장
 
         function updateStatus(state, message) {
             statusDisplay.className = 'status ' + state;
@@ -1355,11 +1363,11 @@ Ch01. 오리엔테이션
                 }
             }
 
-            // ✅ 챕터 자동 분할: 화면 변화 감지 + 페일세이프
+            // ✅ 챕터 자동 분할: 무음 2초 → 화면 전환 감지 + 페일세이프
             if (waitingForSilence && mediaRecorder && mediaRecorder.state === 'recording') {
-                // 20초 강제 종료/분할 로직 (페일세이프 - 화면 변화 감지 실패 대비)
+                // 20초 강제 종료/분할 로직 (페일세이프 - 무음 또는 화면 전환 미감지 대비)
                 if (silenceWaitStartTime && (Date.now() - silenceWaitStartTime >= 20000)) {
-                    console.log('⚠️ 20초 타임아웃: 화면 전환이 감지되지 않아 강제 전환');
+                    console.log('⚠️ 20초 페일세이프: 무음 2초 + 화면 전환 미감지 → 강제 전환');
                     triggerChapterTransition();
                     return;
                 }
@@ -1524,7 +1532,12 @@ Ch01. 오리엔테이션
                     includeSystemAudio.disabled = true;
                     includeMic.disabled = true;
                 } else {
-                    actuallyStartRecording();
+                    // ✅ 1초 후 자동 녹음 시작
+                    updateStatus('ready', '⏳ 1초 후 녹음 시작...');
+                    recordBtn.disabled = true;
+                    setTimeout(() => {
+                        actuallyStartRecording();
+                    }, 1000);
                 }
 
             } catch (err) {
@@ -1855,37 +1868,59 @@ Ch01. 오리엔테이션
             // 화면 변화 감지 중지 (이미 실행 중이면)
             stopSceneChangeDetection();
 
-            // 500ms마다 화면 변화 체크
+            // ✅ 최적화된 로직: 무음 시작/2초 경과 시점에만 화면 캡처
+            // 500ms마다 오디오만 체크
             sceneChangeCheckInterval = setInterval(() => {
                 if (!waitingForSilence) {
                     stopSceneChangeDetection();
                     return;
                 }
 
-                const sceneChanged = sceneChangeDetector.checkSceneChange();
+                // 현재 오디오 레벨 확인
+                const average = dataArray ? dataArray.reduce((a, b) => a + b, 0) / dataArray.length : 0;
+                const isSilent = average < silenceThreshold;
 
-                if (sceneChanged) {
-                    detectedSceneChange = true;
-                    sceneChangeTime = Date.now();
-
-                    // 화면 전환 + 무음 감지 조합으로 더 확실한 강의 전환 판단
-                    const average = dataArray ? dataArray.reduce((a, b) => a + b, 0) / dataArray.length : 0;
-                    const isSilent = average < silenceThreshold;
-
-                    if (isSilent) {
-                        // 화면 전환 + 무음 = 강의 전환 확정!
-                        console.log('✅ 강의 전환 확정: 화면 전환 + 무음 감지');
-                        triggerChapterTransition();
+                // 무음이 아닌 상태 (정상 재생 중)
+                if (!isSilent) {
+                    // 무음 타이머가 있었다면 리셋
+                    if (silenceStartForSplit) {
+                        console.log('❌ 무음 중단 (소리 감지) - 타이머 리셋');
+                        silenceStartForSplit = null;
+                        detectedSceneChange = false;
+                        frameBeforeSilence = null;
                     }
-                }
+                } else {
+                    // 무음 상태
+                    if (!silenceStartForSplit) {
+                        // ✅ 무음 시작 시점: 딱 1번만 화면 캡처
+                        silenceStartForSplit = Date.now();
+                        frameBeforeSilence = sceneChangeDetector.captureFrame();
+                        console.log('🔇 무음 감지 시작 → 현재 화면 저장 (무음 직전 화면)');
+                    } else {
+                        // 무음 지속 중
+                        const silentTime = Date.now() - silenceStartForSplit;
 
-                // 화면 전환 후 1초 이내에 무음이 감지되면 전환
-                if (detectedSceneChange && sceneChangeTime &&
-                    (Date.now() - sceneChangeTime < 1000)) {
-                    const average = dataArray ? dataArray.reduce((a, b) => a + b, 0) / dataArray.length : 0;
-                    if (average < silenceThreshold) {
-                        console.log('✅ 강의 전환 확정: 화면 전환 직후 무음');
-                        triggerChapterTransition();
+                        // ✅ 무음 2초 경과 시점: 딱 1번만 화면 비교
+                        if (silentTime >= 2000 && !detectedSceneChange) {
+                            detectedSceneChange = true; // 중복 체크 방지
+
+                            const currentFrame = sceneChangeDetector.captureFrame();
+
+                            if (frameBeforeSilence && currentFrame) {
+                                const diff = sceneChangeDetector.calculateDifference(frameBeforeSilence, currentFrame);
+                                const threshold = sceneChangeDetector.changeThreshold;
+
+                                console.log(`📊 무음 2초 경과 - 화면 변화율: ${(diff.changeRatio * 100).toFixed(1)}% (임계값: ${(threshold * 100)}%)`);
+
+                                // 화면 변화가 임계값 이상이면 다음 클립으로 전환
+                                if (diff.changeRatio > threshold && diff.diffPixels > sceneChangeDetector.minChangePixels) {
+                                    console.log('🎬 화면 전환 감지! → 다음 클립 시작 시점');
+                                    triggerChapterTransition();
+                                } else {
+                                    console.log('⚠️ 무음 2초 경과했지만 화면 변화 없음 (같은 클립 내 무음으로 판단)');
+                                }
+                            }
+                        }
                     }
                 }
             }, 500);
@@ -1898,6 +1933,8 @@ Ch01. 오리엔테이션
             }
             detectedSceneChange = false;
             sceneChangeTime = null;
+            silenceStartForSplit = null; // ✅ 무음 타이머 리셋
+            frameBeforeSilence = null; // ✅ 저장된 화면 리셋
         }
 
         function triggerChapterTransition() {
@@ -2321,6 +2358,7 @@ Ch01. 오리엔테이션
                             updateStatus('recording', `🎵 소리 대기 중... (${nextName})`);
                             // actuallyStartRecording()이 루프에서 호출될 것임
                         } else {
+                            // ✅ 분할 후에는 바로 시작 (딜레이 없음)
                             actuallyStartRecording();
                         }
                     }
@@ -2733,6 +2771,12 @@ Ch01. 오리엔테이션
 
         playbackSpeed.addEventListener('change', () => {
             renderChapters();
+        });
+
+        // 무음 감지 시간 드롭다운 이벤트
+        silenceDurationSelect.addEventListener('change', (e) => {
+            silenceDuration = parseInt(e.target.value);
+            console.log(`무음 감지 시간 변경: ${silenceDuration / 1000}초`);
         });
 
         // 화면 전환 민감도 슬라이더 이벤트
