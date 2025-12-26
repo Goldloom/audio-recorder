@@ -625,6 +625,24 @@
             font-weight: 500;
         }
 
+        .sensitivity-slider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 10px;
+        }
+
+        .sensitivity-slider input[type="range"] {
+            width: 100px;
+            cursor: pointer;
+        }
+
+        .sensitivity-value {
+            font-size: 12px;
+            color: #666;
+            min-width: 30px;
+        }
+
         .curriculum-section {
             background: #f8f9fa;
             border-radius: 12px;
@@ -962,6 +980,18 @@
                 </label>
                 <span id="silenceIndicator" class="silence-indicator"></span>
             </div>
+            <div class="toggle-container">
+                <span class="toggle-label">🎬 화면 전환 자동감지 (목차용)</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="sceneChangeDetection" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+                <div class="sensitivity-slider">
+                    <span style="font-size: 11px; color: #666;">민감도:</span>
+                    <input type="range" id="sceneChangeSensitivity" min="5" max="30" value="15" step="1">
+                    <span class="sensitivity-value" id="sensitivityValue">15%</span>
+                </div>
+            </div>
             <button class="btn-new-lecture" id="newLectureBtn" disabled>
                 📚 새 강의
             </button>
@@ -1136,6 +1166,9 @@ Ch01. 오리엔테이션
         const autoStartOnSound = document.getElementById('autoStartOnSound'); // 추가
         const silenceDetection = document.getElementById('silenceDetection');
         const silenceIndicator = document.getElementById('silenceIndicator');
+        const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
+        const sceneChangeSensitivity = document.getElementById('sceneChangeSensitivity');
+        const sensitivityValue = document.getElementById('sensitivityValue');
         const newLectureBtn = document.getElementById('newLectureBtn');
         const curriculumInput = document.getElementById('curriculumInput');
         const parseBtn = document.getElementById('parseBtn');
@@ -1177,6 +1210,13 @@ Ch01. 오리엔테이션
 
         // ✅ 현재 녹음 중인 챕터 이름
         let activeChapterName = '';
+
+        // 화면 변화 감지 변수들
+        let sceneChangeDetector = null;
+        let lastFrameData = null;
+        let sceneChangeCheckInterval = null;
+        let detectedSceneChange = false;
+        let sceneChangeTime = null;
 
         function updateStatus(state, message) {
             statusDisplay.className = 'status ' + state;
@@ -1315,70 +1355,13 @@ Ch01. 오리엔테이션
                 }
             }
 
-            // ✅ 챕터 자동 분할용 무음 감지 (2초)
+            // ✅ 챕터 자동 분할: 화면 변화 감지 + 페일세이프
             if (waitingForSilence && mediaRecorder && mediaRecorder.state === 'recording') {
-                // 10초 강제 종료/분할 로직 추가 (페일세이프)
-                if (silenceWaitStartTime && (Date.now() - silenceWaitStartTime >= 10000)) {
-                    if (readyToAutoStop) {
-                        updateStatus('ready', '✅ 모든 강의 녹음 완료! (10초 경과로 강제 종료됨)');
-                        stopRecording();
-                    } else if (chapterReadyToSplit && pendingSplitChapterIndex >= 0) {
-                        const endedIdx = pendingSplitChapterIndex;
-                        const endedName = chapters[endedIdx].name;
-                        currentChapterIndex = endedIdx + 1;
-
-                        splitRecordingWithName(endedName);
-                        renderChapters();
-
-                        chapterReadyToSplit = false;
-                        waitingForSilence = false;
-                        pendingSplitChapterIndex = -1;
-                        silenceIndicator.textContent = '(10초 경과, 강제 분할됨!)';
-                        silenceIndicator.className = 'silence-indicator active';
-                    }
-                    silenceWaitStartTime = null;
-                    silenceStartForSplit = null;
+                // 20초 강제 종료/분할 로직 (페일세이프 - 화면 변화 감지 실패 대비)
+                if (silenceWaitStartTime && (Date.now() - silenceWaitStartTime >= 20000)) {
+                    console.log('⚠️ 20초 타임아웃: 화면 전환이 감지되지 않아 강제 전환');
+                    triggerChapterTransition();
                     return;
-                }
-
-                const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-
-                if (average < silenceThreshold) {
-                    if (!silenceStartForSplit) {
-                        silenceStartForSplit = Date.now();
-                    } else {
-                        const silentTime = Date.now() - silenceStartForSplit;
-                        silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초 / 2초)`;
-                        silenceIndicator.className = 'silence-indicator active';
-
-                        if (silentTime >= silenceDurationForSplit) {
-                            silenceWaitStartTime = null; // ✅ 정상 감지 시 대기 시작 시간 초기화
-                            if (readyToAutoStop) {
-                                updateStatus('ready', '✅ 모든 강의 녹음 완료! 자동 종료됨');
-                                stopRecording();
-                            } else if (chapterReadyToSplit && pendingSplitChapterIndex >= 0) {
-                                // 다음 챕터로 이동
-                                const endedIdx = pendingSplitChapterIndex;
-                                const endedName = chapters[endedIdx].name;
-                                currentChapterIndex = endedIdx + 1;
-
-                                splitRecordingWithName(endedName);
-                                renderChapters();
-
-                                chapterReadyToSplit = false;
-                                waitingForSilence = false;
-                                pendingSplitChapterIndex = -1;
-                                silenceIndicator.textContent = '(분할 완료!)';
-                            }
-                            silenceStartForSplit = null;
-                        }
-                    }
-                } else {
-                    silenceStartForSplit = null;
-                    if (waitingForSilence) {
-                        silenceIndicator.textContent = '(무음 대기 중...)';
-                        silenceIndicator.className = 'silence-indicator active';
-                    }
                 }
             }
 
@@ -1676,6 +1659,13 @@ Ch01. 오리엔테이션
                 videoElement.remove();
                 videoElement = null;
             }
+
+            // 화면 변화 감지 정리
+            stopSceneChangeDetection();
+            if (sceneChangeDetector) {
+                sceneChangeDetector.destroy();
+                sceneChangeDetector = null;
+            }
         }
 
         // 캡처 관련 상수
@@ -1743,6 +1733,196 @@ Ch01. 오리엔테이션
             } else {
                 captureStatus.textContent = '';
             }
+        }
+
+        // 화면 변화 감지 시스템
+        class SceneChangeDetector {
+            constructor(videoElement) {
+                this.video = videoElement;
+                this.canvas = document.createElement('canvas');
+                this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+                this.lastFrameData = null;
+                this.changeThreshold = 0.15; // 15% 이상 변화 시 장면 전환으로 판단
+                this.minChangePixels = 50000; // 최소 변화 픽셀 수
+                this.lastChangeTime = 0;
+                this.cooldownPeriod = 3000; // 3초 쿨다운 (같은 강의 내 전환 무시)
+
+                // 샘플링 해상도 (성능 최적화)
+                this.sampleWidth = 160;
+                this.sampleHeight = 90;
+                this.canvas.width = this.sampleWidth;
+                this.canvas.height = this.sampleHeight;
+            }
+
+            captureFrame() {
+                if (!this.video || this.video.readyState < 2) return null;
+
+                this.ctx.drawImage(this.video, 0, 0, this.sampleWidth, this.sampleHeight);
+                return this.ctx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
+            }
+
+            calculateDifference(frame1, frame2) {
+                if (!frame1 || !frame2) return 0;
+
+                const data1 = frame1.data;
+                const data2 = frame2.data;
+                let diffPixels = 0;
+                let totalDiff = 0;
+
+                // 픽셀 단위로 RGB 차이 계산 (4픽셀씩 건너뛰며 샘플링)
+                for (let i = 0; i < data1.length; i += 16) { // RGBA이므로 4픽셀 = 16바이트
+                    const r1 = data1[i];
+                    const g1 = data1[i + 1];
+                    const b1 = data1[i + 2];
+                    const r2 = data2[i];
+                    const g2 = data2[i + 1];
+                    const b2 = data2[i + 2];
+
+                    const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+
+                    // 임계값 이상의 변화만 카운트 (미세한 변화 무시)
+                    if (diff > 30) {
+                        diffPixels++;
+                        totalDiff += diff;
+                    }
+                }
+
+                const totalPixels = (data1.length / 4) / 4; // 샘플링한 픽셀 수
+                const changeRatio = diffPixels / totalPixels;
+                const avgDiff = diffPixels > 0 ? totalDiff / diffPixels : 0;
+
+                return { changeRatio, diffPixels, avgDiff };
+            }
+
+            checkSceneChange() {
+                const currentFrame = this.captureFrame();
+                if (!currentFrame) return false;
+
+                if (!this.lastFrameData) {
+                    this.lastFrameData = currentFrame;
+                    return false;
+                }
+
+                const now = Date.now();
+                if (now - this.lastChangeTime < this.cooldownPeriod) {
+                    this.lastFrameData = currentFrame;
+                    return false;
+                }
+
+                const diff = this.calculateDifference(this.lastFrameData, currentFrame);
+                this.lastFrameData = currentFrame;
+
+                // 장면 전환 감지: 변화율이 높고 충분한 픽셀이 변경되었을 때
+                const isSceneChange = diff.changeRatio > this.changeThreshold &&
+                                     diff.diffPixels > this.minChangePixels;
+
+                if (isSceneChange) {
+                    this.lastChangeTime = now;
+                    console.log(`🎬 장면 전환 감지! 변화율: ${(diff.changeRatio * 100).toFixed(1)}%, 변화 픽셀: ${diff.diffPixels}, 평균 차이: ${diff.avgDiff.toFixed(1)}`);
+                }
+
+                return isSceneChange;
+            }
+
+            reset() {
+                this.lastFrameData = null;
+                this.lastChangeTime = 0;
+            }
+
+            destroy() {
+                this.lastFrameData = null;
+                this.canvas = null;
+                this.ctx = null;
+            }
+        }
+
+        function startSceneChangeDetection() {
+            // 화면 변화 감지가 비활성화되어 있으면 시작하지 않음
+            if (!sceneChangeDetectionToggle.checked) return;
+            if (!videoElement || !waitingForSilence) return;
+
+            if (!sceneChangeDetector) {
+                sceneChangeDetector = new SceneChangeDetector(videoElement);
+                // 슬라이더 값으로 민감도 설정
+                sceneChangeDetector.changeThreshold = parseInt(sceneChangeSensitivity.value) / 100;
+            }
+
+            // 화면 변화 감지 중지 (이미 실행 중이면)
+            stopSceneChangeDetection();
+
+            // 500ms마다 화면 변화 체크
+            sceneChangeCheckInterval = setInterval(() => {
+                if (!waitingForSilence) {
+                    stopSceneChangeDetection();
+                    return;
+                }
+
+                const sceneChanged = sceneChangeDetector.checkSceneChange();
+
+                if (sceneChanged) {
+                    detectedSceneChange = true;
+                    sceneChangeTime = Date.now();
+
+                    // 화면 전환 + 무음 감지 조합으로 더 확실한 강의 전환 판단
+                    const average = dataArray ? dataArray.reduce((a, b) => a + b, 0) / dataArray.length : 0;
+                    const isSilent = average < silenceThreshold;
+
+                    if (isSilent) {
+                        // 화면 전환 + 무음 = 강의 전환 확정!
+                        console.log('✅ 강의 전환 확정: 화면 전환 + 무음 감지');
+                        triggerChapterTransition();
+                    }
+                }
+
+                // 화면 전환 후 1초 이내에 무음이 감지되면 전환
+                if (detectedSceneChange && sceneChangeTime &&
+                    (Date.now() - sceneChangeTime < 1000)) {
+                    const average = dataArray ? dataArray.reduce((a, b) => a + b, 0) / dataArray.length : 0;
+                    if (average < silenceThreshold) {
+                        console.log('✅ 강의 전환 확정: 화면 전환 직후 무음');
+                        triggerChapterTransition();
+                    }
+                }
+            }, 500);
+        }
+
+        function stopSceneChangeDetection() {
+            if (sceneChangeCheckInterval) {
+                clearInterval(sceneChangeCheckInterval);
+                sceneChangeCheckInterval = null;
+            }
+            detectedSceneChange = false;
+            sceneChangeTime = null;
+        }
+
+        function triggerChapterTransition() {
+            stopSceneChangeDetection();
+            silenceWaitStartTime = null;
+
+            if (readyToAutoStop) {
+                updateStatus('ready', '✅ 모든 강의 녹음 완료! (화면 전환 감지)');
+                stopRecording();
+            } else if (chapterReadyToSplit && pendingSplitChapterIndex >= 0) {
+                const endedIdx = pendingSplitChapterIndex;
+                const endedName = chapters[endedIdx].name;
+                currentChapterIndex = endedIdx + 1;
+
+                splitRecordingWithName(endedName);
+                renderChapters();
+
+                chapterReadyToSplit = false;
+                waitingForSilence = false;
+                pendingSplitChapterIndex = -1;
+                silenceIndicator.textContent = '(전환 완료!)';
+                silenceIndicator.className = 'silence-indicator';
+
+                // 다음 챕터를 위해 감지기 리셋
+                if (sceneChangeDetector) {
+                    sceneChangeDetector.reset();
+                }
+            }
+
+            silenceStartForSplit = null;
         }
 
         // jsPDF 라이브러리 동적 로드
@@ -2265,26 +2445,69 @@ Ch01. 오리엔테이션
                 const ch = chapters[i];
                 cumulativeTime += ch.duration * 1000;
 
-                const timer = setTimeout(() => {
-                    if (i < chapters.length - 1) {
-                        // 다음 챕터로 전환 준비
-                        chapterReadyToSplit = true;
-                        waitingForSilence = true;
-                        silenceWaitStartTime = Date.now(); // ✅ 대기 시작 시간 기록
-                        pendingSplitChapterIndex = i;
-                        silenceIndicator.textContent = '(무음 대기 중...)';
-                        silenceIndicator.className = 'silence-indicator active';
-                    } else if (autoStopCheckbox.checked) {
-                        // 마지막 챕터 → 자동 종료 준비
-                        readyToAutoStop = true;
-                        waitingForSilence = true;
-                        silenceWaitStartTime = Date.now(); // ✅ 대기 시작 시간 기록
-                        silenceIndicator.textContent = '(마지막 챕터, 무음 대기...)';
-                        silenceIndicator.className = 'silence-indicator active';
+                // 챕터 종료 5초 전에 화면 변화 감지 시작
+                const preDetectionTime = Math.max(0, cumulativeTime - 5000);
+
+                if (preDetectionTime > 0) {
+                    const preTimer = setTimeout(() => {
+                        console.log(`⏰ 챕터 ${i + 1} 종료 5초 전 - 화면 변화 감지 시작`);
+
+                        if (i < chapters.length - 1) {
+                            // 다음 챕터로 전환 준비 (5초 전부터 대기)
+                            chapterReadyToSplit = true;
+                            waitingForSilence = true;
+                            silenceWaitStartTime = Date.now();
+                            pendingSplitChapterIndex = i;
+                            silenceIndicator.textContent = '(화면 전환 감지 중... 5초 전)';
+                            silenceIndicator.className = 'silence-indicator active';
+
+                            // 화면 변화 감지 시작
+                            startSceneChangeDetection();
+                        } else if (autoStopCheckbox.checked) {
+                            // 마지막 챕터 → 자동 종료 준비 (5초 전부터 대기)
+                            readyToAutoStop = true;
+                            waitingForSilence = true;
+                            silenceWaitStartTime = Date.now();
+                            silenceIndicator.textContent = '(마지막 챕터, 화면 전환 감지 중... 5초 전)';
+                            silenceIndicator.className = 'silence-indicator active';
+
+                            // 화면 변화 감지 시작
+                            startSceneChangeDetection();
+                        }
+                    }, preDetectionTime);
+
+                    chapterTimers.push(preTimer);
+                }
+
+                // 원래 챕터 종료 시간에도 타이머 설정 (감지 실패 시 백업)
+                const endTimer = setTimeout(() => {
+                    // 이미 감지되어 전환되었으면 무시
+                    if (!waitingForSilence) return;
+
+                    console.log(`⏰ 챕터 ${i + 1} 종료 시간 도달`);
+
+                    if (!chapterReadyToSplit && !readyToAutoStop) {
+                        // 5초 전 타이머가 작동하지 않은 경우 (짧은 챕터 등)
+                        if (i < chapters.length - 1) {
+                            chapterReadyToSplit = true;
+                            waitingForSilence = true;
+                            silenceWaitStartTime = Date.now();
+                            pendingSplitChapterIndex = i;
+                            silenceIndicator.textContent = '(화면 전환 감지 중...)';
+                            silenceIndicator.className = 'silence-indicator active';
+                            startSceneChangeDetection();
+                        } else if (autoStopCheckbox.checked) {
+                            readyToAutoStop = true;
+                            waitingForSilence = true;
+                            silenceWaitStartTime = Date.now();
+                            silenceIndicator.textContent = '(마지막 챕터, 화면 전환 감지 중...)';
+                            silenceIndicator.className = 'silence-indicator active';
+                            startSceneChangeDetection();
+                        }
                     }
                 }, cumulativeTime);
 
-                chapterTimers.push(timer);
+                chapterTimers.push(endTimer);
             }
         }
 
@@ -2297,7 +2520,10 @@ Ch01. 오리엔테이션
             pendingSplitChapterIndex = -1;
             readyToAutoStop = false;
             silenceStartForSplit = null;
-            silenceWaitStartTime = null; // ✅ 초기화
+            silenceWaitStartTime = null;
+
+            // 화면 변화 감지 중지
+            stopSceneChangeDetection();
         }
 
         // 수동 분할 (새 강의 버튼)
@@ -2427,6 +2653,17 @@ Ch01. 오리엔테이션
 
         playbackSpeed.addEventListener('change', () => {
             renderChapters();
+        });
+
+        // 화면 전환 민감도 슬라이더 이벤트
+        sceneChangeSensitivity.addEventListener('input', (e) => {
+            const value = e.target.value;
+            sensitivityValue.textContent = `${value}%`;
+
+            // 현재 감지기가 있으면 민감도 업데이트
+            if (sceneChangeDetector) {
+                sceneChangeDetector.changeThreshold = value / 100;
+            }
         });
 
         // GitHub API를 사용하여 마지막 커밋 날짜 가져오기
