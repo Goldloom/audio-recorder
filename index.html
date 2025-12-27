@@ -1949,7 +1949,7 @@ Ch01. 오리엔테이션
                 }
 
                 // 화면 전환 자동감지가 활성화되어 있으면 즉시 감지 시작
-                if (sceneChangeToggle.checked && !templateMatchingToggle.checked) {
+                if (sceneChangeDetectionToggle.checked && !templateMatchingToggle.checked) {
                     console.log('✅ 화면 전환 자동감지 활성화 → 즉시 감지 시작');
                     chapterReadyToSplit = true;
                     waitingForSilence = true;
@@ -2379,9 +2379,17 @@ Ch01. 오리엔테이션
         }
 
         function startSceneChangeDetection() {
+            console.log(`🔍 [DEBUG] startSceneChangeDetection 호출 - sceneChangeDetectionToggle: ${sceneChangeDetectionToggle.checked}, templateMatchingToggle: ${templateMatchingToggle.checked}, videoElement: ${!!videoElement}, waitingForSilence: ${waitingForSilence}`);
+
             // 화면 변화 감지가 비활성화되어 있으면 시작하지 않음
-            if (!sceneChangeDetectionToggle.checked && !templateMatchingToggle.checked) return;
-            if (!videoElement || !waitingForSilence) return;
+            if (!sceneChangeDetectionToggle.checked && !templateMatchingToggle.checked) {
+                console.log('⚠️ [DEBUG] 화면 전환 감지/템플릿 매칭 둘 다 비활성화 → 감지 시작 안 함');
+                return;
+            }
+            if (!videoElement || !waitingForSilence) {
+                console.log(`⚠️ [DEBUG] videoElement 또는 waitingForSilence 누락 → 감지 시작 안 함 (videoElement: ${!!videoElement}, waitingForSilence: ${waitingForSilence})`);
+                return;
+            }
 
             if (!sceneChangeDetector) {
                 sceneChangeDetector = new SceneChangeDetector(videoElement);
@@ -2467,6 +2475,14 @@ Ch01. 오리엔테이션
                     } else {
                         // 새로운 로직: 화면 전환만으로 감지
                         const isTransition = sceneChangeDetector.checkSceneChange();
+
+                        // 5초마다 감지 상태 로그 (너무 많은 로그 방지)
+                        const now = Date.now();
+                        if (!window.lastSceneCheckLog || now - window.lastSceneCheckLog > 5000) {
+                            console.log(`🔍 [DEBUG] 화면 전환 감지 중... (화면만 모드, 민감도: ${(sceneChangeDetector.changeThreshold * 100).toFixed(0)}%)`);
+                            window.lastSceneCheckLog = now;
+                        }
+
                         if (isTransition) {
                             console.log(`🎬 화면 전환 감지! (화면만) → 자동분할`);
                             const elapsed = recordingStartTime ? ((Date.now() - recordingStartTime) / 1000).toFixed(0) : '?';
@@ -2547,7 +2563,7 @@ Ch01. 오리엔테이션
                 pausedTime = 0;
 
                 // 화면 전환 자동감지가 활성화되어 있으면 다시 감지 시작
-                if (sceneChangeToggle.checked && !templateMatchingToggle.checked && currentChapterIndex < chapters.length) {
+                if (sceneChangeDetectionToggle.checked && !templateMatchingToggle.checked && currentChapterIndex < chapters.length) {
                     console.log('✅ 화면 전환 자동감지 활성화 → 다음 챕터 감지 시작');
                     chapterReadyToSplit = true;
                     waitingForSilence = true;
