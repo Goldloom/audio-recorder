@@ -1658,16 +1658,7 @@ Ch01. 오리엔테이션
                 }
             }
 
-            // ✅ 챕터 자동 분할: 무음 2초 → 화면 전환 감지 + 페일세이프
-            if (waitingForSilence && mediaRecorder && mediaRecorder.state === 'recording') {
-                // 20초 강제 종료/분할 로직 (페일세이프 - 무음 또는 화면 전환 미감지 대비)
-                if (silenceWaitStartTime && (Date.now() - silenceWaitStartTime >= 20000)) {
-                    console.log('⚠️ 20초 페일세이프: 무음 2초 + 화면 전환 미감지 → 강제 전환');
-                    addLog('⏱️ 20초 페일세이프 타임아웃 → 다음 챕터로 전환', 'warning');
-                    triggerChapterTransition('20초 페일세이프 타임아웃');
-                    return;
-                }
-            }
+            // 20초 페일세이프 제거 - 화면 전환 자동감지만 사용
 
             const barCount = 64;
             const barWidth = width / barCount;
@@ -2549,6 +2540,17 @@ Ch01. 오리엔테이션
                 // ✅ 타이머와 startTime 리셋하여 다음 녹음의 30초 카운트 다시 시작
                 startTime = Date.now();
                 pausedTime = 0;
+
+                // 화면 전환 자동감지가 활성화되어 있으면 다시 감지 시작
+                if (sceneChangeDetectionToggle.checked && currentChapterIndex < chapters.length) {
+                    console.log('✅ 화면 전환 자동감지: 다음 챕터 감지 재시작');
+                    chapterReadyToSplit = true;
+                    waitingForSilence = true;
+                    pendingSplitChapterIndex = currentChapterIndex;
+                    silenceIndicator.textContent = '(화면 전환으로 자동분할 대기 중...)';
+                    silenceIndicator.className = 'silence-indicator active';
+                    startSceneChangeDetection();
+                }
             } else {
                 addLog('🔍 [DEBUG] 전환 조건 불만족 - 아무 작업도 수행하지 않음', 'warning');
             }
@@ -3192,20 +3194,32 @@ Ch01. 오리엔테이션
             clearChapterTimers();
             activeChapterName = chapters[startIndex]?.name || '';
 
-            // ✅ 템플릿 매칭이 활성화되어 있으면 즉시 감지 시작하고, 타임아웃 타이머만 설정
+            // ✅ 템플릿 매칭이 활성화되어 있으면 즉시 감지 시작
             if (templateMatchingToggle.checked && templateImage) {
-                console.log('✅ 템플릿 매칭 모드: 즉시 감지 시작, 타임아웃 타이머 설정');
-                addLog(`🔍 [DEBUG] 템플릿 매칭 모드 시작 - startIndex: ${startIndex}, chapterReadyToSplit: true, pendingSplitChapterIndex: ${startIndex}`, 'info');
+                console.log('✅ 템플릿 매칭 모드: 즉시 감지 시작');
+                addLog(`🔍 [DEBUG] 템플릿 매칭 모드 시작 - startIndex: ${startIndex}`, 'info');
 
                 // 템플릿 매칭으로만 분할 진행
                 chapterReadyToSplit = true;
                 waitingForSilence = true;
-                silenceWaitStartTime = Date.now();
                 pendingSplitChapterIndex = startIndex;
                 silenceIndicator.textContent = '(템플릿 매칭으로 자동분할 대기 중...)';
                 silenceIndicator.className = 'silence-indicator active';
 
-                addLog(`🔍 [DEBUG] 변수 설정 완료 - chapterReadyToSplit: ${chapterReadyToSplit}, pendingSplitChapterIndex: ${pendingSplitChapterIndex}`, 'info');
+                // 화면 감지 시작
+                startSceneChangeDetection();
+            }
+            // ✅ 화면 전환 자동감지가 활성화되어 있으면 즉시 감지 시작
+            else if (sceneChangeDetectionToggle.checked) {
+                console.log('✅ 화면 전환 자동감지 모드: 즉시 감지 시작');
+                addLog(`🔍 [DEBUG] 화면 전환 자동감지 모드 시작 - startIndex: ${startIndex}`, 'info');
+
+                // 화면 전환 자동감지로만 분할 진행
+                chapterReadyToSplit = true;
+                waitingForSilence = true;
+                pendingSplitChapterIndex = startIndex;
+                silenceIndicator.textContent = '(화면 전환으로 자동분할 대기 중...)';
+                silenceIndicator.className = 'silence-indicator active';
 
                 // 화면 감지 시작
                 startSceneChangeDetection();
@@ -3311,80 +3325,8 @@ Ch01. 오리엔테이션
                 return;
             }
 
-            let cumulativeTime = 0;
-
-            console.log(`🔍 [DEBUG] startChapterTimers 시작 - startIndex: ${startIndex}, 전체 챕터 수: ${chapters.length}`);
-
-            for (let i = startIndex; i < chapters.length; i++) {
-                const ch = chapters[i];
-                cumulativeTime += ch.duration * 1000;
-
-                // 챕터 종료 5초 전에 화면 변화 감지 시작
-                const preDetectionTime = Math.max(0, cumulativeTime - 5000);
-
-                console.log(`🔍 [DEBUG] 챕터 ${i + 1} (${ch.name}) - 누적시간: ${(cumulativeTime/1000).toFixed(0)}초, 5초전 타이머: ${(preDetectionTime/1000).toFixed(0)}초 후 작동`);
-
-                if (preDetectionTime > 0) {
-                    const preTimer = setTimeout(() => {
-                        console.log(`⏰ 챕터 ${i + 1} 종료 5초 전 - 화면 변화 감지 시작`);
-
-                        if (i < chapters.length - 1) {
-                            // 다음 챕터로 전환 준비 (5초 전부터 대기)
-                            chapterReadyToSplit = true;
-                            waitingForSilence = true;
-                            silenceWaitStartTime = Date.now();
-                            pendingSplitChapterIndex = i;
-                            silenceIndicator.textContent = '(화면 전환 감지 중... 5초 전)';
-                            silenceIndicator.className = 'silence-indicator active';
-
-                            // 화면 변화 감지 시작
-                            startSceneChangeDetection();
-                        } else if (autoStopCheckbox.checked) {
-                            // 마지막 챕터 → 자동 종료 준비 (5초 전부터 대기)
-                            readyToAutoStop = true;
-                            waitingForSilence = true;
-                            silenceWaitStartTime = Date.now();
-                            silenceIndicator.textContent = '(마지막 챕터, 화면 전환 감지 중... 5초 전)';
-                            silenceIndicator.className = 'silence-indicator active';
-
-                            // 화면 변화 감지 시작
-                            startSceneChangeDetection();
-                        }
-                    }, preDetectionTime);
-
-                    chapterTimers.push(preTimer);
-                }
-
-                // 원래 챕터 종료 시간에도 타이머 설정 (감지 실패 시 백업)
-                const endTimer = setTimeout(() => {
-                    // 이미 감지되어 전환되었으면 무시
-                    if (!waitingForSilence) return;
-
-                    console.log(`⏰ 챕터 ${i + 1} 종료 시간 도달`);
-
-                    if (!chapterReadyToSplit && !readyToAutoStop) {
-                        // 5초 전 타이머가 작동하지 않은 경우 (짧은 챕터 등)
-                        if (i < chapters.length - 1) {
-                            chapterReadyToSplit = true;
-                            waitingForSilence = true;
-                            silenceWaitStartTime = Date.now();
-                            pendingSplitChapterIndex = i;
-                            silenceIndicator.textContent = '(화면 전환 감지 중...)';
-                            silenceIndicator.className = 'silence-indicator active';
-                            startSceneChangeDetection();
-                        } else if (autoStopCheckbox.checked) {
-                            readyToAutoStop = true;
-                            waitingForSilence = true;
-                            silenceWaitStartTime = Date.now();
-                            silenceIndicator.textContent = '(마지막 챕터, 화면 전환 감지 중...)';
-                            silenceIndicator.className = 'silence-indicator active';
-                            startSceneChangeDetection();
-                        }
-                    }
-                }, cumulativeTime);
-
-                chapterTimers.push(endTimer);
-            }
+            // 화면 전환 자동감지 모드에서는 타이머 불필요 (즉시 감지 시작)
+            console.log('✅ 화면 전환 자동감지 모드: 타이머 설정 생략');
         }
 
         // 챕터 타이머 클리어
