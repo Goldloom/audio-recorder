@@ -2246,7 +2246,24 @@ Ch01. 오리엔테이션
                 clearInterval(timerInterval);
                 clearChapterTimers();
 
+                // ✅ mediaRecorder.onstop이 실행되기 전에 현재 챕터 이름을 저장
+                const finalChapterName = activeChapterName ||
+                    (chapters[currentChapterIndex]?.name) ||
+                    `강의${lectureCount}`;
+
                 if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    // ✅ 저장된 챕터 이름으로 녹음 저장
+                    stopCapture();
+                    const imagesToSave = [...capturedImages];
+                    capturedImages = [];
+                    captureCount = 0;
+
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: currentMimeType });
+                        saveRecordingWithNameAndImages(audioBlob, currentRecordingType, finalChapterName, imagesToSave);
+                        audioChunks = [];
+                    };
+
                     mediaRecorder.stop();
                 }
 
