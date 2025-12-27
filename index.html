@@ -3470,19 +3470,26 @@ Ch01. 오리엔테이션
         downloadAllBtn.addEventListener('click', downloadAll);
 
         // 마지막 부분 예시
-        parseBtn.addEventListener('click', () => {
-            const text = curriculumInput.value;
-            chapters = parseCurriculum(text);
-            currentChapterIndex = 0;
-            activeChapterName = chapters[0]?.name || '';
-            renderChapters();
+        if (parseBtn) {
+            parseBtn.addEventListener('click', () => {
+                console.log('목차 분석 버튼 클릭됨');
+                const text = curriculumInput.value;
+                console.log('입력된 텍스트:', text);
+                chapters = parseCurriculum(text);
+                console.log('파싱된 챕터:', chapters);
+                currentChapterIndex = 0;
+                activeChapterName = chapters[0]?.name || '';
+                renderChapters();
 
-            if (chapters.length > 0) {
-                updateStatus('ready', `✅ ${chapters.length}개 챕터 인식됨`);
-            } else {
-                updateStatus('ready', '⚠️ 챕터를 인식하지 못했습니다. 시간(MM:SS)이 포함되어 있는지 확인하세요.');
-            }
-        });
+                if (chapters.length > 0) {
+                    updateStatus('ready', `✅ ${chapters.length}개 챕터 인식됨`);
+                } else {
+                    updateStatus('ready', '⚠️ 챕터를 인식하지 못했습니다. 시간(MM:SS)이 포함되어 있는지 확인하세요.');
+                }
+            });
+        } else {
+            console.error('parseBtn 요소를 찾을 수 없습니다');
+        }
 
         clearBtn.addEventListener('click', () => {
             curriculumInput.value = '';
