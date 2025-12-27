@@ -1102,7 +1102,7 @@
                 <span id="silenceIndicator" class="silence-indicator"></span>
             </div>
             <div class="toggle-container">
-                <span class="toggle-label">🎬 화면 전환 자동감지 (목차용)</span>
+                <span class="toggle-label" title="동영상 전환을 자동으로 감지하여 챕터를 분할합니다.&#13;&#10;&#13;&#10;• 연속 3프레임 이상 화면 변화 감지&#13;&#10;• 픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 올블랙 화면 → 일반 화면 전환 감지&#13;&#10;• 3초 쿨다운으로 오감지 방지&#13;&#10;&#13;&#10;아래 '무음 2초 + 화면 전환' 체크 시:&#13;&#10;무음 2초 경과 + 화면 전환 모두 만족해야 분할">🎬 화면 전환 자동감지 (목차용)</span>
                 <label class="toggle-switch">
                     <input type="checkbox" id="sceneChangeDetection" checked>
                     <span class="toggle-slider"></span>
@@ -1114,7 +1114,7 @@
                 </div>
             </div>
             <div class="toggle-container" style="padding-left: 30px; margin-top: -10px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;" title="체크 시: 무음 2초 + 화면 전환 모두 만족해야 분할 (정밀)&#13;&#10;체크 안 함: 화면 전환만으로 즉시 분할 (빠름, 기본값)">
                     <input type="checkbox" id="requireSilenceForSceneChange" style="width: 16px; height: 16px; cursor: pointer;">
                     <span>무음 2초 + 화면 전환 조건 (AND)</span>
                 </label>
