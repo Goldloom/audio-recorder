@@ -1119,6 +1119,14 @@
 
         <div id="status" class="status ready">준비됨 - 녹음 버튼을 눌러 시작하세요</div>
 
+        <div class="extra-controls">
+            <button id="newLectureBtn" class="btn-new-lecture" title="현재 녹음을 저장하고 즉시 새로운 강의 녹음을 시작합니다">
+                <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; fill: white;">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+                새 강의 시작 (수동 분할)
+            </button>
+        </div>
 
         <div class="curriculum-section">
             <div class="curriculum-header">
@@ -1255,7 +1263,8 @@ Ch01. 오리엔테이션
                         <input type="checkbox" id="silenceDetection">
                         <span class="toggle-slider"></span>
                     </label>
-                    <select id="silenceDurationSelect" style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                    <select id="silenceDurationSelect"
+                        style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
                         <option value="2000">2초</option>
                         <option value="3000">3초</option>
                         <option value="4000" selected>4초</option>
@@ -1264,7 +1273,9 @@ Ch01. 오리엔테이션
                     <span id="silenceIndicator" class="silence-indicator"></span>
                 </div>
                 <div class="toggle-container">
-                    <span class="toggle-label" title="동영상 전환을 자동으로 감지하여 챕터를 분할합니다.&#13;&#10;&#13;&#10;• 연속 3프레임 이상 화면 변화 감지&#13;&#10;• 픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 올블랙 화면 → 일반 화면 전환 감지&#13;&#10;• 3초 쿨다운으로 오감지 방지&#13;&#10;&#13;&#10;아래 '무음 2초 + 화면 전환' 체크 시:&#13;&#10;무음 2초 경과 + 화면 전환 모두 만족해야 분할">🎬 화면 전환 자동감지 (목차용)</span>
+                    <span class="toggle-label"
+                        title="동영상 전환을 자동으로 감지하여 챕터를 분할합니다.&#13;&#10;&#13;&#10;• 연속 3프레임 이상 화면 변화 감지&#13;&#10;• 픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 올블랙 화면 → 일반 화면 전환 감지&#13;&#10;• 3초 쿨다운으로 오감지 방지&#13;&#10;&#13;&#10;아래 '무음 2초 + 화면 전환' 체크 시:&#13;&#10;무음 2초 경과 + 화면 전환 모두 만족해야 분할">🎬
+                        화면 전환 자동감지 (목차용)</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="sceneChangeDetection" checked>
                         <span class="toggle-slider"></span>
@@ -1276,20 +1287,26 @@ Ch01. 오리엔테이션
                     </div>
                 </div>
                 <div class="toggle-container" style="padding-left: 30px; margin-top: -10px;">
-                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;" title="체크 시: 무음 2초 + 화면 전환 모두 만족해야 분할 (정밀)&#13;&#10;체크 안 함: 화면 전환만으로 즉시 분할 (빠름, 기본값)">
-                        <input type="checkbox" id="requireSilenceForSceneChange" style="width: 16px; height: 16px; cursor: pointer;">
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;"
+                        title="체크 시: 무음 2초 + 화면 전환 모두 만족해야 분할 (정밀)&#13;&#10;체크 안 함: 화면 전환만으로 즉시 분할 (빠름, 기본값)">
+                        <input type="checkbox" id="requireSilenceForSceneChange"
+                            style="width: 16px; height: 16px; cursor: pointer;">
                         <span>무음 2초 + 화면 전환 조건 (AND)</span>
                     </label>
                 </div>
                 <div class="toggle-container">
-                    <span class="toggle-label" title="업로드한 이미지와 화면을 실시간 비교하여 자동 분할합니다.&#13;&#10;예상 녹음 시간 경과 후 최대 20초까지 템플릿 매칭을 대기하며,&#13;&#10;20초 내에 매칭되지 않으면 자동으로 다음 녹음으로 넘어갑니다.">🖼️ 템플릿 매칭 자동분할</span>
+                    <span class="toggle-label"
+                        title="업로드한 이미지와 화면을 실시간 비교하여 자동 분할합니다.&#13;&#10;예상 녹음 시간 경과 후 최대 20초까지 템플릿 매칭을 대기하며,&#13;&#10;20초 내에 매칭되지 않으면 자동으로 다음 녹음으로 넘어갑니다.">🖼️
+                        템플릿 매칭 자동분할</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="templateMatching">
                         <span class="toggle-slider"></span>
                     </label>
                     <div style="margin-left: 10px; display: flex; gap: 10px; align-items: center;">
                         <input type="file" id="templateImageInput" accept="image/*" style="display: none;">
-                        <button id="uploadTemplateBtn" style="padding: 4px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px;">
+                        <button id="uploadTemplateBtn"
+                            style="padding: 4px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px;">
                             📁 이미지 업로드
                         </button>
                         <span id="templateStatus" style="font-size: 11px; color: #666;"></span>
@@ -1309,7 +1326,8 @@ Ch01. 오리엔테이션
                     <div style="margin-left: 10px; display: flex; gap: 15px; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <label style="font-size: 12px; color: #666;">간격:</label>
-                            <select id="captureInterval" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                            <select id="captureInterval"
+                                style="padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
                                 <option value="1">1초</option>
                                 <option value="2">2초</option>
                                 <option value="5" selected>5초</option>
@@ -1318,7 +1336,8 @@ Ch01. 오리엔테이션
                         </div>
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <label style="font-size: 12px; color: #666;">품질:</label>
-                            <select id="captureQuality" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                            <select id="captureQuality"
+                                style="padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
                                 <option value="0.9">고화질</option>
                                 <option value="0.7" selected>중화질</option>
                                 <option value="0.5">저화질</option>
