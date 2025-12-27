@@ -1934,9 +1934,12 @@ Ch01. 오리엔테이션
                 addLog(`🎬 녹음 시작: "${currentChapter.name}" (챕터 ${currentChapterIndex + 1}/${chapters.length}, 예상: ${expectedTimeStr})`, 'success');
 
                 // 챕터 타이머는 첫 녹음 시작 시에만 시작 (분할 시에는 이미 시작됨)
+                console.log(`🔍 [DEBUG] 조건 확인 - currentChapterIndex: ${currentChapterIndex}, chapterTimers.length: ${chapterTimers.length}`);
                 if (currentChapterIndex === 0 || chapterTimers.length === 0) {
                     console.log(`🔍 [DEBUG] startChapterTimers() 호출 - currentChapterIndex: ${currentChapterIndex}`);
                     startChapterTimers(currentChapterIndex);
+                } else {
+                    console.log(`⚠️ [DEBUG] startChapterTimers() 호출 생략 - 이미 타이머가 설정됨`);
                 }
             } else {
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
