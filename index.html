@@ -1104,7 +1104,7 @@
             <div class="toggle-container">
                 <span class="toggle-label">🎬 화면 전환 자동감지 (목차용)</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="sceneChangeDetection">
+                    <input type="checkbox" id="sceneChangeDetection" checked>
                     <span class="toggle-slider"></span>
                 </label>
                 <div class="sensitivity-slider">
@@ -1113,10 +1113,16 @@
                     <span class="sensitivity-value" id="sensitivityValue">15%</span>
                 </div>
             </div>
+            <div class="toggle-container" style="padding-left: 30px; margin-top: -10px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;">
+                    <input type="checkbox" id="requireSilenceForSceneChange" style="width: 16px; height: 16px; cursor: pointer;">
+                    <span>무음 2초 + 화면 전환 조건 (AND)</span>
+                </label>
+            </div>
             <div class="toggle-container">
                 <span class="toggle-label" title="업로드한 이미지와 화면을 실시간 비교하여 자동 분할합니다.&#13;&#10;예상 녹음 시간 경과 후 최대 20초까지 템플릿 매칭을 대기하며,&#13;&#10;20초 내에 매칭되지 않으면 자동으로 다음 녹음으로 넘어갑니다.">🖼️ 템플릿 매칭 자동분할</span>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="templateMatching" checked>
+                    <input type="checkbox" id="templateMatching">
                     <span class="toggle-slider"></span>
                 </label>
                 <div style="margin-left: 10px; display: flex; gap: 10px; align-items: center;">
@@ -1127,8 +1133,8 @@
                     <span id="templateStatus" style="font-size: 11px; color: #666;"></span>
                     <div class="sensitivity-slider" style="margin-left: auto;">
                         <span style="font-size: 11px; color: #666;">유사도:</span>
-                        <input type="range" id="templateSimilarity" min="70" max="99" value="90" step="1">
-                        <span class="sensitivity-value" id="similarityValue">90%</span>
+                        <input type="range" id="templateSimilarity" min="70" max="99" value="99" step="1">
+                        <span class="sensitivity-value" id="similarityValue">99%</span>
                     </div>
                 </div>
             </div>
@@ -1328,6 +1334,7 @@ Ch01. 오리엔테이션
         const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
         const sceneChangeSensitivity = document.getElementById('sceneChangeSensitivity');
         const sensitivityValue = document.getElementById('sensitivityValue');
+        const requireSilenceForSceneChange = document.getElementById('requireSilenceForSceneChange');
         const templateMatchingToggle = document.getElementById('templateMatching');
         const templateImageInput = document.getElementById('templateImageInput');
         const uploadTemplateBtn = document.getElementById('uploadTemplateBtn');
@@ -2007,8 +2014,10 @@ Ch01. 오리엔테이션
                 this.canvas = document.createElement('canvas');
                 this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
                 this.lastFrameData = null;
+                this.lastHistogram = null;
                 this.changeThreshold = 0.15; // 15% 이상 변화 시 장면 전환으로 판단
                 this.minChangePixels = 50000; // 최소 변화 픽셀 수
+                this.histogramThreshold = 0.25; // 25% 이상 히스토그램 변화 시 장면 전환
                 this.lastChangeTime = 0;
                 this.cooldownPeriod = 3000; // 3초 쿨다운 (같은 강의 내 전환 무시)
 
@@ -2017,6 +2026,10 @@ Ch01. 오리엔테이션
                 this.sampleHeight = 90;
                 this.canvas.width = this.sampleWidth;
                 this.canvas.height = this.sampleHeight;
+
+                // 연속 프레임 변화 추적 (동영상 전환 감지용)
+                this.consecutiveChanges = 0;
+                this.consecutiveThreshold = 3; // 3프레임 연속 변화 시 동영상 전환으로 판단
             }
 
             captureFrame() {
@@ -2024,6 +2037,61 @@ Ch01. 오리엔테이션
 
                 this.ctx.drawImage(this.video, 0, 0, this.sampleWidth, this.sampleHeight);
                 return this.ctx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
+            }
+
+            // 히스토그램 계산 (색상 분포 분석)
+            calculateHistogram(frameData) {
+                if (!frameData) return null;
+
+                const histogram = {
+                    r: new Array(16).fill(0),
+                    g: new Array(16).fill(0),
+                    b: new Array(16).fill(0),
+                    brightness: new Array(16).fill(0)
+                };
+
+                const data = frameData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+
+                    // 16개 구간으로 나누어 카운트
+                    histogram.r[Math.floor(r / 16)]++;
+                    histogram.g[Math.floor(g / 16)]++;
+                    histogram.b[Math.floor(b / 16)]++;
+
+                    // 밝기 계산 (간단한 평균)
+                    const brightness = (r + g + b) / 3;
+                    histogram.brightness[Math.floor(brightness / 16)]++;
+                }
+
+                // 정규화
+                const totalPixels = data.length / 4;
+                for (let i = 0; i < 16; i++) {
+                    histogram.r[i] /= totalPixels;
+                    histogram.g[i] /= totalPixels;
+                    histogram.b[i] /= totalPixels;
+                    histogram.brightness[i] /= totalPixels;
+                }
+
+                return histogram;
+            }
+
+            // 히스토그램 차이 계산
+            compareHistograms(hist1, hist2) {
+                if (!hist1 || !hist2) return 0;
+
+                let totalDiff = 0;
+                const channels = ['r', 'g', 'b', 'brightness'];
+
+                for (const channel of channels) {
+                    for (let i = 0; i < 16; i++) {
+                        totalDiff += Math.abs(hist1[channel][i] - hist2[channel][i]);
+                    }
+                }
+
+                return totalDiff / (16 * channels.length);
             }
 
             calculateDifference(frame1, frame2) {
@@ -2063,35 +2131,66 @@ Ch01. 오리엔테이션
                 const currentFrame = this.captureFrame();
                 if (!currentFrame) return false;
 
-                if (!this.lastFrameData) {
+                // 히스토그램 계산
+                const currentHistogram = this.calculateHistogram(currentFrame);
+
+                if (!this.lastFrameData || !this.lastHistogram) {
                     this.lastFrameData = currentFrame;
+                    this.lastHistogram = currentHistogram;
+                    this.consecutiveChanges = 0;
                     return false;
                 }
 
                 const now = Date.now();
                 if (now - this.lastChangeTime < this.cooldownPeriod) {
                     this.lastFrameData = currentFrame;
+                    this.lastHistogram = currentHistogram;
+                    this.consecutiveChanges = 0;
                     return false;
                 }
 
+                // 픽셀 단위 차이 계산
                 const diff = this.calculateDifference(this.lastFrameData, currentFrame);
+
+                // 히스토그램 차이 계산 (색상 분포 변화)
+                const histDiff = this.compareHistograms(this.lastHistogram, currentHistogram);
+
                 this.lastFrameData = currentFrame;
+                this.lastHistogram = currentHistogram;
 
-                // 장면 전환 감지: 변화율이 높고 충분한 픽셀이 변경되었을 때
-                const isSceneChange = diff.changeRatio > this.changeThreshold &&
-                                     diff.diffPixels > this.minChangePixels;
+                // 동영상 전환 감지 조건:
+                // 1. 픽셀 변화율이 높음 (급격한 화면 변화)
+                // 2. 히스토그램 변화가 큼 (색상 분포 변화)
+                // 3. 연속 프레임 변화 추적
+                const hasPixelChange = diff.changeRatio > this.changeThreshold && diff.diffPixels > this.minChangePixels;
+                const hasHistogramChange = histDiff > this.histogramThreshold;
 
-                if (isSceneChange) {
-                    this.lastChangeTime = now;
-                    console.log(`🎬 장면 전환 감지! 변화율: ${(diff.changeRatio * 100).toFixed(1)}%, 변화 픽셀: ${diff.diffPixels}, 평균 차이: ${diff.avgDiff.toFixed(1)}`);
+                // 둘 중 하나라도 큰 변화가 있으면 카운트 증가
+                if (hasPixelChange || hasHistogramChange) {
+                    this.consecutiveChanges++;
+                    addLog(`🔍 [DEBUG] 화면 변화 감지 (${this.consecutiveChanges}/${this.consecutiveThreshold}) - 픽셀: ${(diff.changeRatio * 100).toFixed(1)}%, 히스토그램: ${(histDiff * 100).toFixed(1)}%`, 'info');
+                } else {
+                    this.consecutiveChanges = 0;
                 }
 
-                return isSceneChange;
+                // 연속 N프레임 이상 변화 시 동영상 전환으로 판단
+                const isVideoTransition = this.consecutiveChanges >= this.consecutiveThreshold;
+
+                if (isVideoTransition) {
+                    this.lastChangeTime = now;
+                    this.consecutiveChanges = 0;
+                    console.log(`🎬 동영상 전환 감지! 픽셀 변화율: ${(diff.changeRatio * 100).toFixed(1)}%, 히스토그램 변화: ${(histDiff * 100).toFixed(1)}%`);
+                    addLog(`🎬 동영상 전환 감지! (픽셀: ${(diff.changeRatio * 100).toFixed(1)}%, 색상분포: ${(histDiff * 100).toFixed(1)}%)`, 'success');
+                }
+
+                return isVideoTransition;
             }
 
             reset() {
                 this.lastFrameData = null;
+                this.lastHistogram = null;
                 this.lastChangeTime = 0;
+                this.consecutiveChanges = 0;
             }
 
             destroy() {
@@ -2207,44 +2306,60 @@ Ch01. 오리엔테이션
                             const similarity = (result.similarity * 100).toFixed(1);
                             console.log(`🖼️ 템플릿 매칭 감지! 유사도: ${similarity}% → 자동분할`);
                             addLog(`🖼️ 템플릿 매칭 감지! (유사도: ${similarity}%) → 다음 챕터로 전환`, 'success');
+                            addLog(`🔍 [DEBUG] 템플릿 매칭으로 triggerChapterTransition 호출`, 'info');
                             triggerChapterTransition();
                         }
                     }
                 }
 
-                // 화면 전환 자동감지 (목차용) - 무음 기반
+                // 화면 전환 자동감지 (목차용)
                 if (sceneChangeDetectionToggle.checked) {
                     const average = dataArray ? dataArray.reduce((a, b) => a + b, 0) / dataArray.length : 0;
                     const isSilent = average < silenceThreshold;
 
-                    if (!isSilent) {
-                        if (silenceStartForSplit && !detectedSceneChange) {
-                            console.log('❌ 무음 중단 (소리 감지) - 타이머 리셋');
-                            silenceStartForSplit = null;
-                            frameBeforeSilence = null;
-                        }
-                    } else {
-                        if (!silenceStartForSplit) {
-                            silenceStartForSplit = Date.now();
-                            frameBeforeSilence = sceneChangeDetector.captureFrame();
-                            console.log('🔇 무음 감지 시작 → 현재 화면 저장');
-                        } else {
-                            const silentTime = Date.now() - silenceStartForSplit;
-
-                            if (silentTime >= 2000 && !detectedSceneChange) {
-                                detectedSceneChange = true;
-                                console.log('✅ 무음 2초 경과 → 화면 전환 감지 시작');
+                    // 무음 조건이 필요한 경우 (AND 조건)
+                    if (requireSilenceForSceneChange.checked) {
+                        // 기존 로직: 무음 2초 + 화면 전환
+                        if (!isSilent) {
+                            if (silenceStartForSplit && !detectedSceneChange) {
+                                console.log('❌ 무음 중단 (소리 감지) - 타이머 리셋');
+                                silenceStartForSplit = null;
+                                frameBeforeSilence = null;
                             }
+                        } else {
+                            if (!silenceStartForSplit) {
+                                silenceStartForSplit = Date.now();
+                                frameBeforeSilence = sceneChangeDetector.captureFrame();
+                                console.log('🔇 무음 감지 시작 → 현재 화면 저장');
+                            } else {
+                                const silentTime = Date.now() - silenceStartForSplit;
 
-                            if (detectedSceneChange) {
-                                const currentFrame = sceneChangeDetector.captureFrame();
-                                const diff = sceneChangeDetector.calculateDifference(frameBeforeSilence, currentFrame);
+                                if (silentTime >= 2000 && !detectedSceneChange) {
+                                    detectedSceneChange = true;
+                                    console.log('✅ 무음 2초 경과 → 화면 전환 감지 시작');
+                                }
 
-                                if (diff >= sceneChangeDetector.changeThreshold) {
-                                    console.log(`🎬 화면 전환 감지! 변화율: ${(diff * 100).toFixed(1)}% → 자동분할`);
-                                    triggerChapterTransition();
+                                if (detectedSceneChange) {
+                                    const currentFrame = sceneChangeDetector.captureFrame();
+                                    const diff = sceneChangeDetector.calculateDifference(frameBeforeSilence, currentFrame);
+
+                                    if (diff >= sceneChangeDetector.changeThreshold) {
+                                        console.log(`🎬 화면 전환 감지! (무음+화면) 변화율: ${(diff * 100).toFixed(1)}% → 자동분할`);
+                                        addLog(`🎬 화면 전환 감지! (무음+화면, 변화율: ${(diff * 100).toFixed(1)}%) → 다음 챕터로 전환`, 'success');
+                                        addLog(`🔍 [DEBUG] 화면 전환(무음+화면)으로 triggerChapterTransition 호출`, 'info');
+                                        triggerChapterTransition();
+                                    }
                                 }
                             }
+                        }
+                    } else {
+                        // 새로운 로직: 화면 전환만으로 감지
+                        const isTransition = sceneChangeDetector.checkSceneChange();
+                        if (isTransition) {
+                            console.log(`🎬 화면 전환 감지! (화면만) → 자동분할`);
+                            addLog(`🎬 화면 전환 감지! (화면만) → 다음 챕터로 전환`, 'success');
+                            addLog(`🔍 [DEBUG] 화면 전환(화면만)으로 triggerChapterTransition 호출`, 'info');
+                            triggerChapterTransition();
                         }
                     }
                 }
@@ -2271,6 +2386,15 @@ Ch01. 오리엔테이션
         }
 
         function triggerChapterTransition() {
+            // 🔍 디버깅: 호출 추적
+            const stackTrace = new Error().stack;
+            console.log('🔍 [DEBUG] triggerChapterTransition 호출됨');
+            console.log('🔍 [DEBUG] readyToAutoStop:', readyToAutoStop);
+            console.log('🔍 [DEBUG] chapterReadyToSplit:', chapterReadyToSplit);
+            console.log('🔍 [DEBUG] pendingSplitChapterIndex:', pendingSplitChapterIndex);
+            console.log('🔍 [DEBUG] currentChapterIndex:', currentChapterIndex);
+            console.log('🔍 [DEBUG] 호출 스택:', stackTrace);
+
             // ✅ 템플릿 매칭 후에도 계속 감지하기 위해 stopSceneChangeDetection 호출 안 함
             // 대신 화면 전환 감지 관련 변수만 리셋
             detectedSceneChange = false;
@@ -2280,12 +2404,15 @@ Ch01. 오리엔테이션
             silenceWaitStartTime = null;
 
             if (readyToAutoStop) {
+                addLog('🔍 [DEBUG] 마지막 챕터 자동 종료 실행', 'info');
                 updateStatus('ready', '✅ 모든 강의 녹음 완료! (템플릿 매칭 감지)');
                 stopRecording();
             } else if (chapterReadyToSplit && pendingSplitChapterIndex >= 0) {
                 const endedIdx = pendingSplitChapterIndex;
                 const endedName = chapters[endedIdx].name;
                 currentChapterIndex = endedIdx + 1;
+
+                addLog(`🔍 [DEBUG] 챕터 전환 실행: ${endedIdx} → ${currentChapterIndex}`, 'info');
 
                 splitRecordingWithName(endedName);
                 renderChapters();
@@ -2304,6 +2431,8 @@ Ch01. 오리엔테이션
                 // ✅ 타이머와 startTime 리셋하여 다음 녹음의 30초 카운트 다시 시작
                 startTime = Date.now();
                 pausedTime = 0;
+            } else {
+                addLog('🔍 [DEBUG] 전환 조건 불만족 - 아무 작업도 수행하지 않음', 'warning');
             }
         }
 
@@ -2990,6 +3119,7 @@ Ch01. 오리엔테이션
             // ✅ 템플릿 매칭이 활성화되어 있으면 즉시 감지 시작하고, 타임아웃 타이머만 설정
             if (templateMatchingToggle.checked && templateImage) {
                 console.log('✅ 템플릿 매칭 모드: 즉시 감지 시작, 타임아웃 타이머 설정');
+                addLog(`🔍 [DEBUG] 템플릿 매칭 모드 시작 - startIndex: ${startIndex}, chapterReadyToSplit: true, pendingSplitChapterIndex: ${startIndex}`, 'info');
 
                 // 템플릿 매칭으로만 분할 진행
                 chapterReadyToSplit = true;
@@ -2998,6 +3128,8 @@ Ch01. 오리엔테이션
                 pendingSplitChapterIndex = startIndex;
                 silenceIndicator.textContent = '(템플릿 매칭으로 자동분할 대기 중...)';
                 silenceIndicator.className = 'silence-indicator active';
+
+                addLog(`🔍 [DEBUG] 변수 설정 완료 - chapterReadyToSplit: ${chapterReadyToSplit}, pendingSplitChapterIndex: ${pendingSplitChapterIndex}`, 'info');
 
                 // 화면 감지 시작
                 startSceneChangeDetection();
