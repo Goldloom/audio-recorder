@@ -438,6 +438,43 @@
             padding: 15px;
         }
 
+        /* 자동화 설정 그룹 스타일 */
+        .settings-group {
+            margin-top: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+        }
+
+        .settings-title {
+            color: #1a1a2e;
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            font-weight: 600;
+        }
+
+        .settings-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .settings-content .toggle-container {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s ease;
+        }
+
+        .settings-content .toggle-container:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+
         .log-panel h2 {
             color: #1a1a2e;
             font-size: 16px;
@@ -1059,12 +1096,15 @@
                     <li><strong>"오디오 공유"</strong> 체크 ✅</li>
                     <li>공유 버튼 클릭 후 녹음 시작!</li>
                 </ol>
+                <hr style="margin: 12px 0; border: none; border-top: 1px solid rgba(255,255,255,0.2);">
+                <strong>⚠️ 브라우저 호환성</strong>
+                <p style="margin-top: 6px; font-size: 11px; line-height: 1.5;">
+                    <strong>Chrome, Edge</strong>에서만 작동합니다.<br>
+                    Firefox, Safari는 시스템 오디오 캡처를 지원하지 않습니다.
+                </p>
             </div>
         </div>
 
-        <div class="warning">
-            ⚠️ <strong>Chrome, Edge 브라우저</strong>에서만 작동합니다. Firefox, Safari는 시스템 오디오 캡처를 지원하지 않습니다.
-        </div>
 
         <div class="checkbox-group">
             <div class="checkbox-item">
@@ -1079,101 +1119,6 @@
 
         <div id="status" class="status ready">준비됨 - 녹음 버튼을 눌러 시작하세요</div>
 
-        <div class="extra-controls">
-            <div class="toggle-container">
-                <span class="toggle-label">🎬 소리 감지 시 자동 시작</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="autoStartOnSound">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div class="toggle-container">
-                <span class="toggle-label">🔇 무음 감지 자동분할</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="silenceDetection">
-                    <span class="toggle-slider"></span>
-                </label>
-                <select id="silenceDurationSelect" style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
-                    <option value="2000">2초</option>
-                    <option value="3000">3초</option>
-                    <option value="4000" selected>4초</option>
-                    <option value="5000">5초</option>
-                </select>
-                <span id="silenceIndicator" class="silence-indicator"></span>
-            </div>
-            <div class="toggle-container">
-                <span class="toggle-label" title="동영상 전환을 자동으로 감지하여 챕터를 분할합니다.&#13;&#10;&#13;&#10;• 연속 3프레임 이상 화면 변화 감지&#13;&#10;• 픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 올블랙 화면 → 일반 화면 전환 감지&#13;&#10;• 3초 쿨다운으로 오감지 방지&#13;&#10;&#13;&#10;아래 '무음 2초 + 화면 전환' 체크 시:&#13;&#10;무음 2초 경과 + 화면 전환 모두 만족해야 분할">🎬 화면 전환 자동감지 (목차용)</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="sceneChangeDetection" checked>
-                    <span class="toggle-slider"></span>
-                </label>
-                <div class="sensitivity-slider">
-                    <span style="font-size: 11px; color: #666;">민감도:</span>
-                    <input type="range" id="sceneChangeSensitivity" min="5" max="30" value="15" step="1">
-                    <span class="sensitivity-value" id="sensitivityValue">15%</span>
-                </div>
-            </div>
-            <div class="toggle-container" style="padding-left: 30px; margin-top: -10px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;" title="체크 시: 무음 2초 + 화면 전환 모두 만족해야 분할 (정밀)&#13;&#10;체크 안 함: 화면 전환만으로 즉시 분할 (빠름, 기본값)">
-                    <input type="checkbox" id="requireSilenceForSceneChange" style="width: 16px; height: 16px; cursor: pointer;">
-                    <span>무음 2초 + 화면 전환 조건 (AND)</span>
-                </label>
-            </div>
-            <div class="toggle-container">
-                <span class="toggle-label" title="업로드한 이미지와 화면을 실시간 비교하여 자동 분할합니다.&#13;&#10;예상 녹음 시간 경과 후 최대 20초까지 템플릿 매칭을 대기하며,&#13;&#10;20초 내에 매칭되지 않으면 자동으로 다음 녹음으로 넘어갑니다.">🖼️ 템플릿 매칭 자동분할</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="templateMatching">
-                    <span class="toggle-slider"></span>
-                </label>
-                <div style="margin-left: 10px; display: flex; gap: 10px; align-items: center;">
-                    <input type="file" id="templateImageInput" accept="image/*" style="display: none;">
-                    <button id="uploadTemplateBtn" style="padding: 4px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px;">
-                        📁 이미지 업로드
-                    </button>
-                    <span id="templateStatus" style="font-size: 11px; color: #666;"></span>
-                    <div class="sensitivity-slider" style="margin-left: auto;">
-                        <span style="font-size: 11px; color: #666;">유사도:</span>
-                        <input type="range" id="templateSimilarity" min="70" max="99" value="99" step="1">
-                        <span class="sensitivity-value" id="similarityValue">99%</span>
-                    </div>
-                </div>
-            </div>
-            <button class="btn-new-lecture" id="newLectureBtn" disabled>
-                📚 새 강의
-            </button>
-        </div>
-
-        <div class="capture-section">
-            <div class="capture-header">
-                <div class="capture-toggle">
-                    <span class="capture-title">📸 이미지캡처(WebP->PDF)</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="captureEnabled" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                <div class="capture-options">
-                    <div class="capture-option">
-                        <label>간격:</label>
-                        <select id="captureInterval">
-                            <option value="1">1초</option>
-                            <option value="2">2초</option>
-                            <option value="5" selected>5초</option>
-                            <option value="10">10초</option>
-                        </select>
-                    </div>
-                    <div class="capture-option">
-                        <label>품질:</label>
-                        <select id="captureQuality">
-                            <option value="0.9">고화질</option>
-                            <option value="0.7" selected>중화질</option>
-                            <option value="0.5">저화질</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div id="captureStatus" class="capture-status"></div>
-        </div>
 
         <div class="curriculum-section">
             <div class="curriculum-header">
@@ -1289,6 +1234,98 @@ Ch01. 오리엔테이션
                 <div class="log-entry log-info">
                     <span class="log-timestamp">[00:00:00]</span>
                     <span class="log-message">시스템 준비 완료</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 자동화 설정 그룹 -->
+        <div class="settings-group">
+            <h2 class="settings-title">⚙️ 자동화 설정</h2>
+            <div class="settings-content">
+                <div class="toggle-container">
+                    <span class="toggle-label">🎬 소리 감지 시 자동 시작</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoStartOnSound">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-container">
+                    <span class="toggle-label">🔇 무음 감지 자동분할</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="silenceDetection">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <select id="silenceDurationSelect" style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                        <option value="2000">2초</option>
+                        <option value="3000">3초</option>
+                        <option value="4000" selected>4초</option>
+                        <option value="5000">5초</option>
+                    </select>
+                    <span id="silenceIndicator" class="silence-indicator"></span>
+                </div>
+                <div class="toggle-container">
+                    <span class="toggle-label" title="동영상 전환을 자동으로 감지하여 챕터를 분할합니다.&#13;&#10;&#13;&#10;• 연속 3프레임 이상 화면 변화 감지&#13;&#10;• 픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 올블랙 화면 → 일반 화면 전환 감지&#13;&#10;• 3초 쿨다운으로 오감지 방지&#13;&#10;&#13;&#10;아래 '무음 2초 + 화면 전환' 체크 시:&#13;&#10;무음 2초 경과 + 화면 전환 모두 만족해야 분할">🎬 화면 전환 자동감지 (목차용)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sceneChangeDetection" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <div class="sensitivity-slider">
+                        <span style="font-size: 11px; color: #666;">민감도:</span>
+                        <input type="range" id="sceneChangeSensitivity" min="5" max="30" value="15" step="1">
+                        <span class="sensitivity-value" id="sensitivityValue">15%</span>
+                    </div>
+                </div>
+                <div class="toggle-container" style="padding-left: 30px; margin-top: -10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;" title="체크 시: 무음 2초 + 화면 전환 모두 만족해야 분할 (정밀)&#13;&#10;체크 안 함: 화면 전환만으로 즉시 분할 (빠름, 기본값)">
+                        <input type="checkbox" id="requireSilenceForSceneChange" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span>무음 2초 + 화면 전환 조건 (AND)</span>
+                    </label>
+                </div>
+                <div class="toggle-container">
+                    <span class="toggle-label" title="업로드한 이미지와 화면을 실시간 비교하여 자동 분할합니다.&#13;&#10;예상 녹음 시간 경과 후 최대 20초까지 템플릿 매칭을 대기하며,&#13;&#10;20초 내에 매칭되지 않으면 자동으로 다음 녹음으로 넘어갑니다.">🖼️ 템플릿 매칭 자동분할</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="templateMatching">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <div style="margin-left: 10px; display: flex; gap: 10px; align-items: center;">
+                        <input type="file" id="templateImageInput" accept="image/*" style="display: none;">
+                        <button id="uploadTemplateBtn" style="padding: 4px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px;">
+                            📁 이미지 업로드
+                        </button>
+                        <span id="templateStatus" style="font-size: 11px; color: #666;"></span>
+                        <div class="sensitivity-slider" style="margin-left: auto;">
+                            <span style="font-size: 11px; color: #666;">유사도:</span>
+                            <input type="range" id="templateSimilarity" min="70" max="99" value="99" step="1">
+                            <span class="sensitivity-value" id="similarityValue">99%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="toggle-container">
+                    <span class="toggle-label">📸 이미지캡처(WebP->PDF)</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="captureEnabled" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <div style="margin-left: 10px; display: flex; gap: 15px; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <label style="font-size: 12px; color: #666;">간격:</label>
+                            <select id="captureInterval" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                                <option value="1">1초</option>
+                                <option value="2">2초</option>
+                                <option value="5" selected>5초</option>
+                                <option value="10">10초</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <label style="font-size: 12px; color: #666;">품질:</label>
+                            <select id="captureQuality" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                                <option value="0.9">고화질</option>
+                                <option value="0.7" selected>중화질</option>
+                                <option value="0.5">저화질</option>
+                            </select>
+                        </div>
+                        <span id="captureStatus" style="font-size: 11px; color: #666;"></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1607,7 +1644,8 @@ Ch01. 오리엔테이션
                 // 20초 강제 종료/분할 로직 (페일세이프 - 무음 또는 화면 전환 미감지 대비)
                 if (silenceWaitStartTime && (Date.now() - silenceWaitStartTime >= 20000)) {
                     console.log('⚠️ 20초 페일세이프: 무음 2초 + 화면 전환 미감지 → 강제 전환');
-                    triggerChapterTransition();
+                    addLog('⏱️ 20초 페일세이프 타임아웃 → 다음 챕터로 전환', 'warning');
+                    triggerChapterTransition('20초 페일세이프 타임아웃');
                     return;
                 }
             }
@@ -2348,7 +2386,7 @@ Ch01. 오리엔테이션
                             console.log(`🖼️ 템플릿 매칭 감지! 유사도: ${similarity}% → 자동분할`);
                             addLog(`🖼️ 템플릿 매칭 감지! (유사도: ${similarity}%) → 다음 챕터로 전환`, 'success');
                             addLog(`🔍 [DEBUG] 템플릿 매칭으로 triggerChapterTransition 호출`, 'info');
-                            triggerChapterTransition();
+                            triggerChapterTransition(`템플릿 매칭 (유사도: ${similarity}%)`);
                         }
                     }
                 }
@@ -2389,7 +2427,7 @@ Ch01. 오리엔테이션
                                         console.log(`🎬 화면 전환 감지! (무음+화면) 변화율: ${(diff * 100).toFixed(1)}% → 자동분할`);
                                         addLog(`🎬 화면 전환 감지! (무음+화면, 변화율: ${(diff * 100).toFixed(1)}%, ${elapsed}초 경과) → 다음 챕터로 전환`, 'success');
                                         addLog(`🔍 [DEBUG] 화면 전환(무음+화면)으로 triggerChapterTransition 호출 - chapterReadyToSplit: ${chapterReadyToSplit}, pendingIndex: ${pendingSplitChapterIndex}`, 'info');
-                                        triggerChapterTransition();
+                                        triggerChapterTransition(`무음+화면 전환 (변화율: ${(diff * 100).toFixed(1)}%, ${elapsed}초 경과)`);
                                     }
                                 }
                             }
@@ -2402,7 +2440,7 @@ Ch01. 오리엔테이션
                             const elapsed = recordingStartTime ? ((Date.now() - recordingStartTime) / 1000).toFixed(0) : '?';
                             addLog(`🎬 화면 전환 감지! (화면만, ${elapsed}초 경과) → 다음 챕터로 전환`, 'success');
                             addLog(`🔍 [DEBUG] 화면 전환(화면만)으로 triggerChapterTransition 호출 - chapterReadyToSplit: ${chapterReadyToSplit}, pendingIndex: ${pendingSplitChapterIndex}`, 'info');
-                            triggerChapterTransition();
+                            triggerChapterTransition(`화면 전환 감지 (${elapsed}초 경과)`);
                         }
                     }
                 }
@@ -2428,7 +2466,7 @@ Ch01. 오리엔테이션
             }
         }
 
-        function triggerChapterTransition() {
+        function triggerChapterTransition(reason = '알 수 없음') {
             // 🔍 디버깅: 호출 추적
             const stackTrace = new Error().stack;
             console.log('🔍 [DEBUG] triggerChapterTransition 호출됨');
@@ -2436,6 +2474,7 @@ Ch01. 오리엔테이션
             console.log('🔍 [DEBUG] chapterReadyToSplit:', chapterReadyToSplit);
             console.log('🔍 [DEBUG] pendingSplitChapterIndex:', pendingSplitChapterIndex);
             console.log('🔍 [DEBUG] currentChapterIndex:', currentChapterIndex);
+            console.log('🔍 [DEBUG] 전환 근거:', reason);
             console.log('🔍 [DEBUG] 호출 스택:', stackTrace);
 
             // ✅ 템플릿 매칭 후에도 계속 감지하기 위해 stopSceneChangeDetection 호출 안 함
@@ -2447,7 +2486,7 @@ Ch01. 오리엔테이션
             silenceWaitStartTime = null;
 
             if (readyToAutoStop) {
-                addLog('🔍 [DEBUG] 마지막 챕터 자동 종료 실행', 'info');
+                addLog(`🔍 [DEBUG] 마지막 챕터 자동 종료 실행 (근거: ${reason})`, 'info');
                 updateStatus('ready', '✅ 모든 강의 녹음 완료! (템플릿 매칭 감지)');
                 stopRecording();
             } else if (chapterReadyToSplit && pendingSplitChapterIndex >= 0) {
@@ -2455,7 +2494,7 @@ Ch01. 오리엔테이션
                 const endedName = chapters[endedIdx].name;
                 currentChapterIndex = endedIdx + 1;
 
-                addLog(`🔍 [DEBUG] 챕터 전환 실행: ${endedIdx} → ${currentChapterIndex}`, 'info');
+                addLog(`🔄 챕터 전환 실행: ${endedIdx} → ${currentChapterIndex} (근거: ${reason})`, 'success');
 
                 splitRecordingWithName(endedName);
                 renderChapters();
@@ -2801,53 +2840,11 @@ Ch01. 오리엔테이션
             const recording = recordings.find(r => r.id === id);
             if (recording && audioElement.duration && !isNaN(audioElement.duration) && isFinite(audioElement.duration)) {
                 const actualDuration = Math.floor(audioElement.duration); // 실제 재생시간 (초)
-                const hours = Math.floor(actualDuration / 3600);
-                const minutes = Math.floor((actualDuration % 3600) / 60);
-                const seconds = actualDuration % 60;
 
-                let durationText;
-                if (hours > 0) {
-                    durationText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                } else {
-                    durationText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                }
-
-                // 예상 시간과의 차이 계산
-                let diffText = '';
-                if (recording.expectedDuration) {
-                    const expectedSec = recording.expectedDuration;
-                    const diff = actualDuration - expectedSec;
-                    const absDiff = Math.abs(diff);
-                    const diffMin = Math.floor(absDiff / 60);
-                    const diffSec = absDiff % 60;
-
-                    let diffTimeStr;
-                    if (diffMin > 0) {
-                        diffTimeStr = `${diffMin}:${diffSec.toString().padStart(2, '0')}`;
-                    } else {
-                        diffTimeStr = `${diffSec}초`;
-                    }
-
-                    if (diff > 0) {
-                        diffText = ` <span style="color: #e74c3c;">(+${diffTimeStr} 초과)</span>`;
-                    } else if (diff < 0) {
-                        diffText = ` <span style="color: #27ae60;">(-${diffTimeStr} 부족)</span>`;
-                    } else {
-                        diffText = ` <span style="color: #27ae60;">(정확)</span>`;
-                    }
-                }
-
-                recording.duration = durationText;
+                // 내부적으로만 저장 (UI에는 표시하지 않음)
                 recording.actualDuration = actualDuration;
 
-                // UI 업데이트 (해당 항목만)
-                const item = document.querySelector(`.recording-item[data-id="${id}"]`);
-                if (item) {
-                    const metaDiv = item.querySelector('.recording-meta');
-                    if (metaDiv && !metaDiv.textContent.includes('재생시간:')) {
-                        metaDiv.innerHTML = metaDiv.innerHTML + ` • 재생시간: ${durationText}${diffText}`;
-                    }
-                }
+                // UI에는 시간 정보를 표시하지 않음 (로그에만 표시됨)
             }
         }
 
