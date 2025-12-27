@@ -1947,18 +1947,6 @@ Ch01. 오리엔테이션
                     console.log(`🔍 [DEBUG] startChapterTimers() 호출 - currentChapterIndex: ${currentChapterIndex}`);
                     startChapterTimers(currentChapterIndex);
                 }
-
-                // 화면 전환 자동감지가 활성화되어 있으면 즉시 감지 시작
-                if (sceneChangeDetectionToggle.checked && !templateMatchingToggle.checked) {
-                    console.log('✅ 화면 전환 자동감지 활성화 → 즉시 감지 시작');
-                    chapterReadyToSplit = true;
-                    waitingForSilence = true;
-                    silenceWaitStartTime = Date.now();
-                    pendingSplitChapterIndex = currentChapterIndex;
-                    silenceIndicator.textContent = '(화면 전환 감지 중...)';
-                    silenceIndicator.className = 'silence-indicator active';
-                    startSceneChangeDetection();
-                }
             } else {
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
                     currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
@@ -2561,18 +2549,6 @@ Ch01. 오리엔테이션
                 // ✅ 타이머와 startTime 리셋하여 다음 녹음의 30초 카운트 다시 시작
                 startTime = Date.now();
                 pausedTime = 0;
-
-                // 화면 전환 자동감지가 활성화되어 있으면 다시 감지 시작
-                if (sceneChangeDetectionToggle.checked && !templateMatchingToggle.checked && currentChapterIndex < chapters.length) {
-                    console.log('✅ 화면 전환 자동감지 활성화 → 다음 챕터 감지 시작');
-                    chapterReadyToSplit = true;
-                    waitingForSilence = true;
-                    silenceWaitStartTime = Date.now();
-                    pendingSplitChapterIndex = currentChapterIndex;
-                    silenceIndicator.textContent = '(화면 전환 감지 중...)';
-                    silenceIndicator.className = 'silence-indicator active';
-                    startSceneChangeDetection();
-                }
             } else {
                 addLog('🔍 [DEBUG] 전환 조건 불만족 - 아무 작업도 수행하지 않음', 'warning');
             }
