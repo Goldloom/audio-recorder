@@ -2127,9 +2127,49 @@ Ch01. 오리엔테이션
                 return { changeRatio, diffPixels, avgDiff };
             }
 
+            // 올블랙 화면 감지
+            isBlackScreen(frameData) {
+                if (!frameData) return false;
+
+                const data = frameData.data;
+                let totalBrightness = 0;
+                const sampleSize = Math.min(1000, data.length / 4); // 최대 1000개 픽셀 샘플링
+
+                for (let i = 0; i < sampleSize * 4; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    totalBrightness += (r + g + b) / 3;
+                }
+
+                const avgBrightness = totalBrightness / sampleSize;
+                const isBlack = avgBrightness < 15; // 평균 밝기가 15 미만이면 블랙
+
+                if (isBlack) {
+                    console.log(`⬛ 올블랙 화면 감지! 평균 밝기: ${avgBrightness.toFixed(1)}`);
+                }
+
+                return isBlack;
+            }
+
             checkSceneChange() {
                 const currentFrame = this.captureFrame();
                 if (!currentFrame) return false;
+
+                // 올블랙 화면 감지
+                const isCurrentBlack = this.isBlackScreen(currentFrame);
+                const wasLastBlack = this.lastFrameData ? this.isBlackScreen(this.lastFrameData) : false;
+
+                // 올블랙에서 일반 화면으로 전환 (동영상 시작)
+                if (wasLastBlack && !isCurrentBlack) {
+                    console.log(`🎬 올블랙 → 화면 전환 감지! (동영상 시작)`);
+                    addLog(`🎬 올블랙 → 화면 전환 감지! (동영상 시작)`, 'success');
+                    this.lastFrameData = currentFrame;
+                    this.lastHistogram = this.calculateHistogram(currentFrame);
+                    this.lastChangeTime = Date.now();
+                    this.consecutiveChanges = 0;
+                    return true;
+                }
 
                 // 히스토그램 계산
                 const currentHistogram = this.calculateHistogram(currentFrame);
@@ -2168,6 +2208,7 @@ Ch01. 오리엔테이션
                 // 둘 중 하나라도 큰 변화가 있으면 카운트 증가
                 if (hasPixelChange || hasHistogramChange) {
                     this.consecutiveChanges++;
+                    console.log(`🔍 화면 변화 (${this.consecutiveChanges}/${this.consecutiveThreshold}) - 픽셀: ${(diff.changeRatio * 100).toFixed(1)}%, 히스토그램: ${(histDiff * 100).toFixed(1)}%`);
                     addLog(`🔍 [DEBUG] 화면 변화 감지 (${this.consecutiveChanges}/${this.consecutiveThreshold}) - 픽셀: ${(diff.changeRatio * 100).toFixed(1)}%, 히스토그램: ${(histDiff * 100).toFixed(1)}%`, 'info');
                 } else {
                     this.consecutiveChanges = 0;
@@ -2344,9 +2385,10 @@ Ch01. 오리엔테이션
                                     const diff = sceneChangeDetector.calculateDifference(frameBeforeSilence, currentFrame);
 
                                     if (diff >= sceneChangeDetector.changeThreshold) {
+                                        const elapsed = recordingStartTime ? ((Date.now() - recordingStartTime) / 1000).toFixed(0) : '?';
                                         console.log(`🎬 화면 전환 감지! (무음+화면) 변화율: ${(diff * 100).toFixed(1)}% → 자동분할`);
-                                        addLog(`🎬 화면 전환 감지! (무음+화면, 변화율: ${(diff * 100).toFixed(1)}%) → 다음 챕터로 전환`, 'success');
-                                        addLog(`🔍 [DEBUG] 화면 전환(무음+화면)으로 triggerChapterTransition 호출`, 'info');
+                                        addLog(`🎬 화면 전환 감지! (무음+화면, 변화율: ${(diff * 100).toFixed(1)}%, ${elapsed}초 경과) → 다음 챕터로 전환`, 'success');
+                                        addLog(`🔍 [DEBUG] 화면 전환(무음+화면)으로 triggerChapterTransition 호출 - chapterReadyToSplit: ${chapterReadyToSplit}, pendingIndex: ${pendingSplitChapterIndex}`, 'info');
                                         triggerChapterTransition();
                                     }
                                 }
@@ -2357,8 +2399,9 @@ Ch01. 오리엔테이션
                         const isTransition = sceneChangeDetector.checkSceneChange();
                         if (isTransition) {
                             console.log(`🎬 화면 전환 감지! (화면만) → 자동분할`);
-                            addLog(`🎬 화면 전환 감지! (화면만) → 다음 챕터로 전환`, 'success');
-                            addLog(`🔍 [DEBUG] 화면 전환(화면만)으로 triggerChapterTransition 호출`, 'info');
+                            const elapsed = recordingStartTime ? ((Date.now() - recordingStartTime) / 1000).toFixed(0) : '?';
+                            addLog(`🎬 화면 전환 감지! (화면만, ${elapsed}초 경과) → 다음 챕터로 전환`, 'success');
+                            addLog(`🔍 [DEBUG] 화면 전환(화면만)으로 triggerChapterTransition 호출 - chapterReadyToSplit: ${chapterReadyToSplit}, pendingIndex: ${pendingSplitChapterIndex}`, 'info');
                             triggerChapterTransition();
                         }
                     }
