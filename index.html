@@ -430,6 +430,121 @@
             font-size: 14px;
         }
 
+        /* 로그 창 스타일 */
+        .log-panel {
+            margin-top: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .log-panel h2 {
+            color: #1a1a2e;
+            font-size: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .log-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-clear-log {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-clear-log:hover {
+            background: #c0392b;
+        }
+
+        .btn-export-log {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-export-log:hover {
+            background: #2980b9;
+        }
+
+        .log-container {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: #2c2c3e;
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .log-entry.log-info {
+            color: #5dade2;
+        }
+
+        .log-entry.log-success {
+            color: #52c41a;
+        }
+
+        .log-entry.log-warning {
+            color: #faad14;
+        }
+
+        .log-entry.log-error {
+            color: #ff4d4f;
+        }
+
+        .log-timestamp {
+            color: #888;
+            margin-right: 8px;
+        }
+
+        .log-message {
+            color: inherit;
+        }
+
         .checkbox-group {
             display: flex;
             align-items: center;
@@ -1154,6 +1269,23 @@ Ch01. 오리엔테이션
                 <div class="empty-state">녹음된 파일이 없습니다</div>
             </div>
         </div>
+
+        <!-- 로그 패널 -->
+        <div class="log-panel">
+            <h2>
+                <span>📋 실시간 로그</span>
+                <div class="log-controls">
+                    <button class="btn-export-log" id="exportLogBtn" title="로그 내보내기">📥 내보내기</button>
+                    <button class="btn-clear-log" id="clearLogBtn" title="로그 지우기">🗑️ 지우기</button>
+                </div>
+            </h2>
+            <div class="log-container" id="logContainer">
+                <div class="log-entry log-info">
+                    <span class="log-timestamp">[00:00:00]</span>
+                    <span class="log-message">시스템 준비 완료</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1166,6 +1298,7 @@ Ch01. 오리엔테이션
         let isRecording = false; // 추가: 녹음 진행 여부 플래그
         let isWaitingForFirstSound = false; // 추가: 첫 소리 대기 여부
         let pausedTime = 0;
+        let recordingStartTime = null; // 현재 녹음 세션의 실제 시작 시간
         let audioContext;
         let analyser;
         let dataArray;
@@ -1206,6 +1339,9 @@ Ch01. 오리엔테이션
         const parseBtn = document.getElementById('parseBtn');
         const clearBtn = document.getElementById('clearBtn');
         const chapterList = document.getElementById('chapterList');
+        const logContainer = document.getElementById('logContainer');
+        const clearLogBtn = document.getElementById('clearLogBtn');
+        const exportLogBtn = document.getElementById('exportLogBtn');
         const chapterProgress = document.getElementById('chapterProgress');
         const playbackSpeed = document.getElementById('playbackSpeed');
         const autoStopCheckbox = document.getElementById('autoStopCheckbox');
@@ -1260,6 +1396,72 @@ Ch01. 오리엔테이션
             statusDisplay.className = 'status ' + state;
             statusDisplay.textContent = message;
         }
+
+        // ============ 로그 시스템 ============
+        let logEntries = [];
+
+        function addLog(message, type = 'info') {
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString('ko-KR', { hour12: false });
+            const logEntry = {
+                timestamp,
+                message,
+                type,
+                fullTime: now
+            };
+
+            logEntries.push(logEntry);
+
+            // 로그 엔트리 생성
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry log-${type}`;
+            logDiv.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span class="log-message">${message}</span>
+            `;
+
+            logContainer.appendChild(logDiv);
+
+            // 자동 스크롤 (최신 로그가 보이도록)
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            // 콘솔에도 출력
+            console.log(`[${type.toUpperCase()}] ${timestamp} - ${message}`);
+        }
+
+        function clearLog() {
+            logEntries = [];
+            logContainer.innerHTML = '<div class="log-entry log-info"><span class="log-timestamp">[' +
+                new Date().toLocaleTimeString('ko-KR', { hour12: false }) +
+                ']</span><span class="log-message">로그가 지워졌습니다</span></div>';
+        }
+
+        function exportLog() {
+            if (logEntries.length === 0) {
+                alert('내보낼 로그가 없습니다.');
+                return;
+            }
+
+            const logText = logEntries.map(entry =>
+                `[${entry.timestamp}] [${entry.type.toUpperCase()}] ${entry.message}`
+            ).join('\n');
+
+            const blob = new Blob([logText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `recording-log-${new Date().toISOString().replace(/:/g, '-').slice(0, 19)}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            addLog('로그를 파일로 내보냈습니다', 'success');
+        }
+
+        // 로그 버튼 이벤트
+        clearLogBtn.addEventListener('click', clearLog);
+        exportLogBtn.addEventListener('click', exportLog);
+
+        // ============ 로그 시스템 끝 ============
 
         function formatTime(ms) {
             const totalSeconds = Math.floor(ms / 1000);
@@ -1646,6 +1848,7 @@ Ch01. 오리엔테이션
             isWaitingForFirstSound = false;
             mediaRecorder.start(1000);
             startTime = Date.now(); // 새 챕터 시작 시간 리셋
+            recordingStartTime = Date.now(); // 실제 녹음 시작 시간 기록
             pausedTime = 0;
             isPaused = false;
             isRecording = true; // 녹음 상태 시작
@@ -1669,6 +1872,12 @@ Ch01. 오리엔테이션
                 activeChapterName = currentChapter.name;
                 updateStatus('recording', `🔴 녹음 중... (${currentChapter.shortName || currentChapter.name})`);
 
+                // 로그 추가 (예상 시간 포함)
+                const expectedMin = Math.floor(currentChapter.duration / 60);
+                const expectedSec = Math.floor(currentChapter.duration % 60);
+                const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
+                addLog(`🎬 녹음 시작: "${currentChapter.name}" (챕터 ${currentChapterIndex + 1}/${chapters.length}, 예상: ${expectedTimeStr})`, 'success');
+
                 // 챕터 타이머는 첫 녹음 시작 시에만 시작 (분할 시에는 이미 시작됨)
                 if (currentChapterIndex === 0 || chapterTimers.length === 0) {
                     startChapterTimers(currentChapterIndex);
@@ -1677,6 +1886,7 @@ Ch01. 오리엔테이션
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
                     currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
                 updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount}, ${sourceText})`);
+                addLog(`🎬 녹음 시작: 강의${lectureCount} (소스: ${sourceText})`, 'success');
             }
         }
 
@@ -1994,7 +2204,9 @@ Ch01. 오리엔테이션
                         const result = templateMatcher.checkMatch();
 
                         if (result.matched) {
-                            console.log(`🖼️ 템플릿 매칭 감지! 유사도: ${(result.similarity * 100).toFixed(1)}% → 자동분할`);
+                            const similarity = (result.similarity * 100).toFixed(1);
+                            console.log(`🖼️ 템플릿 매칭 감지! 유사도: ${similarity}% → 자동분할`);
+                            addLog(`🖼️ 템플릿 매칭 감지! (유사도: ${similarity}%) → 다음 챕터로 전환`, 'success');
                             triggerChapterTransition();
                         }
                     }
@@ -2183,9 +2395,13 @@ Ch01. 오리엔테이션
                 }
                 console.log(`PDF 저장 완료: ${pdfFilename}`);
 
+                // 로그 추가
+                addLog(`📄 PDF 생성 완료: "${filename}.pdf" (${images.length}페이지)`, 'success');
+
             } catch (error) {
                 console.error('PDF 생성 오류:', error);
                 updateStatus('error', `❌ PDF 생성 실패: ${error.message}`);
+                addLog(`❌ PDF 생성 실패: ${error.message}`, 'error');
             }
         }
 
@@ -2252,6 +2468,37 @@ Ch01. 오리엔테이션
                     `강의${lectureCount}`;
 
                 if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    // 실제 녹음 시간 계산 및 로그
+                    const actualDuration = recordingStartTime ? (Date.now() - recordingStartTime) / 1000 : 0;
+                    const actualMin = Math.floor(actualDuration / 60);
+                    const actualSec = Math.floor(actualDuration % 60);
+                    const actualTimeStr = `${actualMin}분 ${actualSec}초`;
+
+                    // 예상 시간과 비교
+                    const matchedChapter = chapters.find(ch => ch.name === finalChapterName);
+                    if (matchedChapter && matchedChapter.duration && recordingStartTime) {
+                        const expectedDuration = matchedChapter.duration;
+                        const diff = actualDuration - expectedDuration;
+                        const diffAbs = Math.abs(diff);
+                        const diffMin = Math.floor(diffAbs / 60);
+                        const diffSec = Math.floor(diffAbs % 60);
+                        const diffStr = `${diffMin}분 ${diffSec}초`;
+
+                        const expectedMin = Math.floor(expectedDuration / 60);
+                        const expectedSec = Math.floor(expectedDuration % 60);
+                        const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
+
+                        if (Math.abs(diff) < 5) {
+                            addLog(`⏹️ 전체 녹음 종료: "${finalChapterName}" | 예상: ${expectedTimeStr}, 실제: ${actualTimeStr} (정확!)`, 'success');
+                        } else if (diff > 0) {
+                            addLog(`⏹️ 전체 녹음 종료: "${finalChapterName}" | 예상: ${expectedTimeStr}, 실제: ${actualTimeStr} (+${diffStr} 초과)`, 'warning');
+                        } else {
+                            addLog(`⏹️ 전체 녹음 종료: "${finalChapterName}" | 예상: ${expectedTimeStr}, 실제: ${actualTimeStr} (-${diffStr} 부족)`, 'warning');
+                        }
+                    } else {
+                        addLog(`⏹️ 전체 녹음 종료: "${finalChapterName}" | 실제: ${actualTimeStr}`, 'info');
+                    }
+
                     // ✅ 저장된 챕터 이름으로 녹음 저장
                     stopCapture();
                     const imagesToSave = [...capturedImages];
@@ -2448,6 +2695,40 @@ Ch01. 오리엔테이션
                     (chapters[currentChapterIndex]?.name) ||
                     `강의${lectureCount}`;
 
+                // 실제 녹음 시간 계산
+                const actualDuration = recordingStartTime ? (Date.now() - recordingStartTime) / 1000 : 0; // 초 단위
+                const actualMin = Math.floor(actualDuration / 60);
+                const actualSec = Math.floor(actualDuration % 60);
+                const actualTimeStr = `${actualMin}분 ${actualSec}초`;
+
+                // 예상 시간과 비교
+                const matchedChapter = chapters.find(ch => ch.name === endedChapterName);
+                if (matchedChapter && matchedChapter.duration && recordingStartTime) {
+                    const expectedDuration = matchedChapter.duration; // 초
+                    const diff = actualDuration - expectedDuration;
+                    const diffAbs = Math.abs(diff);
+                    const diffMin = Math.floor(diffAbs / 60);
+                    const diffSec = Math.floor(diffAbs % 60);
+                    const diffStr = `${diffMin}분 ${diffSec}초`;
+
+                    const expectedMin = Math.floor(expectedDuration / 60);
+                    const expectedSec = Math.floor(expectedDuration % 60);
+                    const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
+
+                    if (Math.abs(diff) < 5) {
+                        // 오차 5초 이내는 정확
+                        addLog(`⏹️ 녹음 종료: "${endedChapterName}" | 예상: ${expectedTimeStr}, 실제: ${actualTimeStr} (정확!)`, 'success');
+                    } else if (diff > 0) {
+                        // 초과
+                        addLog(`⏹️ 녹음 종료: "${endedChapterName}" | 예상: ${expectedTimeStr}, 실제: ${actualTimeStr} (+${diffStr} 초과)`, 'warning');
+                    } else {
+                        // 부족
+                        addLog(`⏹️ 녹음 종료: "${endedChapterName}" | 예상: ${expectedTimeStr}, 실제: ${actualTimeStr} (-${diffStr} 부족)`, 'warning');
+                    }
+                } else {
+                    addLog(`⏹️ 녹음 종료: "${endedChapterName}" | 실제: ${actualTimeStr}`, 'info');
+                }
+
                 stopCapture();
                 const imagesToSave = [...capturedImages];
                 capturedImages = [];
@@ -2533,7 +2814,12 @@ Ch01. 오리엔테이션
             recordings.unshift(recording);
             renderRecordings();
 
+            // 로그 추가
+            const fileSizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+            addLog(`💾 녹음 저장 완료: "${name}" (${fileSizeMB}MB)`, 'success');
+
             if (images && images.length > 0) {
+                addLog(`📸 캡처 이미지 ${images.length}개 → PDF 변환 시작`, 'info');
                 saveImagesAsPdf(images, name);
             }
         }
@@ -2730,6 +3016,7 @@ Ch01. 오리엔테이션
                         if (currentChapterIndex !== i) return;
 
                         console.log(`⏰ 템플릿 매칭 타임아웃: 챕터 ${i + 1} (예상시간 경과 후 20초 대기 완료) → 강제 전환`);
+                        addLog(`⏰ 템플릿 매칭 타임아웃: 챕터 ${i + 1} (예상시간+20초 경과) → 강제 전환`, 'warning');
 
                         if (i < chapters.length - 1) {
                             // 다음 챕터로 강제 전환
@@ -2805,6 +3092,7 @@ Ch01. 오리엔테이션
                         } else if (autoStopCheckbox.checked) {
                             // 마지막 챕터 → 자동 종료
                             console.log('⏰ 템플릿 매칭 타임아웃: 마지막 챕터 → 자동 종료');
+                            addLog('⏰ 템플릿 매칭 타임아웃: 마지막 챕터 → 자동 종료', 'warning');
                             stopRecording();
                         }
                     }, timeoutTime);
@@ -2907,6 +3195,13 @@ Ch01. 오리엔테이션
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 const currentName = activeChapterName || `강의${lectureCount}`;
                 lectureCount++;
+
+                // 실제 녹음 시간 계산 및 로그
+                const actualDuration = recordingStartTime ? (Date.now() - recordingStartTime) / 1000 : 0;
+                const actualMin = Math.floor(actualDuration / 60);
+                const actualSec = Math.floor(actualDuration % 60);
+                const actualTimeStr = `${actualMin}분 ${actualSec}초`;
+                addLog(`⏹️ 수동 분할: "${currentName}" | 실제: ${actualTimeStr}`, 'info');
 
                 stopCapture();
                 const imagesToSave = [...capturedImages];
