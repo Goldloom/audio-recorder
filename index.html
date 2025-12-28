@@ -3942,6 +3942,9 @@ Ch01. 오리엔테이션
 
             try {
                 const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const commits = await response.json();
                 if (commits && commits.length > 0) {
                     const lastCommitDate = new Date(commits[0].commit.committer.date);
@@ -3951,9 +3954,20 @@ Ch01. 오리엔테이션
                         String(lastCommitDate.getHours()).padStart(2, '0') + ':' +
                         String(lastCommitDate.getMinutes()).padStart(2, '0');
                     document.getElementById('lastUpdate').textContent = `마지막 업데이트: ${formattedDate}`;
+                } else {
+                    // 커밋 정보가 없을 때
+                    document.getElementById('lastUpdate').textContent = `마지막 업데이트: 정보 없음`;
                 }
             } catch (error) {
                 console.error('업데이트 날짜를 가져오는데 실패했습니다:', error);
+                // 에러 발생 시 현재 날짜 표시
+                const now = new Date();
+                const formattedDate = now.getFullYear() + '-' +
+                    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(now.getDate()).padStart(2, '0') + ' ' +
+                    String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0');
+                document.getElementById('lastUpdate').textContent = `마지막 업데이트: ${formattedDate} (로컬)`;
             }
         }
 
