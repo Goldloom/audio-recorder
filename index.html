@@ -1688,18 +1688,19 @@ Ch01. 오리엔테이션
                 if (average < silenceThreshold) {
                     if (!silenceStart) {
                         silenceStart = Date.now();
-                        console.log('🔇 [무음 감지 자동분할] 무음 시작 (화면 전환 대기 중 아님)');
+                        console.log(`🔇 [무음 감지 자동분할] 무음 시작 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
                         addLog('🔇 무음 감지 시작', 'info');
                     } else {
                         const silentTime = Date.now() - silenceStart;
                         silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초)`;
                         silenceIndicator.className = 'silence-indicator active';
 
-                        // 1초마다 로그 (콘솔 + UI)
-                        if (Math.floor(silentTime / 1000) !== Math.floor((silentTime - 100) / 1000)) {
-                            const currentSec = Math.floor(silentTime / 1000);
+                        // 1초 이상일 때만 1초마다 로그 (콘솔 + UI)
+                        const currentSec = Math.floor(silentTime / 1000);
+                        const prevSec = Math.floor((silentTime - 100) / 1000);
+                        if (currentSec >= 1 && currentSec !== prevSec) {
                             const targetSec = (silenceDuration / 1000).toFixed(1);
-                            console.log(`🔇 [무음 감지 자동분할] 무음 ${currentSec}초 / ${targetSec}초`);
+                            console.log(`🔇 [무음 감지 자동분할] 무음 ${currentSec}초 / ${targetSec}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
                             addLog(`🔇 무음 ${currentSec}초 / ${targetSec}초`, 'info');
                         }
 
@@ -1714,8 +1715,11 @@ Ch01. 오리엔테이션
                 } else {
                     if (silenceStart) {
                         const interruptedTime = ((Date.now() - silenceStart) / 1000).toFixed(1);
-                        console.log(`❌ [무음 감지 자동분할] 무음 중단 (소리 감지, ${interruptedTime}초에서 중단) - 타이머 리셋`);
-                        addLog(`❌ 무음 중단 (${interruptedTime}초에서 소리 감지)`, 'warning');
+                        console.log(`❌ [무음 감지 자동분할] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단)`);
+                        // 1초 이상 무음이었을 때만 UI 로그 표시 (짧은 중단은 너무 많아서 제외)
+                        if (parseFloat(interruptedTime) >= 1.0) {
+                            addLog(`❌ 무음 중단 (${interruptedTime}초에서 소리 감지)`, 'warning');
+                        }
                     }
                     silenceStart = null;
                     silenceIndicator.textContent = '';
