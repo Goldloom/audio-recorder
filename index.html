@@ -1260,7 +1260,8 @@ Ch01. 오리엔테이션
                     </label>
                 </div>
                 <div class="toggle-container">
-                    <span class="toggle-label">🔇 무음 감지 자동분할</span>
+                    <span class="toggle-label"
+                        title="설정한 시간 이상 무음이 감지되면 자동으로 녹음을 분할합니다.&#13;&#10;&#13;&#10;[챕터 모드]&#13;&#10;• 무음 기준 시간 도달 시 잔여 예정 시간 체크&#13;&#10;• 잔여 시간 < 10초: 자동 분할 승인&#13;&#10;• 잔여 시간 ≥ 10초: 무음 무시 (챕터 중간 무음 방지)&#13;&#10;&#13;&#10;[일반 모드]&#13;&#10;• 무음 기준 시간 도달 시 즉시 자동 분할">🔇 무음 감지 자동분할</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="silenceDetection" checked>
                         <span class="toggle-slider"></span>
@@ -1697,9 +1698,9 @@ Ch01. 오리엔테이션
                         silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초)`;
                         silenceIndicator.className = 'silence-indicator active';
 
-                        // 1초 이상일 때만 1초마다 로그 (콘솔 + UI)
+                        // 2초 이상일 때만 1초마다 로그 (콘솔 + UI)
                         const currentSec = Math.floor(silentTime / 1000);
-                        if (currentSec >= 1 && currentSec !== lastLoggedSecond) {
+                        if (currentSec >= 2 && currentSec !== lastLoggedSecond) {
                             lastLoggedSecond = currentSec;
                             const targetSec = (silenceDuration / 1000).toFixed(1);
                             console.log(`🔇 [무음 감지 자동분할] 무음 ${currentSec}초 / ${targetSec}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
@@ -1741,10 +1742,26 @@ Ch01. 오리엔테이션
                 } else {
                     if (silenceStart) {
                         const interruptedTime = ((Date.now() - silenceStart) / 1000).toFixed(1);
-                        console.log(`❌ [무음 감지 자동분할] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단)`);
+
+                        // 챕터 모드일 때 잔여 시간 계산
+                        let remainingInfo = '';
+                        if (chapters.length > 0 && currentChapterIndex < chapters.length) {
+                            const currentChapter = chapters[currentChapterIndex];
+                            const expectedDuration = currentChapter.duration * 1000; // ms
+                            const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
+                            const remainingTime = expectedDuration - elapsedTime; // 잔여 예정 시간
+                            remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
+                        }
+
+                        console.log(`❌ [무음 감지 자동분할] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단${remainingInfo})`);
+
                         // 2.5초 이상 무음이었을 때만 UI 로그 표시 (짧은 중단은 너무 많아서 제외)
                         if (parseFloat(interruptedTime) >= 2.5) {
-                            addLog(`❌ 무음 중단 (${interruptedTime}초에서 소리 감지)`, 'warning');
+                            if (remainingInfo) {
+                                addLog(`❌ 무음 중단 (${interruptedTime}초${remainingInfo})`, 'warning');
+                            } else {
+                                addLog(`❌ 무음 중단 (${interruptedTime}초에서 소리 감지)`, 'warning');
+                            }
                         }
                     }
                     silenceStart = null;
