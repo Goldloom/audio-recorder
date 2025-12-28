@@ -1411,7 +1411,8 @@ Ch01. 오리엔테이션
         let currentRecordingType = ''; // 추가: 녹음 소스 타입 (system, mic, both)
         let silenceStart = null;
         let silenceThreshold = 15; // 볼륨 임계값 (0-255)
-        let silenceDuration = 4000; // 4초 무음 시 분할
+        let silenceDuration = 2500; // 2.5초 무음 시 분할 (기본값)
+        let lastLoggedSecond = -1; // 마지막 로그 출력된 초 (중복 방지)
         let lectureCount = 1;
 
         const recordBtn = document.getElementById('recordBtn');
@@ -1689,6 +1690,7 @@ Ch01. 오리엔테이션
                 if (average < silenceThreshold) {
                     if (!silenceStart) {
                         silenceStart = Date.now();
+                        lastLoggedSecond = -1; // 리셋
                         console.log(`🔇 [무음 감지 자동분할] 무음 시작 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
                     } else {
                         const silentTime = Date.now() - silenceStart;
@@ -1697,8 +1699,8 @@ Ch01. 오리엔테이션
 
                         // 1초 이상일 때만 1초마다 로그 (콘솔 + UI)
                         const currentSec = Math.floor(silentTime / 1000);
-                        const prevSec = Math.floor((silentTime - 100) / 1000);
-                        if (currentSec >= 1 && currentSec !== prevSec) {
+                        if (currentSec >= 1 && currentSec !== lastLoggedSecond) {
+                            lastLoggedSecond = currentSec;
                             const targetSec = (silenceDuration / 1000).toFixed(1);
                             console.log(`🔇 [무음 감지 자동분할] 무음 ${currentSec}초 / ${targetSec}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
                             addLog(`🔇 무음 ${currentSec}초 / ${targetSec}초`, 'info');
@@ -1722,6 +1724,7 @@ Ch01. 오리엔테이션
                         }
                     }
                     silenceStart = null;
+                    lastLoggedSecond = -1; // 리셋
                     silenceIndicator.textContent = '';
                     silenceIndicator.className = 'silence-indicator';
                 }
