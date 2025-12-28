@@ -1707,11 +1707,35 @@ Ch01. 오리엔테이션
                         }
 
                         if (silentTime >= silenceDuration) {
-                            console.log(`✅ [무음 감지 자동분할] ${(silenceDuration / 1000)}초 무음 감지 → 자동 분할 실행`);
-                            addLog(`✅ 무음 ${(silenceDuration / 1000)}초 감지 → 자동 분할`, 'success');
-                            splitRecording();
-                            silenceStart = null;
-                            silenceIndicator.textContent = '(자동 분할됨!)';
+                            // 챕터 모드일 때: 예상 시간 10초 전후 체크
+                            let canSplit = true;
+                            if (chapters.length > 0 && currentChapterIndex < chapters.length) {
+                                const currentChapter = chapters[currentChapterIndex];
+                                const expectedDuration = currentChapter.duration * 1000; // ms
+                                const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
+                                const timeDiff = Math.abs(elapsedTime - expectedDuration);
+
+                                if (timeDiff > 10000) { // 10초 이상 차이나면
+                                    canSplit = false;
+                                    console.log(`⏸️ [무음 감지 자동분할] 예상 시간 범위 밖 (경과: ${(elapsedTime/1000).toFixed(1)}초, 예상: ${(expectedDuration/1000).toFixed(1)}초, 차이: ${(timeDiff/1000).toFixed(1)}초)`);
+                                    addLog(`⏸️ 무음 감지했으나 예상 시간 범위 밖 (±10초)`, 'warning');
+                                } else {
+                                    console.log(`✅ [무음 감지 자동분할] 예상 시간 범위 내 (경과: ${(elapsedTime/1000).toFixed(1)}초, 예상: ${(expectedDuration/1000).toFixed(1)}초, 차이: ${(timeDiff/1000).toFixed(1)}초)`);
+                                }
+                            }
+
+                            if (canSplit) {
+                                console.log(`✅ [무음 감지 자동분할] ${(silenceDuration / 1000)}초 무음 감지 → 자동 분할 실행`);
+                                addLog(`✅ 무음 ${(silenceDuration / 1000)}초 감지 → 자동 분할`, 'success');
+                                splitRecording();
+                                silenceStart = null;
+                                lastLoggedSecond = -1;
+                                silenceIndicator.textContent = '(자동 분할됨!)';
+                            } else {
+                                // 범위 밖이면 무음 타이머 리셋
+                                silenceStart = null;
+                                lastLoggedSecond = -1;
+                            }
                         }
                     }
                 } else {
