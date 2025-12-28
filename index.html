@@ -1275,16 +1275,45 @@ Ch01. 오리엔테이션
                 </div>
                 <div class="toggle-container">
                     <span class="toggle-label"
-                        title="동영상 전환을 자동으로 감지하여 챕터를 분할합니다.&#13;&#10;&#13;&#10;• 연속 3프레임 이상 화면 변화 감지&#13;&#10;• 픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 올블랙 화면 → 일반 화면 전환 감지&#13;&#10;• 3초 쿨다운으로 오감지 방지&#13;&#10;&#13;&#10;아래 '무음 2초 + 화면 전환' 체크 시:&#13;&#10;무음 2초 경과 + 화면 전환 모두 만족해야 분할">🎬
+                        title="동영상 전환을 자동으로 감지하여 챕터를 분할합니다.&#13;&#10;&#13;&#10;감지 조건 (중복 선택 시 AND 조건):&#13;&#10;• 기본: 픽셀 변화율 + 히스토그램 분석&#13;&#10;• 모드1: 하얀 배경 + 중앙 로고 감지&#13;&#10;• 모드2: 특정 이미지 포함 여부 감지">🎬
                         화면 전환 자동감지 (목차용)</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="sceneChangeDetection" checked>
                         <span class="toggle-slider"></span>
                     </label>
-                    <div class="sensitivity-slider">
-                        <span style="font-size: 11px; color: #666;">민감도:</span>
-                        <input type="range" id="sceneChangeSensitivity" min="5" max="30" value="15" step="1">
-                        <span class="sensitivity-value" id="sensitivityValue">15%</span>
+                    <div style="display: flex; gap: 15px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
+                        <!-- 감지 조건 체크박스들 -->
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
+                                title="픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 160x90으로 샘플링하여 픽셀 단위 비교&#13;&#10;• 15% 이상 변화 시 장면 전환 감지&#13;&#10;• 연속 3프레임 변화 추적&#13;&#10;• 올블랙 화면 → 일반 화면 전환 감지">
+                                <input type="checkbox" id="detectBasic" checked style="cursor: pointer;">
+                                <span>기본 (픽셀+색상)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
+                                title="하얀 배경 + 중앙 로고 패턴 감지&#13;&#10;• 화면의 70% 이상이 하얀색 (밝기 200 이상)&#13;&#10;• 중앙 20% 영역에 10% 이상 어두운 부분 (로고)&#13;&#10;• 강의 전환 시 나타나는 인트로 화면 감지에 유용">
+                                <input type="checkbox" id="detectMode1" style="cursor: pointer;">
+                                <span>모드1 (하얀배경)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
+                                title="업로드한 특정 이미지 포함 여부 감지&#13;&#10;• 아래 '📁 감지용 이미지 업로드' 버튼으로 참조 이미지 등록&#13;&#10;• 현재 화면과 70% 이상 유사하면 매칭 성공&#13;&#10;• 특정 슬라이드나 화면이 나타날 때 전환하고 싶을 때 사용">
+                                <input type="checkbox" id="detectMode2" style="cursor: pointer;">
+                                <span>모드2 (이미지매칭)</span>
+                            </label>
+                        </div>
+                        <div class="sensitivity-slider">
+                            <span style="font-size: 11px; color: #666;">민감도:</span>
+                            <input type="range" id="sceneChangeSensitivity" min="5" max="30" value="15" step="1">
+                            <span class="sensitivity-value" id="sensitivityValue">15%</span>
+                        </div>
+                    </div>
+                    <!-- 모드2 전용: 이미지 업로드 -->
+                    <div id="mode2ImageUpload" style="padding-left: 30px; margin-top: 8px; display: none;">
+                        <input type="file" id="mode2ImageInput" accept="image/*" style="display: none;">
+                        <button id="uploadMode2ImageBtn"
+                            style="padding: 4px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px;">
+                            📁 감지용 이미지 업로드
+                        </button>
+                        <span id="mode2ImageStatus" style="font-size: 11px; color: #666; margin-left: 8px;"></span>
                     </div>
                 </div>
                 <div class="toggle-container" style="padding-left: 30px; margin-top: -10px;">
@@ -1391,6 +1420,13 @@ Ch01. 오리엔테이션
         const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
         const sceneChangeSensitivity = document.getElementById('sceneChangeSensitivity');
         const sensitivityValue = document.getElementById('sensitivityValue');
+        const detectBasic = document.getElementById('detectBasic');
+        const detectMode1 = document.getElementById('detectMode1');
+        const detectMode2 = document.getElementById('detectMode2');
+        const mode2ImageUpload = document.getElementById('mode2ImageUpload');
+        const mode2ImageInput = document.getElementById('mode2ImageInput');
+        const uploadMode2ImageBtn = document.getElementById('uploadMode2ImageBtn');
+        const mode2ImageStatus = document.getElementById('mode2ImageStatus');
         const requireSilenceForSceneChange = document.getElementById('requireSilenceForSceneChange');
         const templateMatchingToggle = document.getElementById('templateMatching');
         const templateImageInput = document.getElementById('templateImageInput');
@@ -2083,12 +2119,38 @@ Ch01. 오리엔테이션
                 // 연속 프레임 변화 추적 (동영상 전환 감지용)
                 this.consecutiveChanges = 0;
                 this.consecutiveThreshold = 3; // 3프레임 연속 변화 시 동영상 전환으로 판단
+
+                // 감지 모드 ('basic', 'mode1', 'mode2')
+                this.detectionMode = 'basic';
+                this.mode2ReferenceImage = null; // 모드2용 참조 이미지
             }
 
             captureFrame() {
                 if (!this.video || this.video.readyState < 2) return null;
 
-                this.ctx.drawImage(this.video, 0, 0, this.sampleWidth, this.sampleHeight);
+                const vw = this.video.videoWidth;
+                const vh = this.video.videoHeight;
+
+                if (!vw || !vh) return null;
+
+                // 비율 유지하며 캔버스에 맞춤 (letterbox 제거)
+                const scale = Math.min(
+                    this.sampleWidth / vw,
+                    this.sampleHeight / vh
+                );
+
+                const drawW = vw * scale;
+                const drawH = vh * scale;
+                const offsetX = (this.sampleWidth - drawW) / 2;
+                const offsetY = (this.sampleHeight - drawH) / 2;
+
+                // 캔버스 초기화 (검은 배경)
+                this.ctx.fillStyle = "#000";
+                this.ctx.fillRect(0, 0, this.sampleWidth, this.sampleHeight);
+
+                // 실제 비디오 콘텐츠만 그리기
+                this.ctx.drawImage(this.video, offsetX, offsetY, drawW, drawH);
+
                 return this.ctx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
             }
 
@@ -2206,6 +2268,44 @@ Ch01. 오리엔테이션
             }
 
             checkSceneChange() {
+                // 체크박스로 선택된 조건들을 AND 조건으로 결합
+                const conditions = [];
+                let allSatisfied = true;
+
+                // 기본 감지 체크
+                if (detectBasic.checked) {
+                    const basicDetected = this.checkBasicSceneChange();
+                    conditions.push({ name: '기본', result: basicDetected });
+                    if (!basicDetected) allSatisfied = false;
+                }
+
+                // 모드1 감지 체크 (기본이 만족된 경우만)
+                if (detectMode1.checked && allSatisfied) {
+                    const mode1Detected = this.checkMode1WhiteBackground();
+                    conditions.push({ name: '모드1', result: mode1Detected });
+                    if (!mode1Detected) allSatisfied = false;
+                }
+
+                // 모드2 감지 체크 (이전 조건들이 모두 만족된 경우만)
+                if (detectMode2.checked && allSatisfied) {
+                    const mode2Detected = this.checkMode2ImageMatch();
+                    conditions.push({ name: '모드2', result: mode2Detected });
+                    if (!mode2Detected) allSatisfied = false;
+                }
+
+                // 모든 조건이 만족되었을 때만 전환
+                if (allSatisfied && conditions.length > 0) {
+                    const conditionNames = conditions.map(c => c.name).join(' + ');
+                    console.log(`✅ [조합 감지] ${conditionNames} 조건 모두 만족!`);
+                    addLog(`✅ ${conditionNames} 조건 모두 만족 → 전환`, 'success');
+                    return true;
+                }
+
+                return false;
+            }
+
+            // 기본 모드: 픽셀 + 히스토그램 분석
+            checkBasicSceneChange() {
                 const currentFrame = this.captureFrame();
                 if (!currentFrame) return false;
 
@@ -2280,6 +2380,131 @@ Ch01. 오리엔테이션
                 return isVideoTransition;
             }
 
+            // 모드1: 하얀 배경 + 중앙 작은 로고 감지
+            checkMode1WhiteBackground() {
+                const currentFrame = this.captureFrame();
+                if (!currentFrame) return false;
+
+                const data = currentFrame.data;
+                let whitePixels = 0;
+                let darkCenterPixels = 0;
+                const totalPixels = data.length / 4;
+
+                // 중앙 영역 계산 (전체의 20% 중앙 영역)
+                const centerStartX = Math.floor(this.sampleWidth * 0.4);
+                const centerEndX = Math.floor(this.sampleWidth * 0.6);
+                const centerStartY = Math.floor(this.sampleHeight * 0.4);
+                const centerEndY = Math.floor(this.sampleHeight * 0.6);
+
+                for (let y = 0; y < this.sampleHeight; y++) {
+                    for (let x = 0; x < this.sampleWidth; x++) {
+                        const idx = (y * this.sampleWidth + x) * 4;
+                        const r = data[idx];
+                        const g = data[idx + 1];
+                        const b = data[idx + 2];
+                        const brightness = (r + g + b) / 3;
+
+                        // 하얀색 판정 (밝기 200 이상)
+                        if (brightness > 200) {
+                            whitePixels++;
+                        }
+
+                        // 중앙 영역의 어두운 픽셀 (로고 영역)
+                        if (x >= centerStartX && x <= centerEndX &&
+                            y >= centerStartY && y <= centerEndY) {
+                            if (brightness < 150) { // 중앙에 어두운 영역 있음
+                                darkCenterPixels++;
+                            }
+                        }
+                    }
+                }
+
+                const whiteRatio = whitePixels / totalPixels;
+                const centerArea = (centerEndX - centerStartX) * (centerEndY - centerStartY);
+                const darkCenterRatio = darkCenterPixels / centerArea;
+
+                // 화면의 70% 이상이 하얗고, 중앙에 10% 이상 어두운 영역 (로고)
+                const isWhiteBackgroundWithLogo = whiteRatio > 0.7 && darkCenterRatio > 0.1;
+
+                if (isWhiteBackgroundWithLogo) {
+                    console.log(`✓ [모드1 조건] 하얀 배경 + 중앙 로고 감지! (하얀색: ${(whiteRatio * 100).toFixed(1)}%, 중앙 로고: ${(darkCenterRatio * 100).toFixed(1)}%)`);
+                    return true;
+                }
+
+                this.lastFrameData = currentFrame;
+                return false;
+            }
+
+            // 모드2: 특정 이미지 매칭
+            checkMode2ImageMatch() {
+                if (!this.mode2ReferenceImage) {
+                    console.warn('⚠️ 모드2: 참조 이미지가 없습니다.');
+                    return false;
+                }
+
+                const currentFrame = this.captureFrame();
+                if (!currentFrame) return false;
+
+                // 참조 이미지를 현재 프레임 크기로 리샘플링
+                const refCanvas = document.createElement('canvas');
+                refCanvas.width = this.sampleWidth;
+                refCanvas.height = this.sampleHeight;
+                const refCtx = refCanvas.getContext('2d');
+
+                // 참조 이미지를 임시 캔버스에 그리기
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = this.mode2ReferenceImage.width;
+                tempCanvas.height = this.mode2ReferenceImage.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(this.mode2ReferenceImage, 0, 0);
+
+                // 리샘플링
+                refCtx.drawImage(tempCanvas, 0, 0, this.sampleWidth, this.sampleHeight);
+                const resizedRef = refCtx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
+
+                // 유사도 계산
+                const similarity = this.calculateImageSimilarity(currentFrame, resizedRef);
+
+                // 70% 이상 유사하면 매칭
+                const matched = similarity > 0.7;
+
+                if (matched) {
+                    console.log(`✓ [모드2 조건] 특정 이미지 매칭 감지! (유사도: ${(similarity * 100).toFixed(1)}%)`);
+                    return true;
+                }
+
+                this.lastFrameData = currentFrame;
+                return false;
+            }
+
+            // 두 이미지의 유사도 계산 (픽셀 단위 비교)
+            calculateImageSimilarity(frame1, frame2) {
+                if (!frame1 || !frame2) return 0;
+
+                const data1 = frame1.data;
+                const data2 = frame2.data;
+                let matchPixels = 0;
+                const totalPixels = data1.length / 4;
+
+                for (let i = 0; i < data1.length; i += 4) {
+                    const r1 = data1[i];
+                    const g1 = data1[i + 1];
+                    const b1 = data1[i + 2];
+                    const r2 = data2[i];
+                    const g2 = data2[i + 1];
+                    const b2 = data2[i + 2];
+
+                    const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+
+                    // 30 이하 차이면 유사한 픽셀로 간주
+                    if (diff < 30) {
+                        matchPixels++;
+                    }
+                }
+
+                return matchPixels / totalPixels;
+            }
+
             reset() {
                 this.lastFrameData = null;
                 this.lastHistogram = null;
@@ -2311,7 +2536,29 @@ Ch01. 오리엔테이션
             captureVideoFrame() {
                 if (!this.video || this.video.readyState < 2) return null;
 
-                this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                const vw = this.video.videoWidth;
+                const vh = this.video.videoHeight;
+
+                if (!vw || !vh) return null;
+
+                // 비율 유지하며 캔버스에 맞춤 (letterbox 제거)
+                const scale = Math.min(
+                    this.canvas.width / vw,
+                    this.canvas.height / vh
+                );
+
+                const drawW = vw * scale;
+                const drawH = vh * scale;
+                const offsetX = (this.canvas.width - drawW) / 2;
+                const offsetY = (this.canvas.height - drawH) / 2;
+
+                // 캔버스 초기화 (검은 배경)
+                this.ctx.fillStyle = "#000";
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // 실제 비디오 콘텐츠만 그리기
+                this.ctx.drawImage(this.video, offsetX, offsetY, drawW, drawH);
+
                 return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
             }
 
@@ -2378,6 +2625,10 @@ Ch01. 오리엔테이션
                 sceneChangeDetector = new SceneChangeDetector(videoElement);
                 // 슬라이더 값으로 민감도 설정
                 sceneChangeDetector.changeThreshold = parseInt(sceneChangeSensitivity.value) / 100;
+                // 모드2 참조 이미지가 있으면 설정
+                if (mode2ReferenceImage) {
+                    sceneChangeDetector.mode2ReferenceImage = mode2ReferenceImage;
+                }
             }
 
             // 화면 변화 감지 중지 (이미 실행 중이면)
@@ -3512,6 +3763,73 @@ Ch01. 오리엔테이션
             // 현재 감지기가 있으면 민감도 업데이트
             if (sceneChangeDetector) {
                 sceneChangeDetector.changeThreshold = value / 100;
+            }
+        });
+
+        // 화면전환 감지 조건 체크박스 변경
+        const updateDetectionModes = () => {
+            const modes = [];
+            if (detectBasic.checked) modes.push('기본');
+            if (detectMode1.checked) modes.push('모드1');
+            if (detectMode2.checked) modes.push('모드2');
+
+            // 모드2 체크 시 이미지 업로드 UI 표시
+            if (detectMode2.checked) {
+                mode2ImageUpload.style.display = 'block';
+            } else {
+                mode2ImageUpload.style.display = 'none';
+            }
+
+            console.log(`🔄 화면전환 감지 조건: ${modes.join(' AND ')}`);
+            addLog(`🔄 감지 조건: ${modes.join(' AND ')}`, 'info');
+        };
+
+        detectBasic.addEventListener('change', updateDetectionModes);
+        detectMode1.addEventListener('change', updateDetectionModes);
+        detectMode2.addEventListener('change', updateDetectionModes);
+
+        // 모드2 이미지 업로드 버튼 클릭
+        uploadMode2ImageBtn.addEventListener('click', () => {
+            mode2ImageInput.click();
+        });
+
+        // 모드2 이미지 파일 선택
+        let mode2ReferenceImage = null;
+        mode2ImageInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                });
+
+                // 캔버스에 그려서 ImageData 추출
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                mode2ReferenceImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                mode2ImageStatus.textContent = `✅ ${file.name} (${img.width}x${img.height})`;
+                mode2ImageStatus.style.color = '#28a745';
+
+                // 감지기가 있으면 이미지 업데이트
+                if (sceneChangeDetector) {
+                    sceneChangeDetector.mode2ReferenceImage = mode2ReferenceImage;
+                    console.log(`✅ 모드2 참조 이미지 로드 완료: ${img.width}x${img.height}`);
+                    addLog(`✅ 모드2 참조 이미지 로드 완료: ${file.name}`, 'success');
+                }
+
+                URL.revokeObjectURL(img.src);
+            } catch (err) {
+                mode2ImageStatus.textContent = '❌ 이미지 로드 실패';
+                mode2ImageStatus.style.color = '#dc3545';
+                console.error('모드2 이미지 로드 오류:', err);
             }
         });
 
