@@ -3710,6 +3710,19 @@ Ch01. 오리엔테이션
         // 수동 분할 (새 강의 버튼)
         function splitRecording() {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
+                // ✅ 챕터 모드일 때는 triggerChapterTransition 호출
+                if (chapters.length > 0 && currentChapterIndex < chapters.length) {
+                    console.log('🔍 [무음 감지 자동분할] 챕터 모드 감지 → triggerChapterTransition 호출');
+
+                    // 챕터 전환을 위한 플래그 설정
+                    chapterReadyToSplit = true;
+                    pendingSplitChapterIndex = currentChapterIndex;
+
+                    triggerChapterTransition('무음 감지 자동분할');
+                    return;
+                }
+
+                // ✅ 일반 모드 (챕터 없음)
                 const currentName = activeChapterName || `강의${lectureCount}`;
                 lectureCount++;
 
