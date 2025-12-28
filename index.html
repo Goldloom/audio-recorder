@@ -1710,11 +1710,12 @@ Ch01. 오리엔테이션
                         if (silentTime >= silenceDuration) {
                             // 챕터 모드일 때: 잔여 예정 시간이 10초 미만인지 체크
                             let canSplit = true;
+                            let remainingTime = null;
                             if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                                 const currentChapter = chapters[currentChapterIndex];
                                 const expectedDuration = currentChapter.duration * 1000; // ms
                                 const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
-                                const remainingTime = expectedDuration - elapsedTime; // 잔여 예정 시간
+                                remainingTime = expectedDuration - elapsedTime; // 잔여 예정 시간
 
                                 if (remainingTime >= 10000) { // 잔여 시간이 10초 이상이면
                                     canSplit = false;
@@ -1727,7 +1728,14 @@ Ch01. 오리엔테이션
 
                             if (canSplit) {
                                 console.log(`✅ [무음 감지 자동분할] ${(silenceDuration / 1000)}초 무음 감지 → 자동 분할 실행`);
-                                addLog(`✅ 무음 ${(silenceDuration / 1000)}초 감지 → 자동 분할`, 'success');
+
+                                // UI 로그에 잔여 시간 표시
+                                if (remainingTime !== null) {
+                                    addLog(`✅ 무음 ${(silenceDuration / 1000)}초 감지 (잔여: ${(remainingTime/1000).toFixed(1)}초) → 자동 분할`, 'success');
+                                } else {
+                                    addLog(`✅ 무음 ${(silenceDuration / 1000)}초 감지 → 자동 분할`, 'success');
+                                }
+
                                 splitRecording();
                                 silenceStart = null;
                                 lastLoggedSecond = -1;
