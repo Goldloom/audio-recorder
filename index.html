@@ -1689,18 +1689,23 @@ Ch01. 오리엔테이션
                     if (!silenceStart) {
                         silenceStart = Date.now();
                         console.log('🔇 [무음 감지 자동분할] 무음 시작 (화면 전환 대기 중 아님)');
+                        addLog('🔇 무음 감지 시작', 'info');
                     } else {
                         const silentTime = Date.now() - silenceStart;
                         silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초)`;
                         silenceIndicator.className = 'silence-indicator active';
 
-                        // 0.5초마다 로그
-                        if (Math.floor(silentTime / 500) !== Math.floor((silentTime - 100) / 500)) {
-                            console.log(`🔇 [무음 감지 자동분할] 무음 ${(silentTime / 1000).toFixed(1)}초 / ${(silenceDuration / 1000).toFixed(1)}초`);
+                        // 1초마다 로그 (콘솔 + UI)
+                        if (Math.floor(silentTime / 1000) !== Math.floor((silentTime - 100) / 1000)) {
+                            const currentSec = Math.floor(silentTime / 1000);
+                            const targetSec = (silenceDuration / 1000).toFixed(1);
+                            console.log(`🔇 [무음 감지 자동분할] 무음 ${currentSec}초 / ${targetSec}초`);
+                            addLog(`🔇 무음 ${currentSec}초 / ${targetSec}초`, 'info');
                         }
 
                         if (silentTime >= silenceDuration) {
                             console.log(`✅ [무음 감지 자동분할] ${(silenceDuration / 1000)}초 무음 감지 → 자동 분할 실행`);
+                            addLog(`✅ 무음 ${(silenceDuration / 1000)}초 감지 → 자동 분할`, 'success');
                             splitRecording();
                             silenceStart = null;
                             silenceIndicator.textContent = '(자동 분할됨!)';
@@ -1708,7 +1713,9 @@ Ch01. 오리엔테이션
                     }
                 } else {
                     if (silenceStart) {
-                        console.log('❌ [무음 감지 자동분할] 무음 중단 (소리 감지) - 타이머 리셋');
+                        const interruptedTime = ((Date.now() - silenceStart) / 1000).toFixed(1);
+                        console.log(`❌ [무음 감지 자동분할] 무음 중단 (소리 감지, ${interruptedTime}초에서 중단) - 타이머 리셋`);
+                        addLog(`❌ 무음 중단 (${interruptedTime}초에서 소리 감지)`, 'warning');
                     }
                     silenceStart = null;
                     silenceIndicator.textContent = '';
@@ -1718,6 +1725,7 @@ Ch01. 오리엔테이션
                 // 화면 전환 대기 중일 때는 무음 감지 자동분할이 비활성화됨을 로그
                 if (silenceStart) {
                     console.log('⏸️ [무음 감지 자동분할] 화면 전환 대기 중이므로 일시 중단');
+                    addLog('⏸️ 화면 전환 대기 중 - 무음 감지 일시 중단', 'info');
                     silenceStart = null;
                     silenceIndicator.textContent = '';
                     silenceIndicator.className = 'silence-indicator';
