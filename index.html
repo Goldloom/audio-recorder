@@ -1290,10 +1290,10 @@ Ch01. 오리엔테이션
                 <div class="toggle-container" style="padding-left: 30px; margin-top: -10px;">
                     <label
                         style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;"
-                        title="체크 시: 무음 2초 + 화면 전환 모두 만족해야 분할 (정밀)&#13;&#10;체크 안 함: 화면 전환만으로 즉시 분할 (빠름, 기본값)">
+                        title="체크 시: 무음 4.5초 + 화면 전환 모두 만족해야 분할 (정밀, 강의 전환 구간 정확 감지)&#13;&#10;체크 안 함: 화면 전환만으로 즉시 분할 (빠름, 기본값)">
                         <input type="checkbox" id="requireSilenceForSceneChange"
                             style="width: 16px; height: 16px; cursor: pointer;">
-                        <span>무음 2초 + 화면 전환 조건 (AND)</span>
+                        <span>무음 4.5초 + 화면 전환 조건 (AND)</span>
                     </label>
                 </div>
                 <div class="toggle-container">
@@ -2421,7 +2421,7 @@ Ch01. 오리엔테이션
 
                     // 무음 조건이 필요한 경우 (AND 조건)
                     if (requireSilenceForSceneChange.checked) {
-                        // 기존 로직: 무음 2초 + 화면 전환
+                        // 무음 4.5초 + 화면 전환 조합 로직
                         if (!isSilent) {
                             if (silenceStartForSplit && !detectedSceneChange) {
                                 console.log('❌ 무음 중단 (소리 감지) - 타이머 리셋');
@@ -2436,21 +2436,28 @@ Ch01. 오리엔테이션
                             } else {
                                 const silentTime = Date.now() - silenceStartForSplit;
 
-                                if (silentTime >= 2000 && !detectedSceneChange) {
+                                // 무음 시간 실시간 로그 (0.5초마다)
+                                if (Math.floor(silentTime / 500) !== Math.floor((silentTime - 500) / 500)) {
+                                    console.log(`🔇 무음 지속 중... ${(silentTime / 1000).toFixed(1)}초 / 4.5초`);
+                                }
+
+                                // 무음 4.5초 경과 시 화면 전환 감지 시작
+                                if (silentTime >= 4500 && !detectedSceneChange) {
                                     detectedSceneChange = true;
-                                    console.log('✅ 무음 2초 경과 → 화면 전환 감지 시작');
+                                    console.log('✅ 무음 4.5초 경과 → 화면 전환 감지 시작');
+                                    addLog(`✅ 무음 4.5초 경과 → 화면 전환 감지 대기 중`, 'info');
                                 }
 
                                 if (detectedSceneChange) {
                                     const currentFrame = sceneChangeDetector.captureFrame();
                                     const diff = sceneChangeDetector.calculateDifference(frameBeforeSilence, currentFrame);
 
-                                    if (diff >= sceneChangeDetector.changeThreshold) {
+                                    if (diff.changeRatio >= sceneChangeDetector.changeThreshold) {
                                         const elapsed = recordingStartTime ? ((Date.now() - recordingStartTime) / 1000).toFixed(0) : '?';
-                                        console.log(`🎬 화면 전환 감지! (무음+화면) 변화율: ${(diff * 100).toFixed(1)}% → 자동분할`);
-                                        addLog(`🎬 화면 전환 감지! (무음+화면, 변화율: ${(diff * 100).toFixed(1)}%, ${elapsed}초 경과) → 다음 챕터로 전환`, 'success');
+                                        console.log(`🎬 화면 전환 감지! (무음 4.5초 + 화면) 변화율: ${(diff.changeRatio * 100).toFixed(1)}% → 자동분할`);
+                                        addLog(`🎬 화면 전환 감지! (무음 4.5초 + 화면, 변화율: ${(diff.changeRatio * 100).toFixed(1)}%, ${elapsed}초 경과) → 다음 챕터로 전환`, 'success');
                                         addLog(`🔍 [DEBUG] 화면 전환(무음+화면)으로 triggerChapterTransition 호출 - chapterReadyToSplit: ${chapterReadyToSplit}, pendingIndex: ${pendingSplitChapterIndex}`, 'info');
-                                        triggerChapterTransition(`무음+화면 전환 (변화율: ${(diff * 100).toFixed(1)}%, ${elapsed}초 경과)`);
+                                        triggerChapterTransition(`무음 4.5초 + 화면 전환 (변화율: ${(diff.changeRatio * 100).toFixed(1)}%, ${elapsed}초 경과)`);
                                     }
                                 }
                             }
