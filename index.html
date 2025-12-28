@@ -1285,7 +1285,7 @@ Ch01. 오리엔테이션
                         <!-- 감지 조건 체크박스들 -->
                         <div style="display: flex; gap: 12px; align-items: center;">
                             <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
-                                title="픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 160x90으로 샘플링하여 픽셀 단위 비교&#13;&#10;• 15% 이상 변화 시 장면 전환 감지&#13;&#10;• 연속 3프레임 변화 추적&#13;&#10;• 올블랙 화면 → 일반 화면 전환 감지">
+                                title="픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 160x90으로 샘플링하여 픽셀 단위 비교&#13;&#10;• 15% 이상 변화 시 장면 전환 감지&#13;&#10;• 연속 3프레임 변화 추적&#13;&#10;• 3초 쿨다운으로 오감지 방지">
                                 <input type="checkbox" id="detectBasic" checked style="cursor: pointer;">
                                 <span>기본 (픽셀+색상)</span>
                             </label>
@@ -1298,6 +1298,11 @@ Ch01. 오리엔테이션
                                 title="업로드한 특정 이미지 포함 여부 감지&#13;&#10;• 아래 '📁 감지용 이미지 업로드' 버튼으로 참조 이미지 등록&#13;&#10;• 현재 화면과 70% 이상 유사하면 매칭 성공&#13;&#10;• 특정 슬라이드나 화면이 나타날 때 전환하고 싶을 때 사용">
                                 <input type="checkbox" id="detectMode2" style="cursor: pointer;">
                                 <span>모드2 (이미지매칭)</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
+                                title="4초 이상 무음 감지&#13;&#10;• 오디오 레벨이 임계값 미만으로 4초 지속 시 감지&#13;&#10;• 강의 전환 시 무음 구간이 있을 때 유용&#13;&#10;• 다른 조건과 조합하여 정확도 향상">
+                                <input type="checkbox" id="detectMode3" style="cursor: pointer;">
+                                <span>모드3 (4초무음)</span>
                             </label>
                         </div>
                         <div class="sensitivity-slider">
@@ -1423,6 +1428,7 @@ Ch01. 오리엔테이션
         const detectBasic = document.getElementById('detectBasic');
         const detectMode1 = document.getElementById('detectMode1');
         const detectMode2 = document.getElementById('detectMode2');
+        const detectMode3 = document.getElementById('detectMode3');
         const mode2ImageUpload = document.getElementById('mode2ImageUpload');
         const mode2ImageInput = document.getElementById('mode2ImageInput');
         const uploadMode2ImageBtn = document.getElementById('uploadMode2ImageBtn');
@@ -2120,9 +2126,13 @@ Ch01. 오리엔테이션
                 this.consecutiveChanges = 0;
                 this.consecutiveThreshold = 3; // 3프레임 연속 변화 시 동영상 전환으로 판단
 
-                // 감지 모드 ('basic', 'mode1', 'mode2')
+                // 감지 모드 ('basic', 'mode1', 'mode2', 'mode3')
                 this.detectionMode = 'basic';
                 this.mode2ReferenceImage = null; // 모드2용 참조 이미지
+
+                // 모드3: 무음 감지용 변수
+                this.silenceStartTime = null;
+                this.silenceDuration = 4000; // 4초
             }
 
             captureFrame() {
@@ -2293,6 +2303,13 @@ Ch01. 오리엔테이션
                     if (!mode2Detected) allSatisfied = false;
                 }
 
+                // 모드3 감지 체크 (이전 조건들이 모두 만족된 경우만)
+                if (detectMode3.checked && allSatisfied) {
+                    const mode3Detected = this.checkMode3Silence();
+                    conditions.push({ name: '모드3', result: mode3Detected });
+                    if (!mode3Detected) allSatisfied = false;
+                }
+
                 // 모든 조건이 만족되었을 때만 전환
                 if (allSatisfied && conditions.length > 0) {
                     const conditionNames = conditions.map(c => c.name).join(' + ');
@@ -2308,21 +2325,6 @@ Ch01. 오리엔테이션
             checkBasicSceneChange() {
                 const currentFrame = this.captureFrame();
                 if (!currentFrame) return false;
-
-                // 올블랙 화면 감지
-                const isCurrentBlack = this.isBlackScreen(currentFrame);
-                const wasLastBlack = this.lastFrameData ? this.isBlackScreen(this.lastFrameData) : false;
-
-                // 올블랙에서 일반 화면으로 전환 (동영상 시작)
-                if (wasLastBlack && !isCurrentBlack) {
-                    console.log(`🎬 올블랙 → 화면 전환 감지! (동영상 시작)`);
-                    addLog(`🎬 올블랙 → 화면 전환 감지! (동영상 시작)`, 'success');
-                    this.lastFrameData = currentFrame;
-                    this.lastHistogram = this.calculateHistogram(currentFrame);
-                    this.lastChangeTime = Date.now();
-                    this.consecutiveChanges = 0;
-                    return true;
-                }
 
                 // 히스토그램 계산
                 const currentHistogram = this.calculateHistogram(currentFrame);
@@ -2505,11 +2507,55 @@ Ch01. 오리엔테이션
                 return matchPixels / totalPixels;
             }
 
+            // 모드3: 4초 무음 감지
+            checkMode3Silence() {
+                // analyser와 dataArray가 전역 변수로 존재하는지 확인
+                if (!window.analyser || !window.dataArray) {
+                    return false;
+                }
+
+                // 현재 오디오 레벨 계산
+                window.analyser.getByteFrequencyData(window.dataArray);
+                const average = window.dataArray.reduce((a, b) => a + b, 0) / window.dataArray.length;
+                const isSilent = average < silenceThreshold;
+
+                if (isSilent) {
+                    // 무음 시작 시간 기록
+                    if (!this.silenceStartTime) {
+                        this.silenceStartTime = Date.now();
+                        console.log('🔇 [모드3] 무음 감지 시작');
+                    } else {
+                        const silentDuration = Date.now() - this.silenceStartTime;
+
+                        // 0.5초마다 로그 (너무 많은 로그 방지)
+                        if (Math.floor(silentDuration / 500) !== Math.floor((silentDuration - 500) / 500)) {
+                            console.log(`🔇 [모드3] 무음 지속 중... ${(silentDuration / 1000).toFixed(1)}초 / 4.0초`);
+                        }
+
+                        // 4초 이상 무음이면 감지 성공
+                        if (silentDuration >= this.silenceDuration) {
+                            console.log(`✓ [모드3 조건] 4초 무음 감지! (${(silentDuration / 1000).toFixed(1)}초)`);
+                            this.silenceStartTime = null; // 리셋
+                            return true;
+                        }
+                    }
+                } else {
+                    // 소리가 들리면 무음 타이머 리셋
+                    if (this.silenceStartTime) {
+                        console.log('❌ [모드3] 무음 중단 (소리 감지) - 타이머 리셋');
+                        this.silenceStartTime = null;
+                    }
+                }
+
+                return false;
+            }
+
             reset() {
                 this.lastFrameData = null;
                 this.lastHistogram = null;
                 this.lastChangeTime = 0;
                 this.consecutiveChanges = 0;
+                this.silenceStartTime = null; // 모드3 무음 타이머 리셋
             }
 
             destroy() {
@@ -3772,6 +3818,7 @@ Ch01. 오리엔테이션
             if (detectBasic.checked) modes.push('기본');
             if (detectMode1.checked) modes.push('모드1');
             if (detectMode2.checked) modes.push('모드2');
+            if (detectMode3.checked) modes.push('모드3');
 
             // 모드2 체크 시 이미지 업로드 UI 표시
             if (detectMode2.checked) {
@@ -3787,6 +3834,7 @@ Ch01. 오리엔테이션
         detectBasic.addEventListener('change', updateDetectionModes);
         detectMode1.addEventListener('change', updateDetectionModes);
         detectMode2.addEventListener('change', updateDetectionModes);
+        detectMode3.addEventListener('change', updateDetectionModes);
 
         // 모드2 이미지 업로드 버튼 클릭
         uploadMode2ImageBtn.addEventListener('click', () => {
