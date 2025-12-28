@@ -1255,14 +1255,14 @@ Ch01. 오리엔테이션
                 <div class="toggle-container">
                     <span class="toggle-label">🎬 소리 감지 시 자동 시작</span>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="autoStartOnSound">
+                        <input type="checkbox" id="autoStartOnSound" checked>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
                 <div class="toggle-container">
                     <span class="toggle-label">🔇 무음 감지 자동분할</span>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="silenceDetection">
+                        <input type="checkbox" id="silenceDetection" checked>
                         <span class="toggle-slider"></span>
                     </label>
                     <select id="silenceDurationSelect"
@@ -1279,7 +1279,7 @@ Ch01. 오리엔테이션
                         title="동영상 전환을 자동으로 감지하여 챕터를 분할합니다.&#13;&#10;&#13;&#10;감지 조건 (중복 선택 시 AND 조건):&#13;&#10;• 기본: 픽셀 변화율 + 히스토그램 분석&#13;&#10;• 모드1: 하얀 배경 + 중앙 로고 감지&#13;&#10;• 모드2: 특정 이미지 포함 여부 감지">🎬
                         화면 전환 자동감지 (목차용)</span>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="sceneChangeDetection" checked>
+                        <input type="checkbox" id="sceneChangeDetection">
                         <span class="toggle-slider"></span>
                     </label>
                     <div style="display: flex; gap: 15px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
@@ -1683,23 +1683,41 @@ Ch01. 오리엔테이션
             }
 
             // (기존 무음 감지 로직 그대로)
-
+            // 무음 감지 자동분할: 화면 전환 대기 중이 아닐 때만 작동
             if (silenceDetection.checked && mediaRecorder && mediaRecorder.state === 'recording' && !waitingForSilence) {
                 if (average < silenceThreshold) {
                     if (!silenceStart) {
                         silenceStart = Date.now();
+                        console.log('🔇 [무음 감지 자동분할] 무음 시작 (화면 전환 대기 중 아님)');
                     } else {
                         const silentTime = Date.now() - silenceStart;
                         silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초)`;
                         silenceIndicator.className = 'silence-indicator active';
 
+                        // 0.5초마다 로그
+                        if (Math.floor(silentTime / 500) !== Math.floor((silentTime - 100) / 500)) {
+                            console.log(`🔇 [무음 감지 자동분할] 무음 ${(silentTime / 1000).toFixed(1)}초 / ${(silenceDuration / 1000).toFixed(1)}초`);
+                        }
+
                         if (silentTime >= silenceDuration) {
+                            console.log(`✅ [무음 감지 자동분할] ${(silenceDuration / 1000)}초 무음 감지 → 자동 분할 실행`);
                             splitRecording();
                             silenceStart = null;
                             silenceIndicator.textContent = '(자동 분할됨!)';
                         }
                     }
                 } else {
+                    if (silenceStart) {
+                        console.log('❌ [무음 감지 자동분할] 무음 중단 (소리 감지) - 타이머 리셋');
+                    }
+                    silenceStart = null;
+                    silenceIndicator.textContent = '';
+                    silenceIndicator.className = 'silence-indicator';
+                }
+            } else if (silenceDetection.checked && waitingForSilence) {
+                // 화면 전환 대기 중일 때는 무음 감지 자동분할이 비활성화됨을 로그
+                if (silenceStart) {
+                    console.log('⏸️ [무음 감지 자동분할] 화면 전환 대기 중이므로 일시 중단');
                     silenceStart = null;
                     silenceIndicator.textContent = '';
                     silenceIndicator.className = 'silence-indicator';
@@ -1981,6 +1999,22 @@ Ch01. 오리엔테이션
                 const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
                 addLog(`🎬 녹음 시작: "${currentChapter.name}" (챕터 ${currentChapterIndex + 1}/${chapters.length}, 예상: ${expectedTimeStr})`, 'success');
 
+                // 활성화된 설정 로그 표시
+                const activeSettings = [];
+                if (autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
+                if (silenceDetection.checked) activeSettings.push(`무음 감지 자동분할 (${silenceDuration / 1000}초)`);
+                if (sceneChangeDetectionToggle.checked) {
+                    const modes = [];
+                    if (detectBasic.checked) modes.push('기본');
+                    if (detectMode1.checked) modes.push('모드1');
+                    if (detectMode2.checked) modes.push('모드2');
+                    if (detectMode3.checked) modes.push('모드3');
+                    activeSettings.push(`화면 전환 자동감지 (${modes.join('+')})`);
+                }
+                if (activeSettings.length > 0) {
+                    addLog(`⚙️ 활성화된 설정: ${activeSettings.join(' | ')}`, 'info');
+                }
+
                 // 챕터 타이머는 첫 녹음 시작 시에만 시작 (분할 시에는 이미 시작됨)
                 console.log(`🔍 [DEBUG] 조건 확인 - currentChapterIndex: ${currentChapterIndex}, chapterTimers.length: ${chapterTimers.length}`);
                 if (currentChapterIndex === 0 || chapterTimers.length === 0) {
@@ -1994,6 +2028,22 @@ Ch01. 오리엔테이션
                     currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
                 updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount}, ${sourceText})`);
                 addLog(`🎬 녹음 시작: 강의${lectureCount} (소스: ${sourceText})`, 'success');
+
+                // 활성화된 설정 로그 표시
+                const activeSettings = [];
+                if (autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
+                if (silenceDetection.checked) activeSettings.push(`무음 감지 자동분할 (${silenceDuration / 1000}초)`);
+                if (sceneChangeDetectionToggle.checked) {
+                    const modes = [];
+                    if (detectBasic.checked) modes.push('기본');
+                    if (detectMode1.checked) modes.push('모드1');
+                    if (detectMode2.checked) modes.push('모드2');
+                    if (detectMode3.checked) modes.push('모드3');
+                    activeSettings.push(`화면 전환 자동감지 (${modes.join('+')})`);
+                }
+                if (activeSettings.length > 0) {
+                    addLog(`⚙️ 활성화된 설정: ${activeSettings.join(' | ')}`, 'info');
+                }
             }
         }
 
