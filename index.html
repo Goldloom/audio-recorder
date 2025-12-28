@@ -1268,8 +1268,8 @@ Ch01. 오리엔테이션
                     <select id="silenceDurationSelect"
                         style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
                         <option value="2000">2초</option>
-                        <option value="3000">3초</option>
-                        <option value="4000" selected>4초</option>
+                        <option value="3000" selected>3초</option>
+                        <option value="4000">4초</option>
                         <option value="5000">5초</option>
                     </select>
                     <span id="silenceIndicator" class="silence-indicator"></span>
@@ -1716,8 +1716,8 @@ Ch01. 오리엔테이션
                     if (silenceStart) {
                         const interruptedTime = ((Date.now() - silenceStart) / 1000).toFixed(1);
                         console.log(`❌ [무음 감지 자동분할] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단)`);
-                        // 1초 이상 무음이었을 때만 UI 로그 표시 (짧은 중단은 너무 많아서 제외)
-                        if (parseFloat(interruptedTime) >= 1.0) {
+                        // 2.5초 이상 무음이었을 때만 UI 로그 표시 (짧은 중단은 너무 많아서 제외)
+                        if (parseFloat(interruptedTime) >= 2.5) {
                             addLog(`❌ 무음 중단 (${interruptedTime}초에서 소리 감지)`, 'warning');
                         }
                     }
