@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self';">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.github.com;">
     <title>시스템 오디오 녹음기</title>
     <style>
         * {
@@ -1284,22 +1285,26 @@ Ch01. 오리엔테이션
                     <div style="display: flex; gap: 15px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
                         <!-- 감지 조건 체크박스들 -->
                         <div style="display: flex; gap: 12px; align-items: center;">
-                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
+                            <label
+                                style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
                                 title="픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 160x90으로 샘플링하여 픽셀 단위 비교&#13;&#10;• 15% 이상 변화 시 장면 전환 감지&#13;&#10;• 연속 3프레임 변화 추적&#13;&#10;• 3초 쿨다운으로 오감지 방지">
                                 <input type="checkbox" id="detectBasic" checked style="cursor: pointer;">
                                 <span>기본 (픽셀+색상)</span>
                             </label>
-                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
+                            <label
+                                style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
                                 title="하얀 배경 + 중앙 로고 패턴 감지&#13;&#10;• 화면의 70% 이상이 하얀색 (밝기 200 이상)&#13;&#10;• 중앙 20% 영역에 10% 이상 어두운 부분 (로고)&#13;&#10;• 강의 전환 시 나타나는 인트로 화면 감지에 유용">
                                 <input type="checkbox" id="detectMode1" style="cursor: pointer;">
                                 <span>모드1 (하얀배경)</span>
                             </label>
-                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
+                            <label
+                                style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
                                 title="업로드한 특정 이미지 포함 여부 감지&#13;&#10;• 아래 '📁 감지용 이미지 업로드' 버튼으로 참조 이미지 등록&#13;&#10;• 현재 화면과 70% 이상 유사하면 매칭 성공&#13;&#10;• 특정 슬라이드나 화면이 나타날 때 전환하고 싶을 때 사용">
                                 <input type="checkbox" id="detectMode2" style="cursor: pointer;">
                                 <span>모드2 (이미지매칭)</span>
                             </label>
-                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
+                            <label
+                                style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
                                 title="4초 이상 무음 감지&#13;&#10;• 오디오 레벨이 임계값 미만으로 4초 지속 시 감지&#13;&#10;• 강의 전환 시 무음 구간이 있을 때 유용&#13;&#10;• 다른 조건과 조합하여 정확도 향상">
                                 <input type="checkbox" id="detectMode3" style="cursor: pointer;">
                                 <span>모드3 (4초무음)</span>
