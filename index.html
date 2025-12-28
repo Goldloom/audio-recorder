@@ -1268,7 +1268,8 @@ Ch01. 오리엔테이션
                     <select id="silenceDurationSelect"
                         style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
                         <option value="2000">2초</option>
-                        <option value="3000" selected>3초</option>
+                        <option value="2500" selected>2.5초</option>
+                        <option value="3000">3초</option>
                         <option value="4000">4초</option>
                         <option value="5000">5초</option>
                     </select>
@@ -1689,7 +1690,6 @@ Ch01. 오리엔테이션
                     if (!silenceStart) {
                         silenceStart = Date.now();
                         console.log(`🔇 [무음 감지 자동분할] 무음 시작 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
-                        addLog('🔇 무음 감지 시작', 'info');
                     } else {
                         const silentTime = Date.now() - silenceStart;
                         silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초)`;
