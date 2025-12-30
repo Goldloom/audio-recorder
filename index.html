@@ -1718,10 +1718,10 @@ Ch01. 오리엔테이션
                             let remainingInfo = '';
                             if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                                 const currentChapter = chapters[currentChapterIndex];
-                                const expectedDuration = currentChapter.duration * 1000; // 초 → ms
-                                const elapsedTime = Date.now() - recordingStartTime;
+                                const expectedDuration = currentChapter.duration; // 초
+                                const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
                                 const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
-                                remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
+                                remainingInfo = `, 잔여: ${remainingTime.toFixed(1)}초`;
                             }
 
                             console.log(`🔇 [무음 감지] 무음 ${silentTimeSec}초 / ${targetSec}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
@@ -1735,15 +1735,15 @@ Ch01. 오리엔테이션
 
                         if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                             const currentChapter = chapters[currentChapterIndex];
-                            const expectedDuration = currentChapter.duration * 1000; // 초 → ms
-                            const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
-                            remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
+                            const expectedDuration = currentChapter.duration; // 초
+                            const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
+                            remainingTime = Math.max(0, expectedDuration - elapsedTime); // 초, 음수면 0으로
 
                             // 잔여 시간에 따른 무음 조건 (사용자 설정값 사용)
-                            if (remainingTime <= 5000) {
+                            if (remainingTime <= 5) {
                                 // 잔여 5초 이하 (0초 포함): 사용자 설정 값 사용
                                 requiredSilence = parseInt(chapterSilence5.value);
-                            } else if (remainingTime <= 10000) {
+                            } else if (remainingTime <= 10) {
                                 // 잔여 5~10초 (5초 포함): 사용자 설정 값 사용
                                 requiredSilence = parseInt(chapterSilence10.value);
                             } else {
@@ -1756,15 +1756,15 @@ Ch01. 오리엔테이션
                         }
 
                         if (silentTime >= requiredSilence) {
-                            if (remainingTime !== null && remainingTime >= 10000) {
+                            if (remainingTime !== null && remainingTime >= 10) {
                                 // 잔여 시간이 10초 이상이면 분할 안함
                                 canSplit = false;
-                                console.log(`⏸️ [자동분할 보류] 잔여 예정 시간 10초 이상 (무음: ${(silentTime/1000).toFixed(1)}초, 잔여: ${(remainingTime/1000).toFixed(1)}초)`);
-                                addLog(`⏸️ [자동분할 보류] 잔여 시간 ${(remainingTime/1000).toFixed(1)}초 (10초 미만이어야 함)`, 'warning');
+                                console.log(`⏸️ [자동분할 보류] 잔여 예정 시간 10초 이상 (무음: ${(silentTime/1000).toFixed(1)}초, 잔여: ${remainingTime.toFixed(1)}초)`);
+                                addLog(`⏸️ [자동분할 보류] 잔여 시간 ${remainingTime.toFixed(1)}초 (10초 미만이어야 함)`, 'warning');
                             } else {
                                 canSplit = true;
                                 if (remainingTime !== null) {
-                                    console.log(`✅ [자동분할 가능] 잔여 ${(remainingTime/1000).toFixed(1)}초, 무음 ${(silentTime/1000).toFixed(1)}초 → 조건 충족`);
+                                    console.log(`✅ [자동분할 가능] 잔여 ${remainingTime.toFixed(1)}초, 무음 ${(silentTime/1000).toFixed(1)}초 → 조건 충족`);
                                 }
                             }
 
@@ -1773,7 +1773,7 @@ Ch01. 오리엔테이션
 
                                 // UI 로그에 잔여 시간 표시
                                 if (remainingTime !== null) {
-                                    addLog(`✅ [자동분할 실시] 무음 ${(silentTime/1000).toFixed(1)}초 (잔여: ${(remainingTime/1000).toFixed(1)}초)`, 'success');
+                                    addLog(`✅ [자동분할 실시] 무음 ${(silentTime/1000).toFixed(1)}초 (잔여: ${remainingTime.toFixed(1)}초)`, 'success');
                                 } else {
                                     addLog(`✅ [자동분할 실시] 무음 ${(silentTime/1000).toFixed(1)}초`, 'success');
                                 }
@@ -1797,10 +1797,10 @@ Ch01. 오리엔테이션
                         let remainingInfo = '';
                         if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                             const currentChapter = chapters[currentChapterIndex];
-                            const expectedDuration = currentChapter.duration * 1000; // 초 → ms
-                            const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
-                            const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
-                            remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
+                            const expectedDuration = currentChapter.duration; // 초
+                            const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
+                            const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 초, 음수면 0으로
+                            remainingInfo = `, 잔여: ${remainingTime.toFixed(1)}초`;
                         }
 
                         console.log(`❌ [무음 감지] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단${remainingInfo})`);
