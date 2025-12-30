@@ -1692,7 +1692,7 @@ Ch01. 오리엔테이션
                     if (!silenceStart) {
                         silenceStart = Date.now();
                         lastLoggedSecond = -1; // 리셋
-                        console.log(`🔇 [무음 감지 자동분할] 무음 시작 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
+                        console.log(`🔇 [무음 감지] 무음 시작 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
                     } else {
                         const silentTime = Date.now() - silenceStart;
                         silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초)`;
@@ -1713,8 +1713,8 @@ Ch01. 오리엔테이션
                                 remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
                             }
 
-                            console.log(`🔇 [무음 감지 자동분할] 무음 ${silentTimeSec}초 / ${targetSec}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
-                            addLog(`🔇 무음 ${silentTimeSec}초 / ${targetSec}초${remainingInfo}`, 'info');
+                            console.log(`🔇 [무음 감지] 무음 ${silentTimeSec}초 / ${targetSec}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
+                            addLog(`🔇 [무음 감지] ${silentTimeSec}초 / ${targetSec}초${remainingInfo}`, 'info');
                         }
 
                         if (silentTime >= silenceDuration) {
@@ -1729,21 +1729,21 @@ Ch01. 오리엔테이션
 
                                 if (remainingTime >= 10000) { // 잔여 시간이 10초 이상이면
                                     canSplit = false;
-                                    console.log(`⏸️ [무음 감지 자동분할] 잔여 예정 시간 10초 이상 (경과: ${(elapsedTime/1000).toFixed(1)}초, 예상: ${(expectedDuration/1000).toFixed(1)}초, 잔여: ${(remainingTime/1000).toFixed(1)}초)`);
-                                    addLog(`⏸️ 무음 감지했으나 잔여 시간 ${(remainingTime/1000).toFixed(1)}초 (10초 미만이어야 함)`, 'warning');
+                                    console.log(`⏸️ [자동분할 보류] 잔여 예정 시간 10초 이상 (경과: ${(elapsedTime/1000).toFixed(1)}초, 예상: ${(expectedDuration/1000).toFixed(1)}초, 잔여: ${(remainingTime/1000).toFixed(1)}초)`);
+                                    addLog(`⏸️ [자동분할 보류] 잔여 시간 ${(remainingTime/1000).toFixed(1)}초 (10초 미만이어야 함)`, 'warning');
                                 } else {
-                                    console.log(`✅ [무음 감지 자동분할] 잔여 예정 시간 10초 미만 (경과: ${(elapsedTime/1000).toFixed(1)}초, 예상: ${(expectedDuration/1000).toFixed(1)}초, 잔여: ${(remainingTime/1000).toFixed(1)}초)`);
+                                    console.log(`✅ [자동분할 가능] 잔여 예정 시간 10초 미만 (경과: ${(elapsedTime/1000).toFixed(1)}초, 예상: ${(expectedDuration/1000).toFixed(1)}초, 잔여: ${(remainingTime/1000).toFixed(1)}초)`);
                                 }
                             }
 
                             if (canSplit) {
-                                console.log(`✅ [무음 감지 자동분할] ${(silenceDuration / 1000)}초 무음 감지 → 자동 분할 실행`);
+                                console.log(`✅ [자동분할 실시] ${(silenceDuration / 1000)}초 무음 감지 완료 → 자동 분할 실행`);
 
                                 // UI 로그에 잔여 시간 표시
                                 if (remainingTime !== null) {
-                                    addLog(`✅ 무음 ${(silenceDuration / 1000)}초 감지 (잔여: ${(remainingTime/1000).toFixed(1)}초) → 자동 분할`, 'success');
+                                    addLog(`✅ [자동분할 실시] 무음 ${(silenceDuration / 1000)}초 (잔여: ${(remainingTime/1000).toFixed(1)}초)`, 'success');
                                 } else {
-                                    addLog(`✅ 무음 ${(silenceDuration / 1000)}초 감지 → 자동 분할`, 'success');
+                                    addLog(`✅ [자동분할 실시] 무음 ${(silenceDuration / 1000)}초`, 'success');
                                 }
 
                                 splitRecording();
@@ -1771,7 +1771,7 @@ Ch01. 오리엔테이션
                             remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
                         }
 
-                        console.log(`❌ [무음 감지 자동분할] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단${remainingInfo})`);
+                        console.log(`❌ [무음 감지] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단${remainingInfo})`);
 
                         // 2.5초 이상 무음이었을 때만 UI 로그 표시 (짧은 중단은 너무 많아서 제외)
                         if (parseFloat(interruptedTime) >= 2.5) {
