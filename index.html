@@ -1412,7 +1412,7 @@ Ch01. 오리엔테이션
         let currentRecordingType = ''; // 추가: 녹음 소스 타입 (system, mic, both)
         let silenceStart = null;
         let silenceThreshold = 15; // 볼륨 임계값 (0-255)
-        let silenceDuration = 2000; // 2초 무음 시 분할 (기본값)
+        let silenceDuration = 1500; // 1.5초 무음 시 분할 (기본값)
         let lastLoggedSecond = -1; // 마지막 로그 출력된 초 (중복 방지)
         let lectureCount = 1;
 
@@ -1698,13 +1698,23 @@ Ch01. 오리엔테이션
                         silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초)`;
                         silenceIndicator.className = 'silence-indicator active';
 
-                        // 2초 이상일 때만 1초마다 로그 (콘솔 + UI)
-                        const currentSec = Math.floor(silentTime / 1000);
-                        if (currentSec >= 2 && currentSec !== lastLoggedSecond) {
-                            lastLoggedSecond = currentSec;
+                        // 1.5초 이상일 때 무조건 로그 (콘솔 + UI)
+                        const silentTimeSec = (silentTime / 1000).toFixed(1);
+                        if (silentTime >= 1500) {
                             const targetSec = (silenceDuration / 1000).toFixed(1);
-                            console.log(`🔇 [무음 감지 자동분할] 무음 ${currentSec}초 / ${targetSec}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
-                            addLog(`🔇 무음 ${currentSec}초 / ${targetSec}초`, 'info');
+
+                            // 잔여 시간 계산
+                            let remainingInfo = '';
+                            if (chapters.length > 0 && currentChapterIndex < chapters.length) {
+                                const currentChapter = chapters[currentChapterIndex];
+                                const expectedDuration = currentChapter.duration * 60 * 1000;
+                                const elapsedTime = Date.now() - recordingStartTime;
+                                const remainingTime = expectedDuration - elapsedTime;
+                                remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
+                            }
+
+                            console.log(`🔇 [무음 감지 자동분할] 무음 ${silentTimeSec}초 / ${targetSec}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
+                            addLog(`🔇 무음 ${silentTimeSec}초 / ${targetSec}초${remainingInfo}`, 'info');
                         }
 
                         if (silentTime >= silenceDuration) {
