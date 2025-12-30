@@ -1269,22 +1269,6 @@ Ch01. 오리엔테이션
                     <span id="silenceIndicator" class="silence-indicator"></span>
                 </div>
                 <div class="toggle-container" style="margin-left: 20px; font-size: 12px;">
-                    <span style="color: #666;">일반 모드 무음 시간:</span>
-                    <select id="silenceDurationSelect"
-                        style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
-                        <option value="500">0.5초</option>
-                        <option value="1000">1.0초</option>
-                        <option value="1500" selected>1.5초</option>
-                        <option value="2000">2.0초</option>
-                        <option value="2500">2.5초</option>
-                        <option value="3000">3.0초</option>
-                        <option value="3500">3.5초</option>
-                        <option value="4000">4.0초</option>
-                        <option value="4500">4.5초</option>
-                        <option value="5000">5.0초</option>
-                    </select>
-                </div>
-                <div class="toggle-container" style="margin-left: 20px; font-size: 12px;">
                     <span style="color: #666;" title="챕터 모드에서 잔여 시간에 따라 자동 조정됩니다.&#13;&#10;• 잔여 ≤ 5초 (0초 포함): 무음 조건 1초&#13;&#10;• 잔여 5~10초: 무음 조건 1.5초&#13;&#10;• 잔여 > 10초: 분할 안함">챕터 모드 잔여 5초 이하:</span>
                     <select id="chapterSilence5"
                         style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
@@ -1438,7 +1422,7 @@ Ch01. 오리엔테이션
         let currentRecordingType = ''; // 추가: 녹음 소스 타입 (system, mic, both)
         let silenceStart = null;
         let silenceThreshold = 15; // 볼륨 임계값 (0-255)
-        let silenceDuration = 1500; // 1.5초 무음 시 분할 (기본값)
+        let silenceDuration = 5000; // 5초 무음 시 분할 (기본값)
         let lastLoggedSecond = -1; // 마지막 로그 출력된 초 (중복 방지)
         let lectureCount = 1;
 
@@ -1454,8 +1438,7 @@ Ch01. 오리엔테이션
         const includeMic = document.getElementById('includeMic');
         const autoStartOnSound = document.getElementById('autoStartOnSound'); // 추가
         const silenceDetection = document.getElementById('silenceDetection');
-        const silenceDurationSelect = document.getElementById('silenceDurationSelect'); // ✅ 드롭다운
-        const chapterSilence5 = document.getElementById('chapterSilence5'); // 챕터 모드 잔여 5초 미만
+        const chapterSilence5 = document.getElementById('chapterSilence5'); // 챕터 모드 잔여 5초 이하
         const chapterSilence10 = document.getElementById('chapterSilence10'); // 챕터 모드 잔여 5~10초
         const silenceIndicator = document.getElementById('silenceIndicator');
         const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
@@ -2125,7 +2108,11 @@ Ch01. 오리엔테이션
                 // 활성화된 설정 로그 표시
                 const activeSettings = [];
                 if (autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
-                if (silenceDetection.checked) activeSettings.push(`무음 감지 자동분할 (${silenceDuration / 1000}초)`);
+                if (silenceDetection.checked) {
+                    const silence5 = (parseInt(chapterSilence5.value) / 1000).toFixed(1);
+                    const silence10 = (parseInt(chapterSilence10.value) / 1000).toFixed(1);
+                    activeSettings.push(`무음 감지 자동분할 (챕터 모드 잔여 5초 이하:${silence5}초, 잔여 5~10초:${silence10}초)`);
+                }
                 if (sceneChangeDetectionToggle.checked) {
                     const modes = [];
                     if (detectBasic.checked) modes.push('기본');
@@ -2155,7 +2142,11 @@ Ch01. 오리엔테이션
                 // 활성화된 설정 로그 표시
                 const activeSettings = [];
                 if (autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
-                if (silenceDetection.checked) activeSettings.push(`무음 감지 자동분할 (${silenceDuration / 1000}초)`);
+                if (silenceDetection.checked) {
+                    const silence5 = (parseInt(chapterSilence5.value) / 1000).toFixed(1);
+                    const silence10 = (parseInt(chapterSilence10.value) / 1000).toFixed(1);
+                    activeSettings.push(`무음 감지 자동분할 (챕터 모드 잔여 5초 이하:${silence5}초, 잔여 5~10초:${silence10}초)`);
+                }
                 if (sceneChangeDetectionToggle.checked) {
                     const modes = [];
                     if (detectBasic.checked) modes.push('기본');
@@ -3984,12 +3975,6 @@ Ch01. 오리엔테이션
 
         playbackSpeed.addEventListener('change', () => {
             renderChapters();
-        });
-
-        // 무음 감지 시간 드롭다운 이벤트
-        silenceDurationSelect.addEventListener('change', (e) => {
-            silenceDuration = parseInt(e.target.value);
-            console.log(`[일반 모드] 무음 감지 시간 변경: ${silenceDuration / 1000}초`);
         });
 
         // 챕터 모드 무음 설정 이벤트
