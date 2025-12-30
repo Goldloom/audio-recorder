@@ -1718,7 +1718,7 @@ Ch01. 오리엔테이션
                             let remainingInfo = '';
                             if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                                 const currentChapter = chapters[currentChapterIndex];
-                                const expectedDuration = currentChapter.duration * 60 * 1000;
+                                const expectedDuration = currentChapter.duration * 1000; // 초 → ms
                                 const elapsedTime = Date.now() - recordingStartTime;
                                 const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
                                 remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
@@ -1735,7 +1735,7 @@ Ch01. 오리엔테이션
 
                         if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                             const currentChapter = chapters[currentChapterIndex];
-                            const expectedDuration = currentChapter.duration * 60 * 1000; // 분 → ms
+                            const expectedDuration = currentChapter.duration * 1000; // 초 → ms
                             const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
                             remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
 
@@ -1797,7 +1797,7 @@ Ch01. 오리엔테이션
                         let remainingInfo = '';
                         if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                             const currentChapter = chapters[currentChapterIndex];
-                            const expectedDuration = currentChapter.duration * 60 * 1000; // 분 → ms
+                            const expectedDuration = currentChapter.duration * 1000; // 초 → ms
                             const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
                             const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
                             remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
