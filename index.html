@@ -1285,7 +1285,7 @@ Ch01. 오리엔테이션
                     </select>
                 </div>
                 <div class="toggle-container" style="margin-left: 20px; font-size: 12px;">
-                    <span style="color: #666;" title="챕터 모드에서 잔여 시간에 따라 자동 조정됩니다.&#13;&#10;• 잔여 < 5초: 무음 조건 1초&#13;&#10;• 잔여 5~10초: 무음 조건 1.5초&#13;&#10;• 잔여 ≥ 10초: 분할 안함">챕터 모드 잔여 5초 미만:</span>
+                    <span style="color: #666;" title="챕터 모드에서 잔여 시간에 따라 자동 조정됩니다.&#13;&#10;• 잔여 ≤ 5초 (0초 포함): 무음 조건 1초&#13;&#10;• 잔여 5~10초: 무음 조건 1.5초&#13;&#10;• 잔여 > 10초: 분할 안함">챕터 모드 잔여 5초 이하:</span>
                     <select id="chapterSilence5"
                         style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
                         <option value="500">0.5초</option>
@@ -1737,7 +1737,7 @@ Ch01. 오리엔테이션
                                 const currentChapter = chapters[currentChapterIndex];
                                 const expectedDuration = currentChapter.duration * 60 * 1000;
                                 const elapsedTime = Date.now() - recordingStartTime;
-                                const remainingTime = expectedDuration - elapsedTime;
+                                const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
                                 remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
                             }
 
@@ -1754,17 +1754,17 @@ Ch01. 오리엔테이션
                             const currentChapter = chapters[currentChapterIndex];
                             const expectedDuration = currentChapter.duration * 1000; // ms
                             const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
-                            remainingTime = expectedDuration - elapsedTime; // 잔여 예정 시간
+                            remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
 
                             // 잔여 시간에 따른 무음 조건 (사용자 설정값 사용)
-                            if (remainingTime < 5000) {
-                                // 잔여 5초 미만: 사용자 설정 값 사용
+                            if (remainingTime <= 5000) {
+                                // 잔여 5초 이하 (0초 포함): 사용자 설정 값 사용
                                 requiredSilence = parseInt(chapterSilence5.value);
-                            } else if (remainingTime < 10000) {
-                                // 잔여 5~10초: 사용자 설정 값 사용
+                            } else if (remainingTime <= 10000) {
+                                // 잔여 5~10초 (5초 포함): 사용자 설정 값 사용
                                 requiredSilence = parseInt(chapterSilence10.value);
                             } else {
-                                // 잔여 10초 이상: 분할 안함
+                                // 잔여 10초 초과: 분할 안함
                                 requiredSilence = Infinity;
                             }
                         } else {
@@ -1816,7 +1816,7 @@ Ch01. 오리엔테이션
                             const currentChapter = chapters[currentChapterIndex];
                             const expectedDuration = currentChapter.duration * 1000; // ms
                             const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
-                            const remainingTime = expectedDuration - elapsedTime; // 잔여 예정 시간
+                            const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
                             remainingInfo = `, 잔여: ${(remainingTime/1000).toFixed(1)}초`;
                         }
 
