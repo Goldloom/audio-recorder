@@ -1426,6 +1426,12 @@ Ch01. 오리엔테이션
         let lastLoggedSecond = -1; // 마지막 로그 출력된 초 (중복 방지)
         let lectureCount = 1;
 
+        // 초 단위 시간을 깔끔하게 표시 (1초, 1.5초 등)
+        function formatSeconds(seconds) {
+            const fixed = seconds.toFixed(1);
+            return fixed.endsWith('.0') ? fixed.slice(0, -2) : fixed;
+        }
+
         const recordBtn = document.getElementById('recordBtn');
         const pauseBtn = document.getElementById('pauseBtn');
         const stopBtn = document.getElementById('stopBtn');
@@ -1706,13 +1712,13 @@ Ch01. 오리엔테이션
                         console.log(`🔇 [무음 감지] 무음 시작 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
                     } else {
                         const silentTime = Date.now() - silenceStart;
-                        silenceIndicator.textContent = `(무음 ${(silentTime / 1000).toFixed(1)}초)`;
+                        const silentTimeSec = silentTime / 1000;
+                        silenceIndicator.textContent = `(무음 ${formatSeconds(silentTimeSec)}초)`;
                         silenceIndicator.className = 'silence-indicator active';
 
                         // 1.5초 이상일 때 무조건 로그 (콘솔 + UI)
-                        const silentTimeSec = (silentTime / 1000).toFixed(1);
                         if (silentTime >= 1500) {
-                            const targetSec = (silenceDuration / 1000).toFixed(1);
+                            const targetSec = silenceDuration / 1000;
 
                             // 잔여 시간 계산
                             let remainingInfo = '';
@@ -1721,11 +1727,11 @@ Ch01. 오리엔테이션
                                 const expectedDuration = currentChapter.duration; // 초
                                 const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
                                 const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
-                                remainingInfo = `, 잔여: ${remainingTime.toFixed(1)}초`;
+                                remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                             }
 
-                            console.log(`🔇 [무음 감지] 무음 ${silentTimeSec}초 / ${targetSec}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
-                            addLog(`🔇 [무음 감지] ${silentTimeSec}초 / ${targetSec}초${remainingInfo}`, 'info');
+                            console.log(`🔇 [무음 감지] 무음 ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
+                            addLog(`🔇 [무음 감지] ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초${remainingInfo}`, 'info');
                         }
 
                         // 챕터 모드일 때 잔여 시간에 따라 무음 조건 세분화
@@ -1759,23 +1765,23 @@ Ch01. 오리엔테이션
                             if (remainingTime !== null && remainingTime >= 10) {
                                 // 잔여 시간이 10초 이상이면 분할 안함
                                 canSplit = false;
-                                console.log(`⏸️ [자동분할 보류] 잔여 예정 시간 10초 이상 (무음: ${(silentTime/1000).toFixed(1)}초, 잔여: ${remainingTime.toFixed(1)}초)`);
-                                addLog(`⏸️ [자동분할 보류] 잔여 시간 ${remainingTime.toFixed(1)}초 (10초 미만이어야 함)`, 'warning');
+                                console.log(`⏸️ [자동분할 보류] 잔여 예정 시간 10초 이상 (무음: ${formatSeconds(silentTime/1000)}초, 잔여: ${formatSeconds(remainingTime)}초)`);
+                                addLog(`⏸️ [자동분할 보류] 잔여 시간 ${formatSeconds(remainingTime)}초 (10초 미만이어야 함)`, 'warning');
                             } else {
                                 canSplit = true;
                                 if (remainingTime !== null) {
-                                    console.log(`✅ [자동분할 가능] 잔여 ${remainingTime.toFixed(1)}초, 무음 ${(silentTime/1000).toFixed(1)}초 → 조건 충족`);
+                                    console.log(`✅ [자동분할 가능] 잔여 ${formatSeconds(remainingTime)}초, 무음 ${formatSeconds(silentTime/1000)}초 → 조건 충족`);
                                 }
                             }
 
                             if (canSplit) {
-                                console.log(`✅ [자동분할 실시] 무음 ${(silentTime/1000).toFixed(1)}초 감지 (필요: ${(requiredSilence/1000).toFixed(1)}초) → 자동 분할 실행`);
+                                console.log(`✅ [자동분할 실시] 무음 ${formatSeconds(silentTime/1000)}초 감지 (필요: ${formatSeconds(requiredSilence/1000)}초) → 자동 분할 실행`);
 
                                 // UI 로그에 잔여 시간 표시
                                 if (remainingTime !== null) {
-                                    addLog(`✅ [자동분할 실시] 무음 ${(silentTime/1000).toFixed(1)}초 (잔여: ${remainingTime.toFixed(1)}초)`, 'success');
+                                    addLog(`✅ [자동분할 실시] 무음 ${formatSeconds(silentTime/1000)}초 (잔여: ${formatSeconds(remainingTime)}초)`, 'success');
                                 } else {
-                                    addLog(`✅ [자동분할 실시] 무음 ${(silentTime/1000).toFixed(1)}초`, 'success');
+                                    addLog(`✅ [자동분할 실시] 무음 ${formatSeconds(silentTime/1000)}초`, 'success');
                                 }
 
                                 splitRecording();
@@ -1800,7 +1806,7 @@ Ch01. 오리엔테이션
                             const expectedDuration = currentChapter.duration; // 초
                             const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
                             const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 초, 음수면 0으로
-                            remainingInfo = `, 잔여: ${remainingTime.toFixed(1)}초`;
+                            remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                         }
 
                         console.log(`❌ [무음 감지] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단${remainingInfo})`);
@@ -2698,12 +2704,12 @@ Ch01. 오리엔테이션
 
                         // 0.5초마다 로그 (너무 많은 로그 방지)
                         if (Math.floor(silentDuration / 500) !== Math.floor((silentDuration - 500) / 500)) {
-                            console.log(`🔇 [모드3] 무음 지속 중... ${(silentDuration / 1000).toFixed(1)}초 / 4.0초`);
+                            console.log(`🔇 [모드3] 무음 지속 중... ${formatSeconds(silentDuration / 1000)}초 / 4초`);
                         }
 
                         // 4초 이상 무음이면 감지 성공
                         if (silentDuration >= this.silenceDuration) {
-                            console.log(`✓ [모드3 조건] 4초 무음 감지! (${(silentDuration / 1000).toFixed(1)}초)`);
+                            console.log(`✓ [모드3 조건] 4초 무음 감지! (${formatSeconds(silentDuration / 1000)}초)`);
                             this.silenceStartTime = null; // 리셋
                             return true;
                         }
@@ -2904,7 +2910,7 @@ Ch01. 오리엔테이션
 
                                 // 무음 시간 실시간 로그 (0.5초마다)
                                 if (Math.floor(silentTime / 500) !== Math.floor((silentTime - 500) / 500)) {
-                                    console.log(`🔇 무음 지속 중... ${(silentTime / 1000).toFixed(1)}초 / 4.5초`);
+                                    console.log(`🔇 무음 지속 중... ${formatSeconds(silentTime / 1000)}초 / 4.5초`);
                                 }
 
                                 // 무음 4.5초 경과 시 화면 전환 감지 시작
