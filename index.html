@@ -1261,21 +1261,46 @@ Ch01. 오리엔테이션
                 </div>
                 <div class="toggle-container">
                     <span class="toggle-label"
-                        title="설정한 시간 이상 무음이 감지되면 자동으로 녹음을 분할합니다.&#13;&#10;&#13;&#10;[챕터 모드]&#13;&#10;• 무음 기준 시간 도달 시 잔여 예정 시간 체크&#13;&#10;• 잔여 시간 < 10초: 자동 분할 승인&#13;&#10;• 잔여 시간 ≥ 10초: 무음 무시 (챕터 중간 무음 방지)&#13;&#10;&#13;&#10;[일반 모드]&#13;&#10;• 무음 기준 시간 도달 시 즉시 자동 분할">🔇 무음 감지 자동분할</span>
+                        title="무음이 감지되면 자동으로 녹음을 분할합니다.&#13;&#10;&#13;&#10;[일반 모드]&#13;&#10;• 설정한 무음 시간 감지 시 즉시 자동 분할&#13;&#10;&#13;&#10;[챕터 모드]&#13;&#10;• 잔여 시간에 따라 무음 조건 자동 조정 (하단 설정 참고)">🔇 무음 감지 자동분할</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="silenceDetection" checked>
                         <span class="toggle-slider"></span>
                     </label>
-                    <select id="silenceDurationSelect"
-                        style="margin-left: 10px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
-                        <option value="1500" selected>1.5초</option>
-                        <option value="2000">2초</option>
-                        <option value="2500">2.5초</option>
-                        <option value="3000">3초</option>
-                        <option value="4000">4초</option>
-                        <option value="5000">5초</option>
-                    </select>
                     <span id="silenceIndicator" class="silence-indicator"></span>
+                </div>
+                <div class="toggle-container" style="margin-left: 20px; font-size: 12px;">
+                    <span style="color: #666;">일반 모드 무음 시간:</span>
+                    <select id="silenceDurationSelect"
+                        style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                        <option value="500">0.5초</option>
+                        <option value="1000">1.0초</option>
+                        <option value="1500" selected>1.5초</option>
+                        <option value="2000">2.0초</option>
+                        <option value="2500">2.5초</option>
+                        <option value="3000">3.0초</option>
+                        <option value="3500">3.5초</option>
+                        <option value="4000">4.0초</option>
+                        <option value="4500">4.5초</option>
+                        <option value="5000">5.0초</option>
+                    </select>
+                </div>
+                <div class="toggle-container" style="margin-left: 20px; font-size: 12px;">
+                    <span style="color: #666;" title="챕터 모드에서 잔여 시간에 따라 자동 조정됩니다.&#13;&#10;• 잔여 < 5초: 무음 조건 1초&#13;&#10;• 잔여 5~10초: 무음 조건 1.5초&#13;&#10;• 잔여 ≥ 10초: 분할 안함">챕터 모드 잔여 5초 미만:</span>
+                    <select id="chapterSilence5"
+                        style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                        <option value="500">0.5초</option>
+                        <option value="1000" selected>1.0초</option>
+                        <option value="1500">1.5초</option>
+                        <option value="2000">2.0초</option>
+                    </select>
+                    <span style="color: #666; margin-left: 10px;">잔여 5~10초:</span>
+                    <select id="chapterSilence10"
+                        style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                        <option value="1000">1.0초</option>
+                        <option value="1500" selected>1.5초</option>
+                        <option value="2000">2.0초</option>
+                        <option value="2500">2.5초</option>
+                    </select>
                 </div>
                 <div class="toggle-container">
                     <span class="toggle-label"
@@ -1430,6 +1455,8 @@ Ch01. 오리엔테이션
         const autoStartOnSound = document.getElementById('autoStartOnSound'); // 추가
         const silenceDetection = document.getElementById('silenceDetection');
         const silenceDurationSelect = document.getElementById('silenceDurationSelect'); // ✅ 드롭다운
+        const chapterSilence5 = document.getElementById('chapterSilence5'); // 챕터 모드 잔여 5초 미만
+        const chapterSilence10 = document.getElementById('chapterSilence10'); // 챕터 모드 잔여 5~10초
         const silenceIndicator = document.getElementById('silenceIndicator');
         const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
         const sceneChangeSensitivity = document.getElementById('sceneChangeSensitivity');
@@ -1718,33 +1745,54 @@ Ch01. 오리엔테이션
                             addLog(`🔇 [무음 감지] ${silentTimeSec}초 / ${targetSec}초${remainingInfo}`, 'info');
                         }
 
-                        if (silentTime >= silenceDuration) {
-                            // 챕터 모드일 때: 잔여 예정 시간이 10초 미만인지 체크
-                            let canSplit = true;
-                            let remainingTime = null;
-                            if (chapters.length > 0 && currentChapterIndex < chapters.length) {
-                                const currentChapter = chapters[currentChapterIndex];
-                                const expectedDuration = currentChapter.duration * 1000; // ms
-                                const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
-                                remainingTime = expectedDuration - elapsedTime; // 잔여 예정 시간
+                        // 챕터 모드일 때 잔여 시간에 따라 무음 조건 세분화
+                        let canSplit = false;
+                        let remainingTime = null;
+                        let requiredSilence = silenceDuration; // 기본값
 
-                                if (remainingTime >= 10000) { // 잔여 시간이 10초 이상이면
-                                    canSplit = false;
-                                    console.log(`⏸️ [자동분할 보류] 잔여 예정 시간 10초 이상 (경과: ${(elapsedTime/1000).toFixed(1)}초, 예상: ${(expectedDuration/1000).toFixed(1)}초, 잔여: ${(remainingTime/1000).toFixed(1)}초)`);
-                                    addLog(`⏸️ [자동분할 보류] 잔여 시간 ${(remainingTime/1000).toFixed(1)}초 (10초 미만이어야 함)`, 'warning');
-                                } else {
-                                    console.log(`✅ [자동분할 가능] 잔여 예정 시간 10초 미만 (경과: ${(elapsedTime/1000).toFixed(1)}초, 예상: ${(expectedDuration/1000).toFixed(1)}초, 잔여: ${(remainingTime/1000).toFixed(1)}초)`);
+                        if (chapters.length > 0 && currentChapterIndex < chapters.length) {
+                            const currentChapter = chapters[currentChapterIndex];
+                            const expectedDuration = currentChapter.duration * 1000; // ms
+                            const elapsedTime = Date.now() - recordingStartTime; // 실제 경과 시간
+                            remainingTime = expectedDuration - elapsedTime; // 잔여 예정 시간
+
+                            // 잔여 시간에 따른 무음 조건 (사용자 설정값 사용)
+                            if (remainingTime < 5000) {
+                                // 잔여 5초 미만: 사용자 설정 값 사용
+                                requiredSilence = parseInt(chapterSilence5.value);
+                            } else if (remainingTime < 10000) {
+                                // 잔여 5~10초: 사용자 설정 값 사용
+                                requiredSilence = parseInt(chapterSilence10.value);
+                            } else {
+                                // 잔여 10초 이상: 분할 안함
+                                requiredSilence = Infinity;
+                            }
+                        } else {
+                            // 일반 모드: 설정된 무음 시간 사용
+                            requiredSilence = silenceDuration;
+                        }
+
+                        if (silentTime >= requiredSilence) {
+                            if (remainingTime !== null && remainingTime >= 10000) {
+                                // 잔여 시간이 10초 이상이면 분할 안함
+                                canSplit = false;
+                                console.log(`⏸️ [자동분할 보류] 잔여 예정 시간 10초 이상 (무음: ${(silentTime/1000).toFixed(1)}초, 잔여: ${(remainingTime/1000).toFixed(1)}초)`);
+                                addLog(`⏸️ [자동분할 보류] 잔여 시간 ${(remainingTime/1000).toFixed(1)}초 (10초 미만이어야 함)`, 'warning');
+                            } else {
+                                canSplit = true;
+                                if (remainingTime !== null) {
+                                    console.log(`✅ [자동분할 가능] 잔여 ${(remainingTime/1000).toFixed(1)}초, 무음 ${(silentTime/1000).toFixed(1)}초 → 조건 충족`);
                                 }
                             }
 
                             if (canSplit) {
-                                console.log(`✅ [자동분할 실시] ${(silenceDuration / 1000)}초 무음 감지 완료 → 자동 분할 실행`);
+                                console.log(`✅ [자동분할 실시] 무음 ${(silentTime/1000).toFixed(1)}초 감지 (필요: ${(requiredSilence/1000).toFixed(1)}초) → 자동 분할 실행`);
 
                                 // UI 로그에 잔여 시간 표시
                                 if (remainingTime !== null) {
-                                    addLog(`✅ [자동분할 실시] 무음 ${(silenceDuration / 1000)}초 (잔여: ${(remainingTime/1000).toFixed(1)}초)`, 'success');
+                                    addLog(`✅ [자동분할 실시] 무음 ${(silentTime/1000).toFixed(1)}초 (잔여: ${(remainingTime/1000).toFixed(1)}초)`, 'success');
                                 } else {
-                                    addLog(`✅ [자동분할 실시] 무음 ${(silenceDuration / 1000)}초`, 'success');
+                                    addLog(`✅ [자동분할 실시] 무음 ${(silentTime/1000).toFixed(1)}초`, 'success');
                                 }
 
                                 splitRecording();
@@ -3941,7 +3989,16 @@ Ch01. 오리엔테이션
         // 무음 감지 시간 드롭다운 이벤트
         silenceDurationSelect.addEventListener('change', (e) => {
             silenceDuration = parseInt(e.target.value);
-            console.log(`무음 감지 시간 변경: ${silenceDuration / 1000}초`);
+            console.log(`[일반 모드] 무음 감지 시간 변경: ${silenceDuration / 1000}초`);
+        });
+
+        // 챕터 모드 무음 설정 이벤트
+        chapterSilence5.addEventListener('change', (e) => {
+            console.log(`[챕터 모드] 잔여 5초 미만 무음 조건 변경: ${parseInt(e.target.value) / 1000}초`);
+        });
+
+        chapterSilence10.addEventListener('change', (e) => {
+            console.log(`[챕터 모드] 잔여 5~10초 무음 조건 변경: ${parseInt(e.target.value) / 1000}초`);
         });
 
         // 화면 전환 민감도 슬라이더 이벤트
