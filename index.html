@@ -1764,7 +1764,7 @@ Ch01. 오리엔테이션
                     }
                     console.log(`❌ [무음 감지] 무음 중단 (${average.toFixed(1)} / ${silenceThreshold}, ${interruptedTime}초${remainingInfo})`);
 
-                    if (parseFloat(interruptedTime) >= 1.0) {
+                    if (parseFloat(interruptedTime) >= 1.5) {
                         addLog(`❌ 무음 중단 (${interruptedTime}초${remainingInfo})`, 'warning');
                     }
                 }
