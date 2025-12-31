@@ -1704,8 +1704,8 @@ Ch01. 오리엔테이션
             }
 
             // (기존 무음 감지 로직 그대로)
-            // 무음 감지 자동분할: 화면 전환 대기 중이 아닐 때만 작동
-            if (silenceDetection.checked && mediaRecorder && mediaRecorder.state === 'recording' && !waitingForSilence) {
+            // 무음 감지 자동분할: 항상 작동
+            if (silenceDetection.checked && mediaRecorder && mediaRecorder.state === 'recording') {
                 if (average < silenceThreshold) {
                     if (!silenceStart) {
                         silenceStart = Date.now();
@@ -1839,15 +1839,6 @@ Ch01. 오리엔테이션
                     }
                     silenceStart = null;
                     lastLoggedSecond = -1; // 리셋
-                    silenceIndicator.textContent = '';
-                    silenceIndicator.className = 'silence-indicator';
-                }
-            } else if (silenceDetection.checked && waitingForSilence) {
-                // 화면 전환 대기 중일 때는 무음 감지 자동분할이 비활성화됨을 로그
-                if (silenceStart) {
-                    console.log('⏸️ [무음 감지 자동분할] 화면 전환 대기 중이므로 일시 중단');
-                    addLog('⏸️ 화면 전환 대기 중 - 무음 감지 일시 중단', 'info');
-                    silenceStart = null;
                     silenceIndicator.textContent = '';
                     silenceIndicator.className = 'silence-indicator';
                 }
