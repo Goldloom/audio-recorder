@@ -1830,11 +1830,13 @@ Ch01. 오리엔테이션
 
                         console.log(`❌ [무음 감지] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단${remainingInfo})`);
 
-                        // UI 로그 표시
-                        if (remainingInfo) {
-                            addLog(`❌ 무음 중단 (${interruptedTime}초${remainingInfo})`, 'warning');
-                        } else {
-                            addLog(`❌ 무음 중단 (${interruptedTime}초에서 소리 감지)`, 'warning');
+                        // UI 로그 표시 (1초 이상일 때만)
+                        if (parseFloat(interruptedTime) >= 1.0) {
+                            if (remainingInfo) {
+                                addLog(`❌ 무음 중단 (${interruptedTime}초${remainingInfo})`, 'warning');
+                            } else {
+                                addLog(`❌ 무음 중단 (${interruptedTime}초에서 소리 감지)`, 'warning');
+                            }
                         }
                     }
                     silenceStart = null;
