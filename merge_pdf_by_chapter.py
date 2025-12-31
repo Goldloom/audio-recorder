@@ -29,8 +29,8 @@ def merge_pdfs_by_chapter(folder_path):
     chapter_prefixes = {}  # Chapter별 파일명 접두사 저장
 
     for pdf_file in pdf_files:
-        # 파일명에서 Chapter 정보 추출 (예: "18 - Ch 6", "Ch 01")
-        # 패턴 1: "번호 - Ch X - ..." 형식
+        # 파일명에서 Chapter 정보 추출
+        # 패턴 1: "번호 - Ch X - ..." 형식 (예: "18 - Ch 6 - 01. 제목")
         match1 = re.match(r'^(\d+)\s*-\s*Ch\s+(\d+)', pdf_file.name)
         if match1:
             lecture_num = match1.group(1)  # "18"
@@ -42,10 +42,21 @@ def merge_pdfs_by_chapter(folder_path):
                 chapter_prefixes[chapter_num] = prefix
             continue
 
-        # 패턴 2: "Ch X - ..." 형식 (기존 방식)
-        match2 = re.search(r'Ch\s+(\d+)', pdf_file.name)
+        # 패턴 2: "[ChX-Y. 제목]" 형식 (예: "[Ch6-2. 보조기억장치와 입출력장치] RAID")
+        match2 = re.match(r'^\[?Ch\s*(\d+)[-\s]', pdf_file.name)
         if match2:
-            chapter_num = match2.group(1)
+            chapter_num = match2.group(1)  # "6"
+            prefix = f"Ch {chapter_num}"  # "Ch 6"
+            chapters[chapter_num].append(pdf_file)
+            # 첫 번째 파일의 접두사를 저장
+            if chapter_num not in chapter_prefixes:
+                chapter_prefixes[chapter_num] = prefix
+            continue
+
+        # 패턴 3: "Ch X - ..." 형식 (기존 방식)
+        match3 = re.search(r'Ch\s+(\d+)', pdf_file.name)
+        if match3:
+            chapter_num = match3.group(1)
             chapters[chapter_num].append(pdf_file)
             # 기존 방식용 접두사
             if chapter_num not in chapter_prefixes:
@@ -83,7 +94,7 @@ def merge_pdfs_by_chapter(folder_path):
             # 출력 파일명 생성
             # chapter_prefixes에서 해당 챕터의 접두사 가져오기
             prefix = chapter_prefixes.get(chapter_num, f"Ch {chapter_num}")
-            output_filename = f"{prefix} - Merged.pdf"
+            output_filename = f"21 - {prefix} - 강의자료.pdf"
             output_path = p / output_filename
 
             # 병합된 PDF 저장
@@ -104,5 +115,5 @@ def merge_pdfs_by_chapter(folder_path):
 
 if __name__ == "__main__":
     # 대상 폴더 경로
-    target_folder = r"C:\Users\yoo\Downloads\18"
+    target_folder = r"C:\Users\yoo\Downloads\21\Part 5. 데이터베이스"
     merge_pdfs_by_chapter(target_folder)

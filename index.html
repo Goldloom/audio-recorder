@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.github.com;">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.github.com https://cdnjs.cloudflare.com;">
     <title>시스템 오디오 녹음기</title>
     <style>
         * {
@@ -1261,7 +1261,8 @@ Ch01. 오리엔테이션
                 </div>
                 <div class="toggle-container">
                     <span class="toggle-label"
-                        title="무음이 감지되면 자동으로 녹음을 분할합니다.&#13;&#10;&#13;&#10;[일반 모드]&#13;&#10;• 설정한 무음 시간 감지 시 즉시 자동 분할&#13;&#10;&#13;&#10;[챕터 모드]&#13;&#10;• 잔여 시간에 따라 무음 조건 자동 조정 (하단 설정 참고)">🔇 무음 감지 자동분할</span>
+                        title="무음이 감지되면 자동으로 녹음을 분할합니다.&#13;&#10;&#13;&#10;[일반 모드]&#13;&#10;• 설정한 무음 시간 감지 시 즉시 자동 분할&#13;&#10;&#13;&#10;[챕터 모드]&#13;&#10;• 잔여 시간에 따라 무음 조건 자동 조정 (하단 설정 참고)">🔇
+                        무음 감지 자동분할</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="silenceDetection" checked>
                         <span class="toggle-slider"></span>
@@ -1269,7 +1270,9 @@ Ch01. 오리엔테이션
                     <span id="silenceIndicator" class="silence-indicator"></span>
                 </div>
                 <div class="toggle-container" style="margin-left: 20px; font-size: 12px;">
-                    <span style="color: #666;" title="챕터 모드에서 잔여 시간에 따라 자동 조정됩니다.&#13;&#10;• 잔여 ≤ 5초 (0초 포함): 무음 조건 1초&#13;&#10;• 잔여 5~10초: 무음 조건 1.5초&#13;&#10;• 잔여 > 10초: 분할 안함">챕터 모드 잔여 5초 이하:</span>
+                    <span style="color: #666;"
+                        title="챕터 모드에서 잔여 시간에 따라 자동 조정됩니다.&#13;&#10;• 잔여 ≤ 5초 (0초 포함): 무음 조건 1초&#13;&#10;• 잔여 5~10초: 무음 조건 1.5초&#13;&#10;• 잔여 > 10초: 분할 안함">챕터
+                        모드 잔여 5초 이하:</span>
                     <select id="chapterSilence5"
                         style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
                         <option value="500">0.5초</option>
@@ -1606,10 +1609,12 @@ Ch01. 오리엔테이션
         function updateTimer() {
             if (isWaitingForFirstSound) {
                 timerDisplay.textContent = '대기 중...';
-                progressBar.className = 'progress-bar waiting';
-                progressBar.style.width = '100%';
-                progressElapsed.textContent = '소리 대기 중';
-                progressRemaining.textContent = '';
+                if (progressBar) {
+                    progressBar.className = 'progress-bar waiting';
+                    progressBar.style.width = '100%';
+                }
+                if (progressElapsed) progressElapsed.textContent = '소리 대기 중';
+                if (progressRemaining) progressRemaining.textContent = '';
                 return;
             }
 
@@ -1617,23 +1622,156 @@ Ch01. 오리엔테이션
                 const elapsedMs = Date.now() - startTime + pausedTime;
                 const timeStr = formatTime(elapsedMs);
                 timerDisplay.textContent = timeStr;
-                progressElapsed.textContent = timeStr;
+                if (progressElapsed) progressElapsed.textContent = timeStr;
 
-                // 프로그레스 바 업데이트
+                // 프로그레스 바 및 잔여 시간 업데이트
                 if (chapters.length > 0 && chapters[currentChapterIndex]) {
-                    const durationMs = chapters[currentChapterIndex].duration * 1000;
-                    const percent = Math.min((elapsedMs / durationMs) * 100, 100);
-                    const remainingMs = Math.max(durationMs - elapsedMs, 0);
+                    const currentChapter = chapters[currentChapterIndex];
+                    const chapterDuration = currentChapter.duration; // seconds
+                    const durationMs = chapterDuration * 1000;
 
-                    progressBar.className = 'progress-bar';
-                    progressBar.style.width = `${percent}%`;
-                    progressRemaining.textContent = `남은 시간: ${formatTime(remainingMs)}`;
+                    if (chapterDuration && chapterDuration > 0) {
+                        const percent = Math.min((elapsedMs / durationMs) * 100, 100);
+                        const remainingTimeSec = Math.max(-5, chapterDuration - (elapsedMs / 1000));
+
+                        if (progressBar) {
+                            progressBar.className = 'progress-bar';
+                            progressBar.style.width = `${percent}%`;
+                        }
+                        if (progressRemaining) progressRemaining.textContent = `남은 시간: ${formatTime(remainingTimeSec * 1000)}`;
+                    } else {
+                        if (progressBar) {
+                            progressBar.className = 'progress-bar';
+                            progressBar.style.width = '100%';
+                        }
+                        if (progressRemaining) progressRemaining.textContent = '연속 녹음 중';
+                    }
                 } else {
-                    // 목차 없을 때
-                    progressBar.className = 'progress-bar';
-                    progressBar.style.width = '100%';
-                    progressRemaining.textContent = '연속 녹음 중';
+                    if (progressBar) {
+                        progressBar.className = 'progress-bar';
+                        progressBar.style.width = '100%';
+                    }
+                    if (progressRemaining) progressRemaining.textContent = '연속 녹음 중';
                 }
+
+                // 백그라운드에서도 안정적인 무음 감지 및 자동분할 체크
+                // (requestAnimationFrame 대신 setInterval 루프인 여기서 처리)
+                if (silenceDetection.checked && mediaRecorder && mediaRecorder.state === 'recording') {
+                    // AudioContext 상태 확인: suspended 상태라면 데이터를 신뢰할 수 없음
+                    if (audioContext && audioContext.state === 'suspended') {
+                        // 백그라운드에서 브라우저가 오디오를 중단시킨 경우, 오탐 방지를 위해 무음 타이머 작동 안 함
+                        return;
+                    }
+
+                    if (analyser && dataArray) {
+                        analyser.getByteFrequencyData(dataArray);
+                        const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+
+                        processSilenceDetection(average);
+                    }
+                }
+            }
+        }
+
+        function processSilenceDetection(average) {
+            if (average < silenceThreshold) {
+                if (!silenceStart) {
+                    silenceStart = Date.now();
+                    lastLoggedSecond = -1;
+                    console.log(`🔇 [무음 감지] 무음 시작 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
+                } else {
+                    const silentTime = Date.now() - silenceStart;
+                    const silentTimeSec = silentTime / 1000;
+                    silenceIndicator.textContent = `(무음 ${formatSeconds(silentTimeSec)}초)`;
+                    silenceIndicator.className = 'silence-indicator active';
+
+                    // 1.5초 이상일 때, 정수 초가 바뀔 때만 로그 (콘솔 + UI)
+                    if (silentTime >= 1500) {
+                        const currentSecond = Math.floor(silentTimeSec);
+                        if (currentSecond !== lastLoggedSecond) {
+                            lastLoggedSecond = currentSecond;
+                            const targetSec = silenceDuration / 1000;
+
+                            let remainingInfo = '';
+                            let remainingTime = null;
+                            if (chapters.length > 0 && currentChapterIndex < chapters.length) {
+                                const currentChapter = chapters[currentChapterIndex];
+                                const expectedDuration = currentChapter.duration;
+                                const elapsedTime = (Date.now() - startTime) / 1000;
+                                remainingTime = Math.max(-5, expectedDuration - elapsedTime);
+                                remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
+                            }
+
+                            console.log(`🔇 [무음 감지] 무음 ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
+                            addLog(`🔇 [무음 감지] ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초${remainingInfo}`, 'info');
+                        }
+                    }
+
+                    // 자동분할 조건 체크
+                    let reqSilence = silenceDuration;
+                    let remainingTime = null;
+                    if (chapters.length > 0 && currentChapterIndex < chapters.length) {
+                        const currentChapter = chapters[currentChapterIndex];
+                        const elapsedTime = (Date.now() - startTime) / 1000;
+                        remainingTime = Math.max(-5, currentChapter.duration - elapsedTime);
+
+                        if (remainingTime <= 5) reqSilence = parseInt(chapterSilence5.value);
+                        else if (remainingTime <= 10) reqSilence = parseInt(chapterSilence10.value);
+                        else reqSilence = Infinity;
+                    }
+
+                    // 강제 분할 (-5초 도달)
+                    if (remainingTime !== null && remainingTime <= -5 && !forceSplitExecuted) {
+                        forceSplitExecuted = true;
+                        console.log(`⚠️ [강제 자동분할] 잔여시간 -5초 도달 → 강제 분할`);
+                        addLog(`⚠️ [강제 자동분할] 잔여시간 -5초 도달`, 'warning');
+                        splitRecording();
+                        silenceStart = null;
+                        lastLoggedSecond = -1;
+                        silenceIndicator.textContent = '(강제 분할됨!)';
+                        return;
+                    }
+
+                    // 정상 무음 분할
+                    if (silentTime >= reqSilence) {
+                        let canSplit = true;
+                        if (remainingTime !== null && remainingTime >= 10) {
+                            canSplit = false;
+                        }
+
+                        if (canSplit) {
+                            addLog(`✅ [자동분할 실시] 무음 ${formatSeconds(silentTimeSec)}초${remainingTime !== null ? ` (잔여: ${formatSeconds(remainingTime)}초)` : ''}`, 'success');
+                            splitRecording();
+                            silenceStart = null;
+                            lastLoggedSecond = -1;
+                            silenceIndicator.textContent = '(자동 분할됨!)';
+                        } else {
+                            silenceStart = null;
+                            lastLoggedSecond = -1;
+                        }
+                    }
+                }
+            } else {
+                // 소리 감지됨
+                if (silenceStart) {
+                    const interruptedTime = ((Date.now() - silenceStart) / 1000).toFixed(1);
+                    let remainingInfo = '';
+                    if (chapters.length > 0 && currentChapterIndex < chapters.length) {
+                        const currentChapter = chapters[currentChapterIndex];
+                        const elapsedTime = (Date.now() - startTime) / 1000;
+                        const remainingTime = Math.max(-5, currentChapter.duration - elapsedTime);
+                        remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
+                    }
+                    console.log(`❌ [무음 감지] 무음 중단 (${average.toFixed(1)} / ${silenceThreshold}, ${interruptedTime}초${remainingInfo})`);
+
+                    if (parseFloat(interruptedTime) >= 1.0) {
+                        addLog(`❌ 무음 중단 (${interruptedTime}초${remainingInfo})`, 'warning');
+                    }
+                }
+                silenceStart = null;
+                lastLoggedSecond = -1;
+                silenceIndicator.textContent = '';
+                silenceIndicator.className = 'silence-indicator';
             }
         }
 
@@ -1703,166 +1841,7 @@ Ch01. 오리엔테이션
                 }
             }
 
-            // (기존 무음 감지 로직 그대로)
-            // 무음 감지 자동분할: 항상 작동
-            if (silenceDetection.checked && mediaRecorder && mediaRecorder.state === 'recording') {
-                if (average < silenceThreshold) {
-                    if (!silenceStart) {
-                        silenceStart = Date.now();
-                        lastLoggedSecond = -1; // 리셋
-                        console.log(`🔇 [무음 감지] 무음 시작 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold})`);
-                    } else {
-                        const silentTime = Date.now() - silenceStart;
-                        const silentTimeSec = silentTime / 1000;
-                        silenceIndicator.textContent = `(무음 ${formatSeconds(silentTimeSec)}초)`;
-                        silenceIndicator.className = 'silence-indicator active';
-
-                        // 1.5초 이상일 때, 정수 초가 바뀔 때만 로그 (콘솔 + UI)
-                        if (silentTime >= 1500) {
-                            const currentSecond = Math.floor(silentTimeSec);
-
-                            if (currentSecond !== lastLoggedSecond) {
-                                lastLoggedSecond = currentSecond;
-
-                                const targetSec = silenceDuration / 1000;
-
-                                // 잔여 시간 계산
-                                let remainingInfo = '';
-                                if (chapters.length > 0 && currentChapterIndex < chapters.length) {
-                                    const currentChapter = chapters[currentChapterIndex];
-                                    const expectedDuration = currentChapter.duration; // 초
-                                    const elapsedTime = (Date.now() - startTime) / 1000; // 초 (현재 챕터 경과 시간)
-                                    const remainingTime = Math.max(-5, expectedDuration - elapsedTime); // -5초까지 표시
-                                    remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
-                                }
-
-                                console.log(`🔇 [무음 감지] 무음 ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
-                                addLog(`🔇 [무음 감지] ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초${remainingInfo}`, 'info');
-                            }
-                        }
-
-                        // 챕터 모드일 때 잔여 시간에 따라 무음 조건 세분화
-                        let canSplit = false;
-                        let remainingTime = null;
-                        let requiredSilence = silenceDuration; // 기본값
-
-                        if (chapters.length > 0 && currentChapterIndex < chapters.length) {
-                            const currentChapter = chapters[currentChapterIndex];
-                            const expectedDuration = currentChapter.duration; // 초
-                            const elapsedTime = (Date.now() - startTime) / 1000; // 초 (현재 챕터 경과 시간)
-                            remainingTime = Math.max(-5, expectedDuration - elapsedTime); // 초, -5초까지 표시
-
-                            // 잔여 시간에 따른 무음 조건 (사용자 설정값 사용)
-                            if (remainingTime <= 5) {
-                                // 잔여 5초 이하 (0초 포함): 사용자 설정 값 사용
-                                requiredSilence = parseInt(chapterSilence5.value);
-                            } else if (remainingTime <= 10) {
-                                // 잔여 5~10초 (5초 포함): 사용자 설정 값 사용
-                                requiredSilence = parseInt(chapterSilence10.value);
-                            } else {
-                                // 잔여 10초 초과: 분할 안함
-                                requiredSilence = Infinity;
-                            }
-                        } else {
-                            // 일반 모드: 설정된 무음 시간 사용
-                            requiredSilence = silenceDuration;
-                        }
-
-                        // 잔여시간이 -5초에 도달하면 무음 조건 무시하고 강제 분할
-                        if (remainingTime !== null && remainingTime <= -5 && !forceSplitExecuted) {
-                            forceSplitExecuted = true; // 중복 실행 방지
-                            console.log(`⚠️ [강제 자동분할] 잔여시간 -5초 도달 → 무음 조건 무시하고 강제 분할`);
-                            addLog(`⚠️ [강제 자동분할] 잔여시간 -5초 도달`, 'warning');
-                            splitRecording();
-                            silenceStart = null;
-                            lastLoggedSecond = -1;
-                            silenceIndicator.textContent = '(강제 분할됨!)';
-                        }
-
-                        // 무음 조건 체크 (강제 분할과 별도로 항상 체크)
-                        if (silentTime >= requiredSilence) {
-                            if (remainingTime !== null && remainingTime >= 10) {
-                                // 잔여 시간이 10초 이상이면 분할 안함
-                                canSplit = false;
-                                console.log(`⏸️ [자동분할 보류] 잔여 예정 시간 10초 이상 (무음: ${formatSeconds(silentTime/1000)}초, 잔여: ${formatSeconds(remainingTime)}초)`);
-                                addLog(`⏸️ [자동분할 보류] 잔여 시간 ${formatSeconds(remainingTime)}초 (10초 미만이어야 함)`, 'warning');
-                            } else {
-                                canSplit = true;
-                                if (remainingTime !== null) {
-                                    console.log(`✅ [자동분할 가능] 잔여 ${formatSeconds(remainingTime)}초, 무음 ${formatSeconds(silentTime/1000)}초 → 조건 충족`);
-                                }
-                            }
-
-                            if (canSplit) {
-                                console.log(`✅ [자동분할 실시] 무음 ${formatSeconds(silentTime/1000)}초 감지 (필요: ${formatSeconds(requiredSilence/1000)}초) → 자동 분할 실행`);
-
-                                // UI 로그에 잔여 시간 표시
-                                if (remainingTime !== null) {
-                                    addLog(`✅ [자동분할 실시] 무음 ${formatSeconds(silentTime/1000)}초 (잔여: ${formatSeconds(remainingTime)}초)`, 'success');
-                                } else {
-                                    addLog(`✅ [자동분할 실시] 무음 ${formatSeconds(silentTime/1000)}초`, 'success');
-                                }
-
-                                splitRecording();
-                                silenceStart = null;
-                                lastLoggedSecond = -1;
-                                silenceIndicator.textContent = '(자동 분할됨!)';
-                            } else {
-                                // 잔여 시간이 10초 이상이면 무음 타이머 리셋
-                                silenceStart = null;
-                                lastLoggedSecond = -1;
-                            }
-                        }
-                    }
-                } else {
-                    if (silenceStart) {
-                        const interruptedTime = ((Date.now() - silenceStart) / 1000).toFixed(1);
-
-                        // 챕터 모드일 때 잔여 시간 계산
-                        let remainingInfo = '';
-                        if (chapters.length > 0 && currentChapterIndex < chapters.length) {
-                            const currentChapter = chapters[currentChapterIndex];
-                            const expectedDuration = currentChapter.duration; // 초
-                            const elapsedTime = (Date.now() - startTime) / 1000; // 초 (현재 챕터 경과 시간)
-                            const remainingTime = Math.max(-5, expectedDuration - elapsedTime); // 초, -5초까지 표시
-                            remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
-                        }
-
-                        console.log(`❌ [무음 감지] 무음 중단 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}, ${interruptedTime}초에서 중단${remainingInfo})`);
-
-                        // UI 로그 표시 (1초 이상일 때만)
-                        if (parseFloat(interruptedTime) >= 1.0) {
-                            if (remainingInfo) {
-                                addLog(`❌ 무음 중단 (${interruptedTime}초${remainingInfo})`, 'warning');
-                            } else {
-                                addLog(`❌ 무음 중단 (${interruptedTime}초에서 소리 감지)`, 'warning');
-                            }
-                        }
-                    }
-                    silenceStart = null;
-                    lastLoggedSecond = -1; // 리셋
-                    silenceIndicator.textContent = '';
-                    silenceIndicator.className = 'silence-indicator';
-                }
-            }
-
-            // 잔여시간 -5초 체크 (무음 감지 자동분할이 활성화되어 있고, 챕터 모드일 때)
-            if (silenceDetection.checked && mediaRecorder && mediaRecorder.state === 'recording' && chapters.length > 0 && currentChapterIndex < chapters.length) {
-                const currentChapter = chapters[currentChapterIndex];
-                const expectedDuration = currentChapter.duration; // 초
-                const elapsedTime = (Date.now() - startTime) / 1000; // 초 (현재 챕터 경과 시간)
-                const remainingTime = expectedDuration - elapsedTime; // 음수 가능
-
-                if (remainingTime <= -5 && !forceSplitExecuted) {
-                    forceSplitExecuted = true; // 중복 실행 방지
-                    console.log(`⚠️ [강제 자동분할] 잔여시간 -5초 도달 (현재: ${formatSeconds(remainingTime)}초) → 무음 없이도 강제 분할`);
-                    addLog(`⚠️ [강제 자동분할] 잔여시간 -5초 도달`, 'warning');
-                    splitRecording();
-                    silenceStart = null;
-                    lastLoggedSecond = -1;
-                    silenceIndicator.textContent = '(강제 분할됨!)';
-                }
-            }
+            // drawVisualizer는 시각화만 담당 (무음 감지 로직은 updateTimer로 이동됨)
 
             // 20초 페일세이프 제거 - 화면 전환 자동감지만 사용
 
@@ -2053,55 +2032,6 @@ Ch01. 오리엔테이션
             }
         }
 
-        function updateTimer() {
-            const progressBar = document.querySelector('.progress-bar');
-            const progressInfo = document.querySelector('.progress-info');
-
-            let elapsedTime = 0;
-            if (startTime) {
-                elapsedTime = Date.now() - startTime - pausedTime;
-            }
-
-            const formatTime = (ms) => {
-                const totalSeconds = Math.floor(ms / 1000);
-                const hours = Math.floor(totalSeconds / 3600);
-                const minutes = Math.floor((totalSeconds % 3600) / 60);
-                const seconds = totalSeconds % 60;
-                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            };
-
-            timerDisplay.textContent = formatTime(elapsedTime);
-
-            // Progress bar update logic - 각 챕터별 실시간 진행률
-            if (chapters.length > 0 && currentChapterIndex >= 0 && currentChapterIndex < chapters.length) {
-                const currentChapter = chapters[currentChapterIndex];
-                const chapterDuration = currentChapter.duration; // duration in seconds
-
-                if (chapterDuration && chapterDuration > 0) {
-                    // 현재 챕터의 실제 경과 시간 계산 (startTime 기준)
-                    const chapterElapsedTimeSec = elapsedTime / 1000;
-
-                    let percentage = (chapterElapsedTimeSec / chapterDuration) * 100;
-                    percentage = Math.min(100, Math.max(0, percentage)); // Clamp between 0 and 100
-
-                    const remainingTimeSec = Math.max(-5, chapterDuration - chapterElapsedTimeSec);
-
-                    progressBar.style.width = `${percentage}%`;
-                    progressElapsed.textContent = formatTime(elapsedTime);
-                    progressRemaining.textContent = `남은 시간: ${formatTime(remainingTimeSec * 1000)}`;
-                } else {
-                    // Chapter has no duration defined, show total elapsed time
-                    progressBar.style.width = '100%';
-                    progressElapsed.textContent = formatTime(elapsedTime);
-                    progressRemaining.textContent = '연속 녹음 중';
-                }
-            } else {
-                // No curriculum or invalid chapter index, show total elapsed time
-                progressBar.style.width = '100%';
-                progressElapsed.textContent = formatTime(elapsedTime);
-                progressRemaining.textContent = '연속 녹음 중';
-            }
-        }
 
         function actuallyStartRecording() {
             if (!mediaRecorder) return;
