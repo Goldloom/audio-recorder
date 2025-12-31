@@ -1731,7 +1731,7 @@ Ch01. 오리엔테이션
                                 if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                                     const currentChapter = chapters[currentChapterIndex];
                                     const expectedDuration = currentChapter.duration; // 초
-                                    const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
+                                    const elapsedTime = (Date.now() - startTime) / 1000; // 초 (현재 챕터 경과 시간)
                                     const remainingTime = Math.max(-5, expectedDuration - elapsedTime); // -5초까지 표시
                                     remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                                 }
@@ -1749,7 +1749,7 @@ Ch01. 오리엔테이션
                         if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                             const currentChapter = chapters[currentChapterIndex];
                             const expectedDuration = currentChapter.duration; // 초
-                            const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
+                            const elapsedTime = (Date.now() - startTime) / 1000; // 초 (현재 챕터 경과 시간)
                             remainingTime = Math.max(-5, expectedDuration - elapsedTime); // 초, -5초까지 표시
 
                             // 잔여 시간에 따른 무음 조건 (사용자 설정값 사용)
@@ -1823,7 +1823,7 @@ Ch01. 오리엔테이션
                         if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                             const currentChapter = chapters[currentChapterIndex];
                             const expectedDuration = currentChapter.duration; // 초
-                            const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
+                            const elapsedTime = (Date.now() - startTime) / 1000; // 초 (현재 챕터 경과 시간)
                             const remainingTime = Math.max(-5, expectedDuration - elapsedTime); // 초, -5초까지 표시
                             remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                         }
@@ -1857,7 +1857,7 @@ Ch01. 오리엔테이션
             if (silenceDetection.checked && mediaRecorder && mediaRecorder.state === 'recording' && chapters.length > 0 && currentChapterIndex < chapters.length) {
                 const currentChapter = chapters[currentChapterIndex];
                 const expectedDuration = currentChapter.duration; // 초
-                const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
+                const elapsedTime = (Date.now() - startTime) / 1000; // 초 (현재 챕터 경과 시간)
                 const remainingTime = expectedDuration - elapsedTime; // 음수 가능
 
                 if (remainingTime <= -5 && !forceSplitExecuted) {
