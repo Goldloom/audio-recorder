@@ -1716,22 +1716,28 @@ Ch01. 오리엔테이션
                         silenceIndicator.textContent = `(무음 ${formatSeconds(silentTimeSec)}초)`;
                         silenceIndicator.className = 'silence-indicator active';
 
-                        // 1.5초 이상일 때 무조건 로그 (콘솔 + UI)
+                        // 1.5초 이상일 때, 정수 초가 바뀔 때만 로그 (콘솔 + UI)
                         if (silentTime >= 1500) {
-                            const targetSec = silenceDuration / 1000;
+                            const currentSecond = Math.floor(silentTimeSec);
 
-                            // 잔여 시간 계산
-                            let remainingInfo = '';
-                            if (chapters.length > 0 && currentChapterIndex < chapters.length) {
-                                const currentChapter = chapters[currentChapterIndex];
-                                const expectedDuration = currentChapter.duration; // 초
-                                const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
-                                const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
-                                remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
+                            if (currentSecond !== lastLoggedSecond) {
+                                lastLoggedSecond = currentSecond;
+
+                                const targetSec = silenceDuration / 1000;
+
+                                // 잔여 시간 계산
+                                let remainingInfo = '';
+                                if (chapters.length > 0 && currentChapterIndex < chapters.length) {
+                                    const currentChapter = chapters[currentChapterIndex];
+                                    const expectedDuration = currentChapter.duration; // 초
+                                    const elapsedTime = (Date.now() - recordingStartTime) / 1000; // 초
+                                    const remainingTime = Math.max(0, expectedDuration - elapsedTime); // 음수면 0으로
+                                    remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
+                                }
+
+                                console.log(`🔇 [무음 감지] 무음 ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
+                                addLog(`🔇 [무음 감지] ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초${remainingInfo}`, 'info');
                             }
-
-                            console.log(`🔇 [무음 감지] 무음 ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초 (평균 레벨: ${average.toFixed(1)}, 임계값: ${silenceThreshold}${remainingInfo})`);
-                            addLog(`🔇 [무음 감지] ${formatSeconds(silentTimeSec)}초 / ${formatSeconds(targetSec)}초${remainingInfo}`, 'info');
                         }
 
                         // 챕터 모드일 때 잔여 시간에 따라 무음 조건 세분화
