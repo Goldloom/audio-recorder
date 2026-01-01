@@ -1701,8 +1701,15 @@ Ch01. 오리엔테이션
                                 const currentChapter = chapters[currentChapterIndex];
                                 const expectedDuration = currentChapter.duration;
                                 const elapsedTime = (Date.now() - startTime) / 1000;
+                                const rawRemaining = expectedDuration - elapsedTime;
                                 // 직전 챕터 시간 오차로 보정
-                                remainingTime = Math.max(-8, expectedDuration - elapsedTime - lastChapterTimeDiff);
+                                remainingTime = Math.max(-8, rawRemaining - lastChapterTimeDiff);
+
+                                // 보정이 적용된 경우 콘솔 로그
+                                if (lastChapterTimeDiff !== 0 && currentSecond % 5 === 0) {
+                                    console.log(`📊 [시간 보정] 원본 잔여: ${formatSeconds(rawRemaining)}초, 보정값: ${lastChapterTimeDiff > 0 ? '+' : ''}${formatSeconds(lastChapterTimeDiff)}초, 보정 후: ${formatSeconds(remainingTime)}초`);
+                                }
+
                                 remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                             }
 
@@ -1724,9 +1731,22 @@ Ch01. 오리엔테이션
                         else reqSilence = Infinity;
                     }
 
-                    // 강제 분할 (-5초 도달)
+                    // 강제 분할 (-8초 도달)
                     if (remainingTime !== null && remainingTime <= -8 && !forceSplitExecuted) {
                         forceSplitExecuted = true;
+
+                        // 🔚 마지막 챕터인 경우 녹음 종료
+                        if (currentChapterIndex >= chapters.length - 1) {
+                            console.log(`⚠️ [강제 자동분할] 마지막 챕터 잔여시간 -8초 도달 → 전체 녹음 종료`);
+                            addLog(`⚠️ [강제 자동분할] 마지막 챕터 완료 → 전체 녹음 종료`, 'success');
+                            silenceStart = null;
+                            lastLoggedSecond = -1;
+                            silenceIndicator.textContent = '(전체 녹음 종료!)';
+                            updateStatus('ready', '✅ 모든 챕터 녹음 완료!');
+                            stopRecording();
+                            return;
+                        }
+
                         console.log(`⚠️ [강제 자동분할] 잔여시간 -8초 도달 → 강제 분할`);
                         addLog(`⚠️ [강제 자동분할] 잔여시간 -8초 도달`, 'warning');
                         splitRecording();
@@ -1744,6 +1764,18 @@ Ch01. 오리엔테이션
                         }
 
                         if (canSplit) {
+                            // 🔚 마지막 챕터인 경우 녹음 종료
+                            if (chapters.length > 0 && currentChapterIndex >= chapters.length - 1) {
+                                console.log(`✅ [자동분할 실시] 마지막 챕터 무음 ${formatSeconds(silentTimeSec)}초 감지 → 전체 녹음 종료`);
+                                addLog(`✅ [자동분할 실시] 마지막 챕터 완료 (무음 ${formatSeconds(silentTimeSec)}초) → 전체 녹음 종료`, 'success');
+                                silenceStart = null;
+                                lastLoggedSecond = -1;
+                                silenceIndicator.textContent = '(전체 녹음 종료!)';
+                                updateStatus('ready', '✅ 모든 챕터 녹음 완료!');
+                                stopRecording();
+                                return;
+                            }
+
                             addLog(`✅ [자동분할 실시] 무음 ${formatSeconds(silentTimeSec)}초${remainingTime !== null ? ` (잔여: ${formatSeconds(remainingTime)}초)` : ''}`, 'success');
                             splitRecording();
                             silenceStart = null;
@@ -3184,7 +3216,12 @@ Ch01. 오리엔테이션
                         const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
 
                         // 🔧 마지막 챕터 오차 저장 (녹음 종료 시)
+                        const prevDiff = lastChapterTimeDiff;
                         lastChapterTimeDiff = diff;
+
+                        if (prevDiff !== 0) {
+                            console.log(`📊 [시간 보정] 이전 챕터 보정값: ${prevDiff > 0 ? '+' : ''}${prevDiff.toFixed(1)}초 적용됨`);
+                        }
                         console.log(`📊 [시간 보정] 마지막 챕터 오차: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}초`);
 
                         if (Math.abs(diff) < 5) {
@@ -3376,8 +3413,13 @@ Ch01. 오리엔테이션
                     const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
 
                     // 🔧 직전 챕터 시간 오차 저장 (다음 챕터 보정용)
+                    const prevDiff = lastChapterTimeDiff;
                     lastChapterTimeDiff = diff;
-                    console.log(`📊 [시간 보정] 이전 챕터 오차: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}초 → 다음 챕터에 반영`);
+
+                    if (prevDiff !== 0) {
+                        console.log(`📊 [시간 보정] 이전 챕터 보정값: ${prevDiff > 0 ? '+' : ''}${prevDiff.toFixed(1)}초 적용됨`);
+                    }
+                    console.log(`📊 [시간 보정] 현재 챕터 오차: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}초 → 다음 챕터에 반영 예정`);
 
                     if (Math.abs(diff) < 5) {
                         // 오차 5초 이내는 정확
