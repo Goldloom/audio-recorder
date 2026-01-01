@@ -1268,6 +1268,7 @@ Ch01. 오리엔테이션
                         <span class="toggle-slider"></span>
                     </label>
                     <span id="silenceIndicator" class="silence-indicator"></span>
+                    <span id="remainingTimeIndicator" class="silence-indicator" style="margin-left: 10px; color: #2196F3;"></span>
                 </div>
                 <div class="toggle-container" style="margin-left: 20px; font-size: 12px;">
                     <span style="color: #666;"
@@ -1451,6 +1452,7 @@ Ch01. 오리엔테이션
         const chapterSilence5 = document.getElementById('chapterSilence5'); // 챕터 모드 잔여 5초 이하
         const chapterSilence10 = document.getElementById('chapterSilence10'); // 챕터 모드 잔여 5~10초
         const silenceIndicator = document.getElementById('silenceIndicator');
+        const remainingTimeIndicator = document.getElementById('remainingTimeIndicator');
         const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
         const sceneChangeSensitivity = document.getElementById('sceneChangeSensitivity');
         const sensitivityValue = document.getElementById('sensitivityValue');
@@ -1639,12 +1641,18 @@ Ch01. 오리엔테이션
                             progressBar.style.width = `${percent}%`;
                         }
                         if (progressRemaining) progressRemaining.textContent = `남은 시간: ${formatTime(remainingTimeSec * 1000)}`;
+
+                        // 잔여시간 표시 (무음 감지 자동분할 옆)
+                        if (remainingTimeIndicator) {
+                            remainingTimeIndicator.textContent = `(잔여: ${formatSeconds(remainingTimeSec)}초)`;
+                        }
                     } else {
                         if (progressBar) {
                             progressBar.className = 'progress-bar';
                             progressBar.style.width = '100%';
                         }
                         if (progressRemaining) progressRemaining.textContent = '연속 녹음 중';
+                        if (remainingTimeIndicator) remainingTimeIndicator.textContent = '';
                     }
                 } else {
                     if (progressBar) {
@@ -1652,6 +1660,7 @@ Ch01. 오리엔테이션
                         progressBar.style.width = '100%';
                     }
                     if (progressRemaining) progressRemaining.textContent = '연속 녹음 중';
+                    if (remainingTimeIndicator) remainingTimeIndicator.textContent = '';
                 }
 
                 // 백그라운드에서도 안정적인 무음 감지 및 자동분할 체크
@@ -1682,6 +1691,7 @@ Ch01. 오리엔테이션
                 } else {
                     const silentTime = Date.now() - silenceStart;
                     const silentTimeSec = silentTime / 1000;
+
                     silenceIndicator.textContent = `(무음 ${formatSeconds(silentTimeSec)}초)`;
                     silenceIndicator.className = 'silence-indicator active';
 
@@ -3214,6 +3224,7 @@ Ch01. 오리엔테이션
                 includeSystemAudio.disabled = false;
                 includeMic.disabled = false;
                 silenceIndicator.textContent = '';
+                remainingTimeIndicator.textContent = '';
                 silenceStart = null;
                 currentChapterIndex = 0;
                 activeChapterName = '';
