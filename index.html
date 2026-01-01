@@ -3454,8 +3454,35 @@ Ch01. 오리엔테이션
             }
         }
 
+        // 중복되지 않는 고유한 녹음 파일명 생성
+        function getUniqueRecordingName(name) {
+            // 기존 녹음 파일명 목록
+            const existingNames = recordings.map(r => r.name);
+
+            // 중복이 없으면 원래 이름 반환
+            if (!existingNames.includes(name)) {
+                return name;
+            }
+
+            // 중복이 있는 경우: 모든 챕터가 끝났는데 추가 녹음이 진행된 경우에만 "녹음1", "녹음2" 형식으로 변경
+            // 정상적인 챕터 녹음 중이라면 중복이 발생하지 않아야 함
+            let counter = 1;
+            let uniqueName = `녹음${counter}`;
+            while (existingNames.includes(uniqueName)) {
+                counter++;
+                uniqueName = `녹음${counter}`;
+            }
+
+            console.log(`⚠️ [파일명 중복] "${name}" → "${uniqueName}"로 변경`);
+            addLog(`⚠️ [파일명 중복] "${name}" → "${uniqueName}"로 변경`, 'warning');
+            return uniqueName;
+        }
+
         function saveRecordingWithNameAndImages(blob, type, name, images) {
             const now = new Date();
+
+            // 중복 방지: 고유한 파일명 생성
+            const uniqueName = getUniqueRecordingName(name);
 
             // 해당 챕터의 예상 재생시간 찾기
             let expectedDuration = null;
@@ -3467,7 +3494,7 @@ Ch01. 오리엔테이션
             const recording = {
                 id: Date.now(),
                 blob: blob,
-                name: name,
+                name: uniqueName,
                 date: now.toLocaleString('ko-KR'),
                 url: URL.createObjectURL(blob),
                 type: type,
@@ -3479,16 +3506,23 @@ Ch01. 오리엔테이션
 
             // 로그 추가
             const fileSizeMB = (blob.size / (1024 * 1024)).toFixed(2);
-            addLog(`💾 녹음 저장 완료: "${name}" (${fileSizeMB}MB)`, 'success');
+            if (uniqueName !== name) {
+                addLog(`💾 녹음 저장 완료: "${uniqueName}" (중복 방지) (${fileSizeMB}MB)`, 'success');
+            } else {
+                addLog(`💾 녹음 저장 완료: "${uniqueName}" (${fileSizeMB}MB)`, 'success');
+            }
 
             if (images && images.length > 0) {
                 addLog(`📸 캡처 이미지 ${images.length}개 → PDF 변환 시작`, 'info');
-                saveImagesAsPdf(images, name);
+                saveImagesAsPdf(images, uniqueName);
             }
         }
 
         function saveRecordingWithName(blob, type, name) {
             const now = new Date();
+
+            // 중복 방지: 고유한 파일명 생성
+            const uniqueName = getUniqueRecordingName(name);
 
             // 해당 챕터의 예상 재생시간 찾기
             let expectedDuration = null;
@@ -3500,7 +3534,7 @@ Ch01. 오리엔테이션
             const recording = {
                 id: Date.now(),
                 blob: blob,
-                name: name,
+                name: uniqueName,
                 date: now.toLocaleString('ko-KR'),
                 url: URL.createObjectURL(blob),
                 type: type,
@@ -3511,7 +3545,7 @@ Ch01. 오리엔테이션
             renderRecordings();
 
             if (capturedImages.length > 0) {
-                saveImagesAsPdf([...capturedImages], name);
+                saveImagesAsPdf([...capturedImages], uniqueName);
                 capturedImages = [];
                 captureCount = 0;
                 updateCaptureStatus();
