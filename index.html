@@ -1272,7 +1272,7 @@ Ch01. 오리엔테이션
                 </div>
                 <div class="toggle-container" style="margin-left: 20px; font-size: 12px;">
                     <span style="color: #666;"
-                        title="챕터 모드에서 잔여 시간에 따라 자동 조정됩니다.&#13;&#10;• 잔여 ≤ 5초 (0초 포함): 무음 조건 1.5초&#13;&#10;• 잔여 5~10초: 무음 조건 1.5초&#13;&#10;• 잔여 > 10초: 분할 안함">챕터
+                        title="챕터 모드에서 잔여 시간에 따라 자동 조정됩니다.&#13;&#10;• 잔여 ≤ 5초: 무음 조건 적용&#13;&#10;• 잔여 > 5초: 분할 안함">챕터
                         모드 잔여 5초 이하:</span>
                     <select id="chapterSilence5"
                         style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
@@ -1280,14 +1280,6 @@ Ch01. 오리엔테이션
                         <option value="1000">1.0초</option>
                         <option value="1500" selected>1.5초</option>
                         <option value="2000">2.0초</option>
-                    </select>
-                    <span style="color: #666; margin-left: 10px;">잔여 5~10초:</span>
-                    <select id="chapterSilence10"
-                        style="margin-left: 5px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
-                        <option value="1000">1.0초</option>
-                        <option value="1500" selected>1.5초</option>
-                        <option value="2000">2.0초</option>
-                        <option value="2500">2.5초</option>
                     </select>
                 </div>
                 <div class="toggle-container">
@@ -1430,6 +1422,7 @@ Ch01. 오리엔테이션
         let lastLoggedSecond = -1; // 마지막 로그 출력된 초 (중복 방지)
         let forceSplitExecuted = false; // -5초 강제 분할 실행 여부 (중복 방지)
         let lectureCount = 1;
+        let lastChapterTimeDiff = 0; // 직전 챕터의 시간 오차 (초) - 다음 챕터 보정용
 
         // 초 단위 시간을 깔끔하게 표시 (1초, 1.5초 등)
         function formatSeconds(seconds) {
@@ -1450,7 +1443,6 @@ Ch01. 오리엔테이션
         const autoStartOnSound = document.getElementById('autoStartOnSound'); // 추가
         const silenceDetection = document.getElementById('silenceDetection');
         const chapterSilence5 = document.getElementById('chapterSilence5'); // 챕터 모드 잔여 5초 이하
-        const chapterSilence10 = document.getElementById('chapterSilence10'); // 챕터 모드 잔여 5~10초
         const silenceIndicator = document.getElementById('silenceIndicator');
         const remainingTimeIndicator = document.getElementById('remainingTimeIndicator');
         const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
@@ -1634,7 +1626,8 @@ Ch01. 오리엔테이션
 
                     if (chapterDuration && chapterDuration > 0) {
                         const percent = Math.min((elapsedMs / durationMs) * 100, 100);
-                        const remainingTimeSec = Math.max(-8, chapterDuration - (elapsedMs / 1000));
+                        // 직전 챕터 시간 오차로 보정
+                        const remainingTimeSec = Math.max(-8, chapterDuration - (elapsedMs / 1000) - lastChapterTimeDiff);
 
                         if (progressBar) {
                             progressBar.className = 'progress-bar';
@@ -1708,7 +1701,8 @@ Ch01. 오리엔테이션
                                 const currentChapter = chapters[currentChapterIndex];
                                 const expectedDuration = currentChapter.duration;
                                 const elapsedTime = (Date.now() - startTime) / 1000;
-                                remainingTime = Math.max(-8, expectedDuration - elapsedTime);
+                                // 직전 챕터 시간 오차로 보정
+                                remainingTime = Math.max(-8, expectedDuration - elapsedTime - lastChapterTimeDiff);
                                 remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                             }
 
@@ -1723,10 +1717,10 @@ Ch01. 오리엔테이션
                     if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                         const currentChapter = chapters[currentChapterIndex];
                         const elapsedTime = (Date.now() - startTime) / 1000;
-                        remainingTime = Math.max(-8, currentChapter.duration - elapsedTime);
+                        // 직전 챕터 시간 오차로 보정
+                        remainingTime = Math.max(-8, currentChapter.duration - elapsedTime - lastChapterTimeDiff);
 
                         if (remainingTime <= 5) reqSilence = parseInt(chapterSilence5.value);
-                        else if (remainingTime <= 10) reqSilence = parseInt(chapterSilence10.value);
                         else reqSilence = Infinity;
                     }
 
@@ -1745,7 +1739,7 @@ Ch01. 오리엔테이션
                     // 정상 무음 분할
                     if (silentTime >= reqSilence) {
                         let canSplit = true;
-                        if (remainingTime !== null && remainingTime >= 10) {
+                        if (remainingTime !== null && remainingTime > 5) {
                             canSplit = false;
                         }
 
@@ -1769,7 +1763,8 @@ Ch01. 오리엔테이션
                     if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                         const currentChapter = chapters[currentChapterIndex];
                         const elapsedTime = (Date.now() - startTime) / 1000;
-                        const remainingTime = Math.max(-8, currentChapter.duration - elapsedTime);
+                        // 직전 챕터 시간 오차로 보정
+                        const remainingTime = Math.max(-8, currentChapter.duration - elapsedTime - lastChapterTimeDiff);
                         remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                     }
                     console.log(`❌ [무음 감지] 무음 중단 (${average.toFixed(1)} / ${silenceThreshold}, ${interruptedTime}초${remainingInfo})`);
@@ -2001,6 +1996,7 @@ Ch01. 오리엔테이션
 
                 currentRecordingType = recordingType; // 변수 대입
                 lectureCount = 1;
+                lastChapterTimeDiff = 0; // 🔧 녹음 시작 시 시간 보정 리셋
 
                 if (autoStartOnSound.checked) {
                     isWaitingForFirstSound = true;
@@ -2084,8 +2080,7 @@ Ch01. 오리엔테이션
                 if (autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
                 if (silenceDetection.checked) {
                     const silence5 = (parseInt(chapterSilence5.value) / 1000).toFixed(1);
-                    const silence10 = (parseInt(chapterSilence10.value) / 1000).toFixed(1);
-                    activeSettings.push(`무음 감지 자동분할 (챕터 모드 잔여 5초 이하:${silence5}초, 잔여 5~10초:${silence10}초)`);
+                    activeSettings.push(`무음 감지 자동분할 (챕터 모드 잔여 5초 이하:${silence5}초)`);
                 }
                 if (sceneChangeDetectionToggle.checked) {
                     const modes = [];
@@ -2118,8 +2113,7 @@ Ch01. 오리엔테이션
                 if (autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
                 if (silenceDetection.checked) {
                     const silence5 = (parseInt(chapterSilence5.value) / 1000).toFixed(1);
-                    const silence10 = (parseInt(chapterSilence10.value) / 1000).toFixed(1);
-                    activeSettings.push(`무음 감지 자동분할 (챕터 모드 잔여 5초 이하:${silence5}초, 잔여 5~10초:${silence10}초)`);
+                    activeSettings.push(`무음 감지 자동분할 (챕터 모드 잔여 5초 이하:${silence5}초)`);
                 }
                 if (sceneChangeDetectionToggle.checked) {
                     const modes = [];
@@ -3189,6 +3183,10 @@ Ch01. 오리엔테이션
                         const expectedSec = Math.floor(expectedDuration % 60);
                         const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
 
+                        // 🔧 마지막 챕터 오차 저장 (녹음 종료 시)
+                        lastChapterTimeDiff = diff;
+                        console.log(`📊 [시간 보정] 마지막 챕터 오차: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}초`);
+
                         if (Math.abs(diff) < 5) {
                             addLog(`⏹️ 전체 녹음 종료: "${finalChapterName}" | 예상: ${expectedTimeStr}, 실제: ${actualTimeStr} (정확!)`, 'success');
                         } else if (diff > 0) {
@@ -3198,6 +3196,8 @@ Ch01. 오리엔테이션
                         }
                     } else {
                         addLog(`⏹️ 전체 녹음 종료: "${finalChapterName}" | 실제: ${actualTimeStr}`, 'info');
+                        // 챕터 정보가 없으면 보정 리셋
+                        lastChapterTimeDiff = 0;
                     }
 
                     // ✅ 저장된 챕터 이름으로 녹음 저장
@@ -3375,6 +3375,10 @@ Ch01. 오리엔테이션
                     const expectedSec = Math.floor(expectedDuration % 60);
                     const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
 
+                    // 🔧 직전 챕터 시간 오차 저장 (다음 챕터 보정용)
+                    lastChapterTimeDiff = diff;
+                    console.log(`📊 [시간 보정] 이전 챕터 오차: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}초 → 다음 챕터에 반영`);
+
                     if (Math.abs(diff) < 5) {
                         // 오차 5초 이내는 정확
                         addLog(`⏹️ 녹음 종료: "${endedChapterName}" | 예상: ${expectedTimeStr}, 실제: ${actualTimeStr} (정확!)`, 'success');
@@ -3387,6 +3391,8 @@ Ch01. 오리엔테이션
                     }
                 } else {
                     addLog(`⏹️ 녹음 종료: "${endedChapterName}" | 실제: ${actualTimeStr}`, 'info');
+                    // 챕터 정보가 없으면 보정 리셋
+                    lastChapterTimeDiff = 0;
                 }
 
                 stopCapture();
@@ -3992,11 +3998,7 @@ Ch01. 오리엔테이션
 
         // 챕터 모드 무음 설정 이벤트
         chapterSilence5.addEventListener('change', (e) => {
-            console.log(`[챕터 모드] 잔여 5초 미만 무음 조건 변경: ${parseInt(e.target.value) / 1000}초`);
-        });
-
-        chapterSilence10.addEventListener('change', (e) => {
-            console.log(`[챕터 모드] 잔여 5~10초 무음 조건 변경: ${parseInt(e.target.value) / 1000}초`);
+            console.log(`[챕터 모드] 잔여 5초 이하 무음 조건 변경: ${parseInt(e.target.value) / 1000}초`);
         });
 
         // 화면 전환 민감도 슬라이더 이벤트
