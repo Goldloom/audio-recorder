@@ -1632,7 +1632,7 @@ Ch01. 오리엔테이션
 
                     if (chapterDuration && chapterDuration > 0) {
                         const percent = Math.min((elapsedMs / durationMs) * 100, 100);
-                        const remainingTimeSec = Math.max(-5, chapterDuration - (elapsedMs / 1000));
+                        const remainingTimeSec = Math.max(-8, chapterDuration - (elapsedMs / 1000));
 
                         if (progressBar) {
                             progressBar.className = 'progress-bar';
@@ -1698,7 +1698,7 @@ Ch01. 오리엔테이션
                                 const currentChapter = chapters[currentChapterIndex];
                                 const expectedDuration = currentChapter.duration;
                                 const elapsedTime = (Date.now() - startTime) / 1000;
-                                remainingTime = Math.max(-5, expectedDuration - elapsedTime);
+                                remainingTime = Math.max(-8, expectedDuration - elapsedTime);
                                 remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                             }
 
@@ -1713,7 +1713,7 @@ Ch01. 오리엔테이션
                     if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                         const currentChapter = chapters[currentChapterIndex];
                         const elapsedTime = (Date.now() - startTime) / 1000;
-                        remainingTime = Math.max(-5, currentChapter.duration - elapsedTime);
+                        remainingTime = Math.max(-8, currentChapter.duration - elapsedTime);
 
                         if (remainingTime <= 5) reqSilence = parseInt(chapterSilence5.value);
                         else if (remainingTime <= 10) reqSilence = parseInt(chapterSilence10.value);
@@ -1721,10 +1721,10 @@ Ch01. 오리엔테이션
                     }
 
                     // 강제 분할 (-5초 도달)
-                    if (remainingTime !== null && remainingTime <= -5 && !forceSplitExecuted) {
+                    if (remainingTime !== null && remainingTime <= -8 && !forceSplitExecuted) {
                         forceSplitExecuted = true;
-                        console.log(`⚠️ [강제 자동분할] 잔여시간 -5초 도달 → 강제 분할`);
-                        addLog(`⚠️ [강제 자동분할] 잔여시간 -5초 도달`, 'warning');
+                        console.log(`⚠️ [강제 자동분할] 잔여시간 -8초 도달 → 강제 분할`);
+                        addLog(`⚠️ [강제 자동분할] 잔여시간 -8초 도달`, 'warning');
                         splitRecording();
                         silenceStart = null;
                         lastLoggedSecond = -1;
@@ -1759,7 +1759,7 @@ Ch01. 오리엔테이션
                     if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                         const currentChapter = chapters[currentChapterIndex];
                         const elapsedTime = (Date.now() - startTime) / 1000;
-                        const remainingTime = Math.max(-5, currentChapter.duration - elapsedTime);
+                        const remainingTime = Math.max(-8, currentChapter.duration - elapsedTime);
                         remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                     }
                     console.log(`❌ [무음 감지] 무음 중단 (${average.toFixed(1)} / ${silenceThreshold}, ${interruptedTime}초${remainingInfo})`);
