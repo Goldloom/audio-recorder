@@ -3969,139 +3969,14 @@ Ch01. 오리엔테이션
             clearChapterTimers();
             activeChapterName = chapters[startIndex]?.name || '';
 
-            // ✅ 템플릿 매칭이 활성화되어 있으면 즉시 감지 시작
-            if (templateMatchingToggle.checked && templateImage) {
-                console.log('✅ 템플릿 매칭 모드: 즉시 감지 시작');
-                addLog(`🔍 [DEBUG] 템플릿 매칭 모드 시작 - startIndex: ${startIndex}`, 'info');
-
-                // 템플릿 매칭으로만 분할 진행
-                chapterReadyToSplit = true;
-                waitingForSilence = true;
-                pendingSplitChapterIndex = startIndex;
-                silenceIndicator.textContent = '(템플릿 매칭으로 자동분할 대기 중...)';
-                silenceIndicator.className = 'silence-indicator active';
-
-                // 화면 감지 시작
-                startSceneChangeDetection();
-            }
-            // ✅ 화면 전환 자동감지가 활성화되어 있으면 즉시 감지 시작
-            else if (sceneChangeDetectionToggle.checked) {
-                console.log('✅ 화면 전환 자동감지 모드: 즉시 감지 시작');
-                addLog(`🔍 [DEBUG] 화면 전환 자동감지 모드 시작 - startIndex: ${startIndex}`, 'info');
-
-                // 화면 전환 자동감지로만 분할 진행
-                chapterReadyToSplit = true;
-                waitingForSilence = true;
-                pendingSplitChapterIndex = startIndex;
-                silenceIndicator.textContent = '(화면 전환으로 자동분할 대기 중...)';
-                silenceIndicator.className = 'silence-indicator active';
-
-                // 화면 감지 시작
-                startSceneChangeDetection();
-
-                // ✅ 예상 녹음 시간 경과 시 20초 대기 타이머 설정
-                // 예상 시간이 지나도 템플릿 매칭이 되어야 넘어가지만, 최대 20초까지만 대기
-                let cumulativeTime = 0;
-                for (let i = startIndex; i < chapters.length; i++) {
-                    const ch = chapters[i];
-                    cumulativeTime += ch.duration * 1000;
-
-                    // 예상 시간 + 20초 후 강제 전환 타이머
-                    const timeoutTime = cumulativeTime + 20000; // +20초
-                    const timeoutTimer = setTimeout(() => {
-                        // 이미 전환되었으면 무시
-                        if (currentChapterIndex !== i) return;
-
-                        console.log(`⏰ 템플릿 매칭 타임아웃: 챕터 ${i + 1} (예상시간 경과 후 20초 대기 완료) → 강제 전환`);
-                        addLog(`⏰ 템플릿 매칭 타임아웃: 챕터 ${i + 1} (예상시간+20초 경과) → 강제 전환`, 'warning');
-
-                        if (i < chapters.length - 1) {
-                            // 다음 챕터로 강제 전환
-                            const endedChapterName =
-                                activeChapterName ||
-                                (chapters[i]?.name) ||
-                                `강의${lectureCount}`;
-
-                            stopCapture();
-                            const imagesToSave = [...capturedImages];
-                            capturedImages = [];
-                            captureCount = 0;
-
-                            mediaRecorder.onstop = () => {
-                                const audioBlob = new Blob(audioChunks, { type: currentMimeType });
-                                saveRecordingWithNameAndImages(audioBlob, currentRecordingType, endedChapterName, imagesToSave);
-                                audioChunks = [];
-                            };
-
-                            mediaRecorder.stop();
-
-                            // 즉시 다음 녹음 시작
-                            if (!isRecording && !isWaitingForFirstSound) return;
-
-                            if (streams.length > 0 && streams.some(s => s.active)) {
-                                let finalStream;
-                                if (streams.length > 1) {
-                                    finalStream = mergeAudioStreams(streams);
-                                } else {
-                                    finalStream = streams[0];
-                                }
-
-                                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                                    ? 'audio/webm;codecs=opus'
-                                    : 'audio/webm';
-
-                                mediaRecorder = new MediaRecorder(finalStream, { mimeType });
-
-                                mediaRecorder.ondataavailable = (event) => {
-                                    if (event.data.size > 0) {
-                                        audioChunks.push(event.data);
-                                    }
-                                };
-
-                                mediaRecorder.onstop = () => {
-                                    const audioBlob = new Blob(audioChunks, { type: currentMimeType });
-                                    const finalName =
-                                        activeChapterName ||
-                                        (chapters[currentChapterIndex]?.name) ||
-                                        `강의${lectureCount}`;
-                                    saveRecordingWithName(audioBlob, currentRecordingType, finalName);
-                                    audioChunks = [];
-                                };
-
-                                // 다음 챕터로 이동
-                                currentChapterIndex = i + 1;
-                                activeChapterName = chapters[currentChapterIndex]?.name || '';
-                                renderChapters();
-
-                                // 녹음 시작 (타이머 재설정)
-                                if (autoStartOnSound.checked) {
-                                    isWaitingForFirstSound = true;
-                                    isRecording = false;
-                                    const nextName = chapters[currentChapterIndex]?.shortName || chapters[currentChapterIndex]?.name || `강의 ${lectureCount}`;
-                                    updateStatus('recording', `🎵 소리 대기 중... (${nextName})`);
-                                } else {
-                                    actuallyStartRecording();
-                                }
-
-                                // 다음 챕터 타이머 시작
-                                startChapterTimers(currentChapterIndex);
-                            }
-                        } else if (autoStopCheckbox.checked) {
-                            // 마지막 챕터 → 자동 종료
-                            console.log('⏰ 템플릿 매칭 타임아웃: 마지막 챕터 → 자동 종료');
-                            addLog('⏰ 템플릿 매칭 타임아웃: 마지막 챕터 → 자동 종료', 'warning');
-                            stopRecording();
-                        }
-                    }, timeoutTime);
-
-                    chapterTimers.push(timeoutTimer);
-                }
-
+            // 제목 감지 자동 분할 모드 - 별도 타이머 불필요
+            if (titleDetectionEnabled) {
+                console.log('✅ 제목 감지 자동 분할 모드 활성화됨 - 타이머 불필요');
                 return;
             }
 
-            // 화면 전환 자동감지 모드에서는 타이머 불필요 (즉시 감지 시작)
-            console.log('✅ 화면 전환 자동감지 모드: 타이머 설정 생략');
+            // 템플릿 매칭 및 화면 전환 자동감지 기능은 제거됨
+            console.log('ℹ️ 자동 분할 기능이 비활성화됨 - 수동 분할만 가능');
         }
 
         // 챕터 타이머 클리어
