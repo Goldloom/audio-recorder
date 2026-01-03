@@ -1130,6 +1130,29 @@
             </button>
         </div>
 
+        <div class="split-mode-section" style="background: #f8f9fa; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+            <h3 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px;">🎯 분할 모드</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                    <input type="radio" name="splitMode" value="manual" style="width: 18px; height: 18px;">
+                    <div style="flex: 1;">
+                        <strong style="font-size: 13px; display: block; margin-bottom: 2px;">수동 분할</strong>
+                        <span style="font-size: 11px; color: #666;">위 "새 강의 시작" 버튼을 눌러 수동으로 분할</span>
+                    </div>
+                </label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                    <input type="radio" name="splitMode" value="title" id="autoSplitMode" checked style="width: 18px; height: 18px;">
+                    <div style="flex: 1;">
+                        <strong style="font-size: 13px; display: block; margin-bottom: 2px;">📌 제목 감지 자동 분할</strong>
+                        <span style="font-size: 11px; color: #666;">강의 제목 변경 시 자동 분할 (1초마다 체크)</span>
+                    </div>
+                </label>
+            </div>
+            <div id="autoSplitStatus" style="margin-top: 10px; padding: 8px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px; font-size: 12px; display: none;">
+                <strong>🔍 현재 감지된 제목:</strong> <span id="currentDetectedTitle">-</span>
+            </div>
+        </div>
+
         <div class="curriculum-section">
             <div class="curriculum-header">
                 <span class="curriculum-title">
@@ -1264,7 +1287,7 @@ Ch01. 오리엔테이션
                         title="무음이 감지되면 자동으로 녹음을 분할합니다.&#13;&#10;&#13;&#10;[일반 모드]&#13;&#10;• 설정한 무음 시간 감지 시 즉시 자동 분할&#13;&#10;&#13;&#10;[챕터 모드]&#13;&#10;• 잔여 시간에 따라 무음 조건 자동 조정 (하단 설정 참고)">🔇
                         무음 감지 자동분할</span>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="silenceDetection" checked>
+                        <input type="checkbox" id="silenceDetection">
                         <span class="toggle-slider"></span>
                     </label>
                     <span id="silenceIndicator" class="silence-indicator"></span>
@@ -1281,89 +1304,6 @@ Ch01. 오리엔테이션
                         <option value="1500" selected>1.5초</option>
                         <option value="2000">2.0초</option>
                     </select>
-                </div>
-                <div class="toggle-container">
-                    <span class="toggle-label"
-                        title="동영상 전환을 자동으로 감지하여 챕터를 분할합니다.&#13;&#10;&#13;&#10;감지 조건 (중복 선택 시 AND 조건):&#13;&#10;• 기본: 픽셀 변화율 + 히스토그램 분석&#13;&#10;• 모드1: 하얀 배경 + 중앙 로고 감지&#13;&#10;• 모드2: 특정 이미지 포함 여부 감지">🎬
-                        화면 전환 자동감지 (목차용)</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="sceneChangeDetection">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <div style="display: flex; gap: 15px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
-                        <!-- 감지 조건 체크박스들 -->
-                        <div style="display: flex; gap: 12px; align-items: center;">
-                            <label
-                                style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
-                                title="픽셀 변화율 + 히스토그램(색상 분포) 분석&#13;&#10;• 160x90으로 샘플링하여 픽셀 단위 비교&#13;&#10;• 15% 이상 변화 시 장면 전환 감지&#13;&#10;• 연속 3프레임 변화 추적&#13;&#10;• 3초 쿨다운으로 오감지 방지">
-                                <input type="checkbox" id="detectBasic" checked style="cursor: pointer;">
-                                <span>기본 (픽셀+색상)</span>
-                            </label>
-                            <label
-                                style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
-                                title="하얀 배경 + 중앙 로고 패턴 감지&#13;&#10;• 화면의 70% 이상이 하얀색 (밝기 200 이상)&#13;&#10;• 중앙 20% 영역에 10% 이상 어두운 부분 (로고)&#13;&#10;• 강의 전환 시 나타나는 인트로 화면 감지에 유용">
-                                <input type="checkbox" id="detectMode1" style="cursor: pointer;">
-                                <span>모드1 (하얀배경)</span>
-                            </label>
-                            <label
-                                style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
-                                title="업로드한 특정 이미지 포함 여부 감지&#13;&#10;• 아래 '📁 감지용 이미지 업로드' 버튼으로 참조 이미지 등록&#13;&#10;• 현재 화면과 70% 이상 유사하면 매칭 성공&#13;&#10;• 특정 슬라이드나 화면이 나타날 때 전환하고 싶을 때 사용">
-                                <input type="checkbox" id="detectMode2" style="cursor: pointer;">
-                                <span>모드2 (이미지매칭)</span>
-                            </label>
-                            <label
-                                style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;"
-                                title="4초 이상 무음 감지&#13;&#10;• 오디오 레벨이 임계값 미만으로 4초 지속 시 감지&#13;&#10;• 강의 전환 시 무음 구간이 있을 때 유용&#13;&#10;• 다른 조건과 조합하여 정확도 향상">
-                                <input type="checkbox" id="detectMode3" style="cursor: pointer;">
-                                <span>모드3 (4초무음)</span>
-                            </label>
-                        </div>
-                        <div class="sensitivity-slider">
-                            <span style="font-size: 11px; color: #666;">민감도:</span>
-                            <input type="range" id="sceneChangeSensitivity" min="5" max="30" value="15" step="1">
-                            <span class="sensitivity-value" id="sensitivityValue">15%</span>
-                        </div>
-                    </div>
-                    <!-- 모드2 전용: 이미지 업로드 -->
-                    <div id="mode2ImageUpload" style="padding-left: 30px; margin-top: 8px; display: none;">
-                        <input type="file" id="mode2ImageInput" accept="image/*" style="display: none;">
-                        <button id="uploadMode2ImageBtn"
-                            style="padding: 4px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px;">
-                            📁 감지용 이미지 업로드
-                        </button>
-                        <span id="mode2ImageStatus" style="font-size: 11px; color: #666; margin-left: 8px;"></span>
-                    </div>
-                </div>
-                <div class="toggle-container" style="padding-left: 30px; margin-top: -10px;">
-                    <label
-                        style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; cursor: pointer;"
-                        title="체크 시: 무음 4.5초 + 화면 전환 모두 만족해야 분할 (정밀, 강의 전환 구간 정확 감지)&#13;&#10;체크 안 함: 화면 전환만으로 즉시 분할 (빠름, 기본값)">
-                        <input type="checkbox" id="requireSilenceForSceneChange"
-                            style="width: 16px; height: 16px; cursor: pointer;">
-                        <span>무음 4.5초 + 화면 전환 조건 (AND)</span>
-                    </label>
-                </div>
-                <div class="toggle-container">
-                    <span class="toggle-label"
-                        title="업로드한 이미지와 화면을 실시간 비교하여 자동 분할합니다.&#13;&#10;예상 녹음 시간 경과 후 최대 20초까지 템플릿 매칭을 대기하며,&#13;&#10;20초 내에 매칭되지 않으면 자동으로 다음 녹음으로 넘어갑니다.">🖼️
-                        템플릿 매칭 자동분할</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="templateMatching">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <div style="margin-left: 10px; display: flex; gap: 10px; align-items: center;">
-                        <input type="file" id="templateImageInput" accept="image/*" style="display: none;">
-                        <button id="uploadTemplateBtn"
-                            style="padding: 4px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-size: 12px;">
-                            📁 이미지 업로드
-                        </button>
-                        <span id="templateStatus" style="font-size: 11px; color: #666;"></span>
-                        <div class="sensitivity-slider" style="margin-left: auto;">
-                            <span style="font-size: 11px; color: #666;">유사도:</span>
-                            <input type="range" id="templateSimilarity" min="70" max="99" value="99" step="1">
-                            <span class="sensitivity-value" id="similarityValue">99%</span>
-                        </div>
-                    </div>
                 </div>
                 <div class="toggle-container">
                     <span class="toggle-label">📸 이미지캡처(WebP->PDF)</span>
@@ -1422,6 +1362,11 @@ Ch01. 오리엔테이션
         let lastLoggedSecond = -1; // 마지막 로그 출력된 초 (중복 방지)
         let forceSplitExecuted = false; // -5초 강제 분할 실행 여부 (중복 방지)
         let lectureCount = 1;
+        
+        // 제목 감지 자동 분할 관련 변수
+        let titleDetectionEnabled = false;
+        let currentDetectedTitle = '';
+        let titleCheckInterval = null;
 
         // 초 단위 시간을 깔끔하게 표시 (1초, 1.5초 등)
         function formatSeconds(seconds) {
@@ -1444,24 +1389,26 @@ Ch01. 오리엔테이션
         const chapterSilence5 = document.getElementById('chapterSilence5'); // 챕터 모드 잔여 5초 이하
         const silenceIndicator = document.getElementById('silenceIndicator');
         const remainingTimeIndicator = document.getElementById('remainingTimeIndicator');
-        const sceneChangeDetectionToggle = document.getElementById('sceneChangeDetection');
-        const sceneChangeSensitivity = document.getElementById('sceneChangeSensitivity');
-        const sensitivityValue = document.getElementById('sensitivityValue');
-        const detectBasic = document.getElementById('detectBasic');
-        const detectMode1 = document.getElementById('detectMode1');
-        const detectMode2 = document.getElementById('detectMode2');
-        const detectMode3 = document.getElementById('detectMode3');
-        const mode2ImageUpload = document.getElementById('mode2ImageUpload');
-        const mode2ImageInput = document.getElementById('mode2ImageInput');
-        const uploadMode2ImageBtn = document.getElementById('uploadMode2ImageBtn');
-        const mode2ImageStatus = document.getElementById('mode2ImageStatus');
-        const requireSilenceForSceneChange = document.getElementById('requireSilenceForSceneChange');
-        const templateMatchingToggle = document.getElementById('templateMatching');
-        const templateImageInput = document.getElementById('templateImageInput');
-        const uploadTemplateBtn = document.getElementById('uploadTemplateBtn');
-        const templateStatus = document.getElementById('templateStatus');
-        const templateSimilarity = document.getElementById('templateSimilarity');
-        const similarityValue = document.getElementById('similarityValue');
+        // 화면전환 자동감지 관련 요소 제거됨 - null로 설정
+        const sceneChangeDetectionToggle = null;
+        const sceneChangeSensitivity = null;
+        const sensitivityValue = null;
+        const detectBasic = null;
+        const detectMode1 = null;
+        const detectMode2 = null;
+        const detectMode3 = null;
+        const mode2ImageUpload = null;
+        const mode2ImageInput = null;
+        const uploadMode2ImageBtn = null;
+        const mode2ImageStatus = null;
+        const requireSilenceForSceneChange = null;
+        // 템플릿 매칭 관련 요소 제거됨 - null로 설정
+        const templateMatchingToggle = null;
+        const templateImageInput = null;
+        const uploadTemplateBtn = null;
+        const templateStatus = null;
+        const templateSimilarity = null;
+        const similarityValue = null;
         const newLectureBtn = document.getElementById('newLectureBtn');
         const curriculumInput = document.getElementById('curriculumInput');
         const parseBtn = document.getElementById('parseBtn');
@@ -1477,6 +1424,11 @@ Ch01. 오리엔테이션
         const captureInterval = document.getElementById('captureInterval');
         const captureQuality = document.getElementById('captureQuality');
         const captureStatus = document.getElementById('captureStatus');
+        
+        // 제목 감지 자동 분할 관련 요소
+        const autoSplitMode = document.getElementById('autoSplitMode');
+        const autoSplitStatus = document.getElementById('autoSplitStatus');
+        const currentDetectedTitleSpan = document.getElementById('currentDetectedTitle');
         const downloadAllBtn = document.getElementById('downloadAllBtn');
         const progressBar = document.getElementById('progressBar');
         const progressElapsed = document.getElementById('progressElapsed');
@@ -1519,6 +1471,10 @@ Ch01. 오리엔테이션
         let templateImage = null; // 템플릿 이미지 데이터
         let templateMatcher = null;
         let templateCheckInterval = null;
+
+        // 동영상 제목 감지 변수들
+        let videoTitleDetector = null;
+        let titleCheckInterval = null;
 
         function updateStatus(state, message) {
             statusDisplay.className = 'status ' + state;
@@ -2160,8 +2116,180 @@ Ch01. 오리엔테이션
                 if (activeSettings.length > 0) {
                     addLog(`⚙️ 활성화된 설정: ${activeSettings.join(' | ')}`, 'info');
                 }
+                
+                // 제목 감지 자동 분할 모드 확인
+                const splitModeRadios = document.getElementsByName('splitMode');
+                for (const radio of splitModeRadios) {
+                    if (radio.checked && radio.value === 'title') {
+                        titleDetectionEnabled = true;
+                        startTitleDetection();
+                        if (autoSplitStatus) {
+                            autoSplitStatus.style.display = 'block';
+                        }
+                        break;
+                    }
+                }
             }
         }
+
+        // ============ 제목 감지 자동 분할 ============
+        
+        /**
+         * 강의 제목 감지 함수
+         */
+        function getCurrentLectureTitle() {
+            try {
+                // 현재 재생 중인 강의에 --active 클래스 추가됨
+                let titleElement = document.querySelector('.classroom-sidebar-clip__chapter__clip__title--active');
+                
+                // 2순위: 모든 제목 중에서 부모가 active인 것 찾기
+                if (!titleElement) {
+                    const allTitles = document.querySelectorAll('.classroom-sidebar-clip__chapter__clip__title');
+                    
+                    for (const titleEl of allTitles) {
+                        let parent = titleEl.parentElement;
+                        let depth = 0;
+                        
+                        while (parent && depth < 5) {
+                            const classList = parent.classList.toString();
+                            const style = window.getComputedStyle(parent);
+                            const bgColor = style.backgroundColor;
+                            
+                            // 파란색 배경이거나 active 클래스가 있으면 현재 재생 중
+                            if (classList.includes('active') || 
+                                classList.includes('playing') ||
+                                classList.includes('current') ||
+                                bgColor.includes('59, 130, 246') || // blue-500
+                                bgColor.includes('37, 99, 235')) {  // blue-600
+                                titleElement = titleEl;
+                                break;
+                            }
+                            
+                            parent = parent.parentElement;
+                            depth++;
+                        }
+                        
+                        if (titleElement) break;
+                    }
+                }
+                
+                if (titleElement) {
+                    return titleElement.textContent.trim();
+                }
+            } catch (error) {
+                console.error('제목 감지 오류:', error);
+            }
+            
+            return null;
+        }
+
+        /**
+         * 제목 감지 시작
+         */
+        function startTitleDetection() {
+            if (titleCheckInterval) {
+                clearInterval(titleCheckInterval);
+            }
+            
+            currentDetectedTitle = getCurrentLectureTitle() || '';
+            if (currentDetectedTitleSpan) {
+                currentDetectedTitleSpan.textContent = currentDetectedTitle || '제목을 감지할 수 없습니다';
+            }
+            
+            console.log(`🎯 제목 감지 시작 - 현재: "${currentDetectedTitle}"`);
+            addLog(`🎯 제목 감지 모드 시작 - 현재: "${currentDetectedTitle}"`, 'info');
+            
+            // 1초마다 제목 체크
+            titleCheckInterval = setInterval(() => {
+                if (!isRecording || isPaused) return;
+                
+                const newTitle = getCurrentLectureTitle();
+                
+                // 제목 업데이트 (표시용)
+                if (currentDetectedTitleSpan && newTitle) {
+                    currentDetectedTitleSpan.textContent = newTitle;
+                }
+                
+                // 제목이 변경되었을 때
+                if (newTitle && newTitle !== currentDetectedTitle) {
+                    console.log(`\n📌 챕터 변경 감지!`);
+                    console.log(`   이전: ${currentDetectedTitle}`);
+                    console.log(`   현재: ${newTitle}`);
+                    
+                    addLog(`📌 제목 변경 감지: "${currentDetectedTitle}" → "${newTitle}"`, 'success');
+                    
+                    // 현재 녹음 저장 및 새 녹음 시작
+                    const previousTitle = currentDetectedTitle;
+                    currentDetectedTitle = newTitle;
+                    
+                    // 자동 분할 실행
+                    performAutoSplit(previousTitle, newTitle);
+                }
+            }, 1000); // 1초마다 체크
+        }
+
+        /**
+         * 자동 분할 실행
+         */
+        function performAutoSplit(previousTitle, newTitle) {
+            if (!mediaRecorder || mediaRecorder.state !== 'recording') {
+                console.warn('녹음 중이 아니므로 분할을 건너뜁니다');
+                return;
+            }
+            
+            // 현재 녹음 중지
+            mediaRecorder.stop();
+            
+            // 잠시 대기 후 새 녹음 시작
+            setTimeout(() => {
+                if (!isRecording) return; // 사용자가 중지했으면 재시작 안 함
+                
+                // 새로운 녹음 시작
+                const audioBlob = new Blob(audioChunks, { type: currentMimeType });
+                saveRecordingWithName(audioBlob, currentRecordingType, previousTitle);
+                
+                // 새 녹음 준비
+                audioChunks = [];
+                lectureCount++;
+                recordingStartTime = Date.now();
+                startTime = Date.now();
+                pausedTime = 0;
+                
+                activeChapterName = newTitle;
+                
+                // MediaRecorder 새로 시작
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: currentMimeType });
+                    const baseName = activeChapterName || `강의${lectureCount}`;
+                    saveRecordingWithName(audioBlob, currentRecordingType, baseName);
+                };
+                
+                mediaRecorder.start();
+                
+                console.log(`🔴 새 녹음 시작: ${newTitle}`);
+                addLog(`🔴 자동 분할 완료 - 새 녹음 시작: "${newTitle}"`, 'success');
+                updateStatus('recording', `🔴 녹음 중 - ${newTitle}`);
+            }, 500); // 0.5초 대기
+        }
+
+        /**
+         * 제목 감지 중지
+         */
+        function stopTitleDetection() {
+            if (titleCheckInterval) {
+                clearInterval(titleCheckInterval);
+                titleCheckInterval = null;
+            }
+            console.log('🛑 제목 감지 중지');
+        }
+
+        // ============ 제목 감지 자동 분할 끝 ============
 
         function cleanup() {
             streams.forEach(stream => {
@@ -2204,6 +2332,15 @@ Ch01. 오리엔테이션
                 templateMatcher.destroy();
                 templateMatcher = null;
             }
+
+            // 동영상 제목 감지 정리
+            if (videoTitleDetector) {
+                videoTitleDetector.destroy();
+                videoTitleDetector = null;
+            }
+            
+            // 제목 감지 자동 분할 정리
+            stopTitleDetection();
         }
 
         // 캡처 관련 상수
@@ -2825,6 +2962,178 @@ Ch01. 오리엔테이션
             }
         }
 
+        // 동영상 제목 감지 시스템
+        class VideoTitleDetector {
+            constructor(videoElement, titleRegion = { x: 0, y: 0, width: 1, height: 0.1 }) {
+                this.video = videoElement;
+                this.titleRegion = titleRegion; // 제목 영역 (비율: 0~1)
+                this.canvas = document.createElement('canvas');
+                this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+                this.lastTitleHash = null;
+                this.changeThreshold = 0.10; // 10% 이상 변화 시 제목 변경으로 판단
+                this.lastChangeTime = 0;
+                this.cooldownPeriod = 2000; // 2초 쿨다운 (중복 감지 방지)
+
+                // 샘플링 해상도 (제목 영역만)
+                this.sampleWidth = 320;
+                this.sampleHeight = 60;
+                this.canvas.width = this.sampleWidth;
+                this.canvas.height = this.sampleHeight;
+
+                console.log('📺 [VideoTitleDetector] 초기화 완료 - 제목 영역:', titleRegion);
+            }
+
+            captureTitle() {
+                if (!this.video || this.video.readyState < 2) return null;
+
+                const vw = this.video.videoWidth;
+                const vh = this.video.videoHeight;
+
+                if (!vw || !vh) return null;
+
+                // 제목 영역 계산 (비율 기반)
+                const regionX = vw * this.titleRegion.x;
+                const regionY = vh * this.titleRegion.y;
+                const regionW = vw * this.titleRegion.width;
+                const regionH = vh * this.titleRegion.height;
+
+                // 캔버스 초기화
+                this.ctx.fillStyle = "#000";
+                this.ctx.fillRect(0, 0, this.sampleWidth, this.sampleHeight);
+
+                // 제목 영역만 그리기
+                this.ctx.drawImage(
+                    this.video,
+                    regionX, regionY, regionW, regionH,
+                    0, 0, this.sampleWidth, this.sampleHeight
+                );
+
+                return this.ctx.getImageData(0, 0, this.sampleWidth, this.sampleHeight);
+            }
+
+            // 간단한 해시 계산 (픽셀 데이터 기반)
+            calculateHash(imageData) {
+                if (!imageData) return null;
+
+                const data = imageData.data;
+                let hash = 0;
+
+                // 8x8 그리드로 샘플링하여 해시 계산
+                const gridSize = 8;
+                const stepX = Math.floor(this.sampleWidth / gridSize);
+                const stepY = Math.floor(this.sampleHeight / gridSize);
+
+                for (let gy = 0; gy < gridSize; gy++) {
+                    for (let gx = 0; gx < gridSize; gx++) {
+                        const x = gx * stepX;
+                        const y = gy * stepY;
+                        const idx = (y * this.sampleWidth + x) * 4;
+
+                        const r = data[idx];
+                        const g = data[idx + 1];
+                        const b = data[idx + 2];
+                        const brightness = (r + g + b) / 3;
+
+                        // 밝기 값을 해시에 반영
+                        hash = (hash * 31 + Math.floor(brightness)) & 0xFFFFFFFF;
+                    }
+                }
+
+                return hash;
+            }
+
+            // 픽셀 차이 비율 계산
+            calculateDifference(imageData1, imageData2) {
+                if (!imageData1 || !imageData2) return 0;
+
+                const data1 = imageData1.data;
+                const data2 = imageData2.data;
+                let diffCount = 0;
+                const totalPixels = data1.length / 4;
+
+                for (let i = 0; i < data1.length; i += 4) {
+                    const r1 = data1[i];
+                    const g1 = data1[i + 1];
+                    const b1 = data1[i + 2];
+
+                    const r2 = data2[i];
+                    const g2 = data2[i + 1];
+                    const b2 = data2[i + 2];
+
+                    // RGB 차이 계산
+                    const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+
+                    // 임계값 이상 차이나면 카운트
+                    if (diff > 30) {
+                        diffCount++;
+                    }
+                }
+
+                return diffCount / totalPixels;
+            }
+
+            checkTitleChange() {
+                const now = Date.now();
+
+                // 쿨다운 체크
+                if (now - this.lastChangeTime < this.cooldownPeriod) {
+                    return false;
+                }
+
+                const titleFrame = this.captureTitle();
+                if (!titleFrame) return false;
+
+                const currentHash = this.calculateHash(titleFrame);
+
+                // 처음 호출 시 초기화
+                if (this.lastTitleHash === null) {
+                    this.lastTitleHash = currentHash;
+                    this.lastTitleFrame = titleFrame;
+                    console.log('📺 [VideoTitleDetector] 초기 제목 캡처 완료');
+                    return false;
+                }
+
+                // 해시 비교
+                if (currentHash !== this.lastTitleHash) {
+                    // 픽셀 차이 계산
+                    const diffRatio = this.calculateDifference(this.lastTitleFrame, titleFrame);
+
+                    console.log(`📺 [VideoTitleDetector] 제목 변화 감지 - 해시 변화: ${this.lastTitleHash} → ${currentHash}, 픽셀 차이율: ${(diffRatio * 100).toFixed(2)}%`);
+
+                    // 변화율이 임계값 이상이면 제목 변경으로 판단
+                    if (diffRatio >= this.changeThreshold) {
+                        this.lastTitleHash = currentHash;
+                        this.lastTitleFrame = titleFrame;
+                        this.lastChangeTime = now;
+
+                        console.log('✅ [VideoTitleDetector] 제목 변경 감지! 자동 분할 트리거');
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            setTitleRegion(region) {
+                this.titleRegion = region;
+                console.log('📺 [VideoTitleDetector] 제목 영역 업데이트:', region);
+            }
+
+            reset() {
+                this.lastTitleHash = null;
+                this.lastTitleFrame = null;
+                this.lastChangeTime = 0;
+                console.log('📺 [VideoTitleDetector] 리셋 완료');
+            }
+
+            destroy() {
+                this.lastTitleFrame = null;
+                this.canvas = null;
+                this.ctx = null;
+                console.log('📺 [VideoTitleDetector] 파괴 완료');
+            }
+        }
+
         function startSceneChangeDetection() {
             console.log(`🔍 [DEBUG] startSceneChangeDetection 호출 - sceneChangeDetectionToggle: ${sceneChangeDetectionToggle.checked}, templateMatchingToggle: ${templateMatchingToggle.checked}, videoElement: ${!!videoElement}, waitingForSilence: ${waitingForSilence}`);
 
@@ -2846,6 +3155,13 @@ Ch01. 오리엔테이션
                 if (mode2ReferenceImage) {
                     sceneChangeDetector.mode2ReferenceImage = mode2ReferenceImage;
                 }
+            }
+
+            // 동영상 제목 감지 초기화
+            if (!videoTitleDetector && videoTitleDetectionToggle && videoTitleDetectionToggle.checked) {
+                // 기본 제목 영역: 상단 10% (x: 0, y: 0, width: 1, height: 0.1)
+                videoTitleDetector = new VideoTitleDetector(videoElement);
+                console.log('📺 [VideoTitleDetector] 초기화 완료');
             }
 
             // 화면 변화 감지 중지 (이미 실행 중이면)
@@ -2879,6 +3195,19 @@ Ch01. 오리엔테이션
                             addLog(`🔍 [DEBUG] 템플릿 매칭으로 triggerChapterTransition 호출`, 'info');
                             triggerChapterTransition(`템플릿 매칭 (유사도: ${similarity}%)`);
                         }
+                    }
+                }
+
+                // ✅ 동영상 제목 감지 (크롬 탭 제목 변경 감지)
+                if (videoTitleDetectionToggle && videoTitleDetectionToggle.checked && videoTitleDetector) {
+                    const titleChanged = videoTitleDetector.checkTitleChange();
+
+                    if (titleChanged) {
+                        const elapsed = recordingStartTime ? ((Date.now() - recordingStartTime) / 1000).toFixed(0) : '?';
+                        console.log(`📺 동영상 제목 변경 감지! (${elapsed}초 경과) → 자동분할`);
+                        addLog(`📺 동영상 제목 변경 감지! (${elapsed}초 경과) → 다음 챕터로 전환`, 'success');
+                        addLog(`🔍 [DEBUG] 제목 변경으로 triggerChapterTransition 호출`, 'info');
+                        triggerChapterTransition(`동영상 제목 변경 (${elapsed}초 경과)`);
                     }
                 }
 
@@ -2962,6 +3291,11 @@ Ch01. 오리엔테이션
             sceneChangeTime = null;
             silenceStartForSplit = null;
             frameBeforeSilence = null;
+
+            // VideoTitleDetector 정리
+            if (videoTitleDetector) {
+                videoTitleDetector.reset();
+            }
         }
 
         // 템플릿 매칭 중지 (cleanup용)
@@ -4026,141 +4360,33 @@ Ch01. 오리엔테이션
             renderChapters();
         });
 
+        // 분할 모드 변경 이벤트
+        const splitModeRadios = document.getElementsByName('splitMode');
+        splitModeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'title') {
+                    console.log('📌 제목 감지 자동 분할 모드 선택됨');
+                    addLog('📌 제목 감지 자동 분할 모드 선택 - 녹음 시 자동으로 제목 감지 시작', 'info');
+                    
+                    // 현재 감지 가능한지 테스트
+                    const testTitle = getCurrentLectureTitle();
+                    if (testTitle) {
+                        addLog(`✅ 제목 감지 테스트 성공: "${testTitle}"`, 'success');
+                    } else {
+                        addLog(`⚠️ 현재 제목을 감지할 수 없습니다. 강의 페이지에서 사용하세요.`, 'warning');
+                    }
+                } else {
+                    console.log('📌 수동 분할 모드 선택됨');
+                    if (autoSplitStatus) {
+                        autoSplitStatus.style.display = 'none';
+                    }
+                }
+            });
+        });
+
         // 챕터 모드 무음 설정 이벤트
         chapterSilence5.addEventListener('change', (e) => {
             console.log(`[챕터 모드] 잔여 5초 이하 무음 조건 변경: ${parseInt(e.target.value) / 1000}초`);
-        });
-
-        // 화면 전환 민감도 슬라이더 이벤트
-        sceneChangeSensitivity.addEventListener('input', (e) => {
-            const value = e.target.value;
-            sensitivityValue.textContent = `${value}%`;
-
-            // 현재 감지기가 있으면 민감도 업데이트
-            if (sceneChangeDetector) {
-                sceneChangeDetector.changeThreshold = value / 100;
-            }
-        });
-
-        // 화면전환 감지 조건 체크박스 변경
-        const updateDetectionModes = () => {
-            const modes = [];
-            if (detectBasic.checked) modes.push('기본');
-            if (detectMode1.checked) modes.push('모드1');
-            if (detectMode2.checked) modes.push('모드2');
-            if (detectMode3.checked) modes.push('모드3');
-
-            // 모드2 체크 시 이미지 업로드 UI 표시
-            if (detectMode2.checked) {
-                mode2ImageUpload.style.display = 'block';
-            } else {
-                mode2ImageUpload.style.display = 'none';
-            }
-
-            console.log(`🔄 화면전환 감지 조건: ${modes.join(' AND ')}`);
-            addLog(`🔄 감지 조건: ${modes.join(' AND ')}`, 'info');
-        };
-
-        detectBasic.addEventListener('change', updateDetectionModes);
-        detectMode1.addEventListener('change', updateDetectionModes);
-        detectMode2.addEventListener('change', updateDetectionModes);
-        detectMode3.addEventListener('change', updateDetectionModes);
-
-        // 모드2 이미지 업로드 버튼 클릭
-        uploadMode2ImageBtn.addEventListener('click', () => {
-            mode2ImageInput.click();
-        });
-
-        // 모드2 이미지 파일 선택
-        let mode2ReferenceImage = null;
-        mode2ImageInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            try {
-                const img = new Image();
-                img.src = URL.createObjectURL(file);
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = reject;
-                });
-
-                // 캔버스에 그려서 ImageData 추출
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                mode2ReferenceImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-                mode2ImageStatus.textContent = `✅ ${file.name} (${img.width}x${img.height})`;
-                mode2ImageStatus.style.color = '#28a745';
-
-                // 감지기가 있으면 이미지 업데이트
-                if (sceneChangeDetector) {
-                    sceneChangeDetector.mode2ReferenceImage = mode2ReferenceImage;
-                    console.log(`✅ 모드2 참조 이미지 로드 완료: ${img.width}x${img.height}`);
-                    addLog(`✅ 모드2 참조 이미지 로드 완료: ${file.name}`, 'success');
-                }
-
-                URL.revokeObjectURL(img.src);
-            } catch (err) {
-                mode2ImageStatus.textContent = '❌ 이미지 로드 실패';
-                mode2ImageStatus.style.color = '#dc3545';
-                console.error('모드2 이미지 로드 오류:', err);
-            }
-        });
-
-        // 템플릿 유사도 슬라이더 이벤트
-        templateSimilarity.addEventListener('input', (e) => {
-            const value = e.target.value;
-            document.getElementById('similarityValue').textContent = `${value}%`;
-
-            // 현재 매처가 있으면 유사도 업데이트
-            if (templateMatcher) {
-                templateMatcher.similarityThreshold = value / 100;
-            }
-        });
-
-        // 템플릿 업로드 버튼 클릭
-        uploadTemplateBtn.addEventListener('click', () => {
-            templateImageInput.click();
-        });
-
-        // 템플릿 이미지 파일 선택
-        templateImageInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            try {
-                const img = new Image();
-                const reader = new FileReader();
-
-                reader.onload = (event) => {
-                    img.onload = () => {
-                        // 캔버스에 이미지 그리기
-                        const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-
-                        // ImageData 저장
-                        templateImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        templateStatus.textContent = `✅ ${file.name} (${img.width}x${img.height})`;
-                        templateStatus.style.color = '#27ae60';
-
-                        console.log(`✅ 템플릿 이미지 로드 완료: ${img.width}x${img.height}`);
-                    };
-                    img.src = event.target.result;
-                };
-
-                reader.readAsDataURL(file);
-            } catch (err) {
-                console.error('템플릿 이미지 로드 실패:', err);
-                templateStatus.textContent = '❌ 이미지 로드 실패';
-                templateStatus.style.color = '#e74c3c';
-            }
         });
 
         // GitHub API를 사용하여 마지막 커밋 날짜 가져오기
