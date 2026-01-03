@@ -2064,6 +2064,19 @@ Ch01. 오리엔테이션
                 const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
                 addLog(`🎬 녹음 시작: "${currentChapter.name}" (챕터 ${currentChapterIndex + 1}/${chapters.length}, 예상: ${expectedTimeStr})`, 'success');
 
+                // ⚠️ 제목 감지 자동 분할 모드 확인 (startChapterTimers 호출 전에 먼저 설정)
+                const splitModeRadios = document.getElementsByName('splitMode');
+                for (const radio of splitModeRadios) {
+                    if (radio.checked && radio.value === 'title') {
+                        titleDetectionEnabled = true;
+                        startTitleDetection();
+                        if (autoSplitStatus) {
+                            autoSplitStatus.style.display = 'block';
+                        }
+                        break;
+                    }
+                }
+
                 // 활성화된 설정 로그 표시
                 const activeSettings = [];
                 if (autoStartOnSound && autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
@@ -2080,7 +2093,7 @@ Ch01. 오리엔테이션
                 }
 
                 // 챕터 타이머는 첫 녹음 시작 시에만 시작 (분할 시에는 이미 시작됨)
-                console.log(`🔍 [DEBUG] 조건 확인 - currentChapterIndex: ${currentChapterIndex}, chapterTimers.length: ${chapterTimers.length}`);
+                console.log(`🔍 [DEBUG] 조건 확인 - currentChapterIndex: ${currentChapterIndex}, chapterTimers.length: ${chapterTimers.length}, titleDetectionEnabled: ${titleDetectionEnabled}`);
                 if (currentChapterIndex === 0 || chapterTimers.length === 0) {
                     console.log(`🔍 [DEBUG] startChapterTimers() 호출 - currentChapterIndex: ${currentChapterIndex}`);
                     startChapterTimers(currentChapterIndex);
@@ -2088,38 +2101,11 @@ Ch01. 오리엔테이션
                     console.log(`⚠️ [DEBUG] startChapterTimers() 호출 생략 - 이미 타이머가 설정됨`);
                 }
             } else {
+                // 일반 모드 (챕터 없음)
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
                     currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
                 updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount}, ${sourceText})`);
                 addLog(`🎬 녹음 시작: 강의${lectureCount} (소스: ${sourceText})`, 'success');
-
-                // 활성화된 설정 로그 표시
-                const activeSettings = [];
-                if (autoStartOnSound && autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
-                if (silenceDetection && silenceDetection.checked) {
-                    const silence5 = chapterSilence5 ? (parseInt(chapterSilence5.value) / 1000).toFixed(1) : '?';
-                    activeSettings.push(`무음 감지 자동분할 (챕터 모드 잔여 5초 이하:${silence5}초)`);
-                }
-                // 제목 감지 자동 분할 모드 표시
-                if (titleDetectionEnabled) {
-                    activeSettings.push('제목 감지 자동 분할');
-                }
-                if (activeSettings.length > 0) {
-                    addLog(`⚙️ 활성화된 설정: ${activeSettings.join(' | ')}`, 'info');
-                }
-                
-                // 제목 감지 자동 분할 모드 확인
-                const splitModeRadios = document.getElementsByName('splitMode');
-                for (const radio of splitModeRadios) {
-                    if (radio.checked && radio.value === 'title') {
-                        titleDetectionEnabled = true;
-                        startTitleDetection();
-                        if (autoSplitStatus) {
-                            autoSplitStatus.style.display = 'block';
-                        }
-                        break;
-                    }
-                }
             }
         }
 
