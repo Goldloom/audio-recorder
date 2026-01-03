@@ -2066,18 +2066,14 @@ Ch01. 오리엔테이션
 
                 // 활성화된 설정 로그 표시
                 const activeSettings = [];
-                if (autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
-                if (silenceDetection.checked) {
-                    const silence5 = (parseInt(chapterSilence5.value) / 1000).toFixed(1);
+                if (autoStartOnSound && autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
+                if (silenceDetection && silenceDetection.checked) {
+                    const silence5 = chapterSilence5 ? (parseInt(chapterSilence5.value) / 1000).toFixed(1) : '?';
                     activeSettings.push(`무음 감지 자동분할 (챕터 모드 잔여 5초 이하:${silence5}초)`);
                 }
-                if (sceneChangeDetectionToggle.checked) {
-                    const modes = [];
-                    if (detectBasic.checked) modes.push('기본');
-                    if (detectMode1.checked) modes.push('모드1');
-                    if (detectMode2.checked) modes.push('모드2');
-                    if (detectMode3.checked) modes.push('모드3');
-                    activeSettings.push(`화면 전환 자동감지 (${modes.join('+')})`);
+                // 제목 감지 자동 분할 모드 표시
+                if (titleDetectionEnabled) {
+                    activeSettings.push('제목 감지 자동 분할');
                 }
                 if (activeSettings.length > 0) {
                     addLog(`⚙️ 활성화된 설정: ${activeSettings.join(' | ')}`, 'info');
@@ -2099,18 +2095,14 @@ Ch01. 오리엔테이션
 
                 // 활성화된 설정 로그 표시
                 const activeSettings = [];
-                if (autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
-                if (silenceDetection.checked) {
-                    const silence5 = (parseInt(chapterSilence5.value) / 1000).toFixed(1);
+                if (autoStartOnSound && autoStartOnSound.checked) activeSettings.push('소리 감지 자동 시작');
+                if (silenceDetection && silenceDetection.checked) {
+                    const silence5 = chapterSilence5 ? (parseInt(chapterSilence5.value) / 1000).toFixed(1) : '?';
                     activeSettings.push(`무음 감지 자동분할 (챕터 모드 잔여 5초 이하:${silence5}초)`);
                 }
-                if (sceneChangeDetectionToggle.checked) {
-                    const modes = [];
-                    if (detectBasic.checked) modes.push('기본');
-                    if (detectMode1.checked) modes.push('모드1');
-                    if (detectMode2.checked) modes.push('모드2');
-                    if (detectMode3.checked) modes.push('모드3');
-                    activeSettings.push(`화면 전환 자동감지 (${modes.join('+')})`);
+                // 제목 감지 자동 분할 모드 표시
+                if (titleDetectionEnabled) {
+                    activeSettings.push('제목 감지 자동 분할');
                 }
                 if (activeSettings.length > 0) {
                     addLog(`⚙️ 활성화된 설정: ${activeSettings.join(' | ')}`, 'info');
