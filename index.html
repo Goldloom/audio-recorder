@@ -2198,6 +2198,8 @@ Ch01. 오리엔테이션
             console.log(`🎯 제목 감지 시작 - 현재: "${currentDetectedTitle}"`);
             addLog(`🎯 제목 감지 모드 시작 - 현재: "${currentDetectedTitle}"`, 'info');
 
+            let lastLoggedTitle = currentDetectedTitle; // 마지막으로 로그에 표시한 제목 (중복 방지)
+
             // 1초마다 제목 체크
             titleCheckInterval = setInterval(() => {
                 if (!isRecording || isPaused) {
@@ -2211,6 +2213,12 @@ Ch01. 오리엔테이션
                 // 제목 업데이트 (표시용)
                 if (currentDetectedTitleSpan && newTitle) {
                     currentDetectedTitleSpan.textContent = newTitle;
+                }
+
+                // 로그 영역에 제목 변경 표시 (중복 방지)
+                if (newTitle && newTitle !== lastLoggedTitle) {
+                    addLog(`🔍 감지된 제목: "${newTitle}"`, 'info');
+                    lastLoggedTitle = newTitle;
                 }
 
                 // 제목이 변경되었을 때
