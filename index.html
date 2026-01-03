@@ -2189,38 +2189,43 @@ Ch01. 오리엔테이션
             if (titleCheckInterval) {
                 clearInterval(titleCheckInterval);
             }
-            
+
             currentDetectedTitle = getCurrentLectureTitle() || '';
             if (currentDetectedTitleSpan) {
                 currentDetectedTitleSpan.textContent = currentDetectedTitle || '제목을 감지할 수 없습니다';
             }
-            
+
             console.log(`🎯 제목 감지 시작 - 현재: "${currentDetectedTitle}"`);
             addLog(`🎯 제목 감지 모드 시작 - 현재: "${currentDetectedTitle}"`, 'info');
-            
+
             // 1초마다 제목 체크
             titleCheckInterval = setInterval(() => {
-                if (!isRecording || isPaused) return;
-                
+                if (!isRecording || isPaused) {
+                    console.log(`🔍 [제목감지] 체크 중지 - isRecording: ${isRecording}, isPaused: ${isPaused}`);
+                    return;
+                }
+
                 const newTitle = getCurrentLectureTitle();
-                
+                console.log(`🔍 [제목감지] 체크 중 - 현재: "${newTitle}"`);
+
                 // 제목 업데이트 (표시용)
                 if (currentDetectedTitleSpan && newTitle) {
                     currentDetectedTitleSpan.textContent = newTitle;
                 }
-                
+
                 // 제목이 변경되었을 때
                 if (newTitle && newTitle !== currentDetectedTitle) {
                     console.log(`\n📌 챕터 변경 감지!`);
                     console.log(`   이전: ${currentDetectedTitle}`);
                     console.log(`   현재: ${newTitle}`);
-                    
+                    console.log(`   mediaRecorder 상태: ${mediaRecorder?.state}`);
+
                     addLog(`📌 제목 변경 감지: "${currentDetectedTitle}" → "${newTitle}"`, 'success');
-                    
+
                     // 현재 녹음 저장 및 새 녹음 시작
                     const previousTitle = currentDetectedTitle;
                     currentDetectedTitle = newTitle;
-                    
+
                     // 자동 분할 실행
                     performAutoSplit(previousTitle, newTitle);
                 }
@@ -2232,49 +2237,68 @@ Ch01. 오리엔테이션
          */
         function performAutoSplit(previousTitle, newTitle) {
             if (!mediaRecorder || mediaRecorder.state !== 'recording') {
-                console.warn('녹음 중이 아니므로 분할을 건너뜁니다');
+                console.warn('🔍 [자동분할] 녹음 중이 아니므로 분할을 건너뜁니다');
+                console.warn(`   mediaRecorder: ${!!mediaRecorder}, state: ${mediaRecorder?.state}`);
                 return;
             }
-            
-            // 현재 녹음 중지
-            mediaRecorder.stop();
-            
-            // 잠시 대기 후 새 녹음 시작
-            setTimeout(() => {
-                if (!isRecording) return; // 사용자가 중지했으면 재시작 안 함
-                
-                // 새로운 녹음 시작
-                const audioBlob = new Blob(audioChunks, { type: currentMimeType });
+
+            console.log(`🔄 [자동분할] 시작 - "${previousTitle}" → "${newTitle}"`);
+
+            // onstop 이벤트 핸들러를 임시로 재정의
+            const currentChunks = [...audioChunks]; // 현재까지의 청크 복사
+
+            mediaRecorder.onstop = () => {
+                console.log(`💾 [자동분할] 이전 녹음 저장 중: "${previousTitle}"`);
+
+                // 이전 녹음 저장
+                const audioBlob = new Blob(currentChunks, { type: currentMimeType });
                 saveRecordingWithName(audioBlob, currentRecordingType, previousTitle);
-                
+
+                // 새 녹음이 계속 진행되어야 하는지 확인
+                if (!isRecording) {
+                    console.log('🛑 [자동분할] 사용자가 녹음을 중지했으므로 재시작하지 않음');
+                    return;
+                }
+
                 // 새 녹음 준비
                 audioChunks = [];
                 lectureCount++;
                 recordingStartTime = Date.now();
                 startTime = Date.now();
                 pausedTime = 0;
-                
                 activeChapterName = newTitle;
-                
-                // MediaRecorder 새로 시작
+
+                console.log(`🔴 [자동분할] 새 녹음 시작: "${newTitle}"`);
+                addLog(`🔴 자동 분할 완료 - 새 녹음 시작: "${newTitle}"`, 'success');
+                updateStatus('recording', `🔴 녹음 중 - ${newTitle}`);
+
+                // MediaRecorder 이벤트 핸들러 재설정
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) {
                         audioChunks.push(event.data);
                     }
                 };
-                
+
                 mediaRecorder.onstop = () => {
+                    console.log(`💾 [정상종료] 녹음 저장 중: "${activeChapterName || `강의${lectureCount}`}"`);
                     const audioBlob = new Blob(audioChunks, { type: currentMimeType });
                     const baseName = activeChapterName || `강의${lectureCount}`;
                     saveRecordingWithName(audioBlob, currentRecordingType, baseName);
                 };
-                
-                mediaRecorder.start();
-                
-                console.log(`🔴 새 녹음 시작: ${newTitle}`);
-                addLog(`🔴 자동 분할 완료 - 새 녹음 시작: "${newTitle}"`, 'success');
-                updateStatus('recording', `🔴 녹음 중 - ${newTitle}`);
-            }, 500); // 0.5초 대기
+
+                // 새 녹음 시작
+                try {
+                    mediaRecorder.start();
+                    console.log(`✅ [자동분할] MediaRecorder.start() 성공`);
+                } catch (error) {
+                    console.error(`❌ [자동분할] MediaRecorder.start() 실패:`, error);
+                    addLog(`❌ 녹음 재시작 실패: ${error.message}`, 'error');
+                }
+            };
+
+            // 현재 녹음 중지 (onstop 이벤트 트리거)
+            console.log(`⏸️ [자동분할] 현재 녹음 중지 중...`);
+            mediaRecorder.stop();
         }
 
         /**
