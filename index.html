@@ -1422,7 +1422,6 @@ Ch01. 오리엔테이션
         let lastLoggedSecond = -1; // 마지막 로그 출력된 초 (중복 방지)
         let forceSplitExecuted = false; // -5초 강제 분할 실행 여부 (중복 방지)
         let lectureCount = 1;
-        let lastChapterTimeDiff = 0; // 직전 챕터의 시간 오차 (초) - 다음 챕터 보정용
 
         // 초 단위 시간을 깔끔하게 표시 (1초, 1.5초 등)
         function formatSeconds(seconds) {
@@ -1626,8 +1625,10 @@ Ch01. 오리엔테이션
 
                     if (chapterDuration && chapterDuration > 0) {
                         const percent = Math.min((elapsedMs / durationMs) * 100, 100);
-                        // 직전 챕터 시간 오차로 보정
-                        const remainingTimeSec = Math.max(-8, chapterDuration - (elapsedMs / 1000) - lastChapterTimeDiff);
+                        // 챕터 전환 시간 1초 고려 (마지막 챕터 제외)
+                        const isLastChapter = currentChapterIndex >= chapters.length - 1;
+                        const transitionTime = isLastChapter ? 0 : 1;
+                        const remainingTimeSec = Math.max(-8, chapterDuration - (elapsedMs / 1000) + transitionTime);
 
                         if (progressBar) {
                             progressBar.className = 'progress-bar';
@@ -1702,13 +1703,11 @@ Ch01. 오리엔테이션
                                 const expectedDuration = currentChapter.duration;
                                 const elapsedTime = (Date.now() - startTime) / 1000;
                                 const rawRemaining = expectedDuration - elapsedTime;
-                                // 직전 챕터 시간 오차로 보정
-                                remainingTime = Math.max(-8, rawRemaining - lastChapterTimeDiff);
+                                // 챕터 전환 시간 1초 고려 (마지막 챕터 제외)
+                                const isLastChapter = currentChapterIndex >= chapters.length - 1;
+                                const transitionTime = isLastChapter ? 0 : 1;
+                                remainingTime = Math.max(-8, rawRemaining + transitionTime);
 
-                                // 보정이 적용된 경우 콘솔 로그
-                                if (lastChapterTimeDiff !== 0 && currentSecond % 5 === 0) {
-                                    console.log(`📊 [시간 보정] 원본 잔여: ${formatSeconds(rawRemaining)}초, 보정값: ${lastChapterTimeDiff > 0 ? '+' : ''}${formatSeconds(lastChapterTimeDiff)}초, 보정 후: ${formatSeconds(remainingTime)}초`);
-                                }
 
                                 remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                             }
@@ -1724,8 +1723,10 @@ Ch01. 오리엔테이션
                     if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                         const currentChapter = chapters[currentChapterIndex];
                         const elapsedTime = (Date.now() - startTime) / 1000;
-                        // 직전 챕터 시간 오차로 보정
-                        remainingTime = Math.max(-8, currentChapter.duration - elapsedTime - lastChapterTimeDiff);
+                        // 챕터 전환 시간 1초 고려 (마지막 챕터 제외)
+                        const isLastChapter = currentChapterIndex >= chapters.length - 1;
+                        const transitionTime = isLastChapter ? 0 : 1;
+                        remainingTime = Math.max(-8, currentChapter.duration - elapsedTime + transitionTime);
 
                         if (remainingTime <= 5) reqSilence = parseInt(chapterSilence5.value);
                         else reqSilence = Infinity;
@@ -1795,8 +1796,10 @@ Ch01. 오리엔테이션
                     if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                         const currentChapter = chapters[currentChapterIndex];
                         const elapsedTime = (Date.now() - startTime) / 1000;
-                        // 직전 챕터 시간 오차로 보정
-                        const remainingTime = Math.max(-8, currentChapter.duration - elapsedTime - lastChapterTimeDiff);
+                        // 챕터 전환 시간 1초 고려 (마지막 챕터 제외)
+                        const isLastChapter = currentChapterIndex >= chapters.length - 1;
+                        const transitionTime = isLastChapter ? 0 : 1;
+                        const remainingTime = Math.max(-8, currentChapter.duration - elapsedTime + transitionTime);
                         remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                     }
                     console.log(`❌ [무음 감지] 무음 중단 (${average.toFixed(1)} / ${silenceThreshold}, ${interruptedTime}초${remainingInfo})`);
@@ -2028,7 +2031,6 @@ Ch01. 오리엔테이션
 
                 currentRecordingType = recordingType; // 변수 대입
                 lectureCount = 1;
-                lastChapterTimeDiff = 0; // 🔧 녹음 시작 시 시간 보정 리셋
 
                 if (autoStartOnSound.checked) {
                     isWaitingForFirstSound = true;
@@ -3215,13 +3217,7 @@ Ch01. 오리엔테이션
                         const expectedSec = Math.floor(expectedDuration % 60);
                         const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
 
-                        // 🔧 마지막 챕터 오차 저장 (녹음 종료 시)
-                        const prevDiff = lastChapterTimeDiff;
-                        lastChapterTimeDiff = diff;
-
-                        if (prevDiff !== 0) {
-                            console.log(`📊 [시간 보정] 이전 챕터 보정값: ${prevDiff > 0 ? '+' : ''}${prevDiff.toFixed(1)}초 적용됨`);
-                        }
+                        // 🔧 마지막 챕터 오차 기록 (보정 없음)
                         console.log(`📊 [시간 보정] 마지막 챕터 오차: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}초`);
 
                         if (Math.abs(diff) < 5) {
@@ -3233,8 +3229,7 @@ Ch01. 오리엔테이션
                         }
                     } else {
                         addLog(`⏹️ 전체 녹음 종료: "${finalChapterName}" | 실제: ${actualTimeStr}`, 'info');
-                        // 챕터 정보가 없으면 보정 리셋
-                        lastChapterTimeDiff = 0;
+                        // 챕터 정보가 없음
                     }
 
                     // ✅ 저장된 챕터 이름으로 녹음 저장
@@ -3412,13 +3407,7 @@ Ch01. 오리엔테이션
                     const expectedSec = Math.floor(expectedDuration % 60);
                     const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
 
-                    // 🔧 직전 챕터 시간 오차 저장 (다음 챕터 보정용)
-                    const prevDiff = lastChapterTimeDiff;
-                    lastChapterTimeDiff = diff;
-
-                    if (prevDiff !== 0) {
-                        console.log(`📊 [시간 보정] 이전 챕터 보정값: ${prevDiff > 0 ? '+' : ''}${prevDiff.toFixed(1)}초 적용됨`);
-                    }
+                    // 🔧 챕터 시간 오차 기록 (보정 없음)
                     console.log(`📊 [시간 보정] 현재 챕터 오차: ${diff > 0 ? '+' : ''}${diff.toFixed(1)}초 → 다음 챕터에 반영 예정`);
 
                     if (Math.abs(diff) < 5) {
@@ -3433,8 +3422,7 @@ Ch01. 오리엔테이션
                     }
                 } else {
                     addLog(`⏹️ 녹음 종료: "${endedChapterName}" | 실제: ${actualTimeStr}`, 'info');
-                    // 챕터 정보가 없으면 보정 리셋
-                    lastChapterTimeDiff = 0;
+                    // 챕터 정보가 없음
                 }
 
                 stopCapture();
