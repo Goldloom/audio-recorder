@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Lecture Receiver (Real CSV File Reader)
 // @namespace    lecture-sync-namespace
-// @version      7.5
-// @description  실제 CSV 파일에서 강의 정보 읽기 (File System Access API) - 동영상 재생시간 표시
+// @version      7.6
+// @description  실제 CSV 파일에서 강의 정보 읽기 (File System Access API) - 동영상 재생시간 표시, duration 초 단위 변환, 타이밍 개선
 // @match        https://goldloom.github.io/audio-recorder/*
 // @match        https://goldloom.github.io/*
 // @run-at       document-end
@@ -190,13 +190,25 @@
                 return;
             }
 
+            // duration을 MM:SS에서 초 단위로 변환
+            let durationInSeconds = null;
+            if (columns[5]) {
+                const durationMatch = columns[5].match(/^(\d+):(\d+)$/);
+                if (durationMatch) {
+                    const minutes = parseInt(durationMatch[1]);
+                    const seconds = parseInt(durationMatch[2]);
+                    durationInSeconds = minutes * 60 + seconds;
+                }
+            }
+
             const lectureInfo = {
                 startTime: columns[0],
                 donut: columns[1],
                 chapter: columns[2],
                 lecture: columns[3],
                 fullText: columns[4],
-                duration: columns[5] || ''
+                duration: durationInSeconds, // 초 단위로 저장
+                durationText: columns[5] || '' // 원본 텍스트도 보관
             };
 
             // 새 강의인지 확인
@@ -310,11 +322,10 @@
         // activeChapterName 설정
         console.log('📝 [B탭] activeChapterName 설정 시도...');
         w.activeChapterName = fullText;
-        console.log('✅ [B탭] activeChapterName =', w.activeChapterName);
-
-        // duration 정보 설정
         w.currentLectureDuration = lectureInfo.duration;
-        console.log('✅ [B탭] currentLectureDuration 설정:', w.currentLectureDuration);
+        w.currentLectureTitle = fullText; // 추가: 현재 강의 제목도 설정
+        console.log('✅ [B탭] activeChapterName =', w.activeChapterName);
+        console.log('✅ [B탭] currentLectureDuration =', w.currentLectureDuration, '초');
         console.log('📊 [B탭] 전체 lectureInfo:', lectureInfo);
 
         const { isRecording, recorder } = detectRecordingState();
@@ -343,10 +354,13 @@
                 console.log('📞 [B탭] splitRecordingWithName("' + fullText + '") 호출...');
 
                 try {
-                    w.splitRecordingWithName(fullText);
-                    console.log('✅ [B탭] splitRecordingWithName 호출 성공!');
-                    addLog(`✂️ 제목 기반 분할: "${fullText}"`);
-                    lastSplitAt = new Date().toISOString();
+                    // 강의 정보 설정 후 약간의 지연을 두고 호출
+                    setTimeout(() => {
+                        const result = w.splitRecordingWithName(fullText);
+                        console.log('✅ [B탭] splitRecordingWithName 호출 성공!', result);
+                        addLog(`✂️ 제목 기반 분할: "${fullText}"`);
+                        lastSplitAt = new Date().toISOString();
+                    }, 100); // 100ms 지연
                 } catch (error) {
                     console.error('❌ [B탭] splitRecordingWithName 호출 실패:', error);
                     addLog(`❌ 분할 실패: ${error.message}`);
@@ -356,10 +370,12 @@
                 console.log('📞 [B탭] splitRecording() 호출...');
 
                 try {
-                    w.splitRecording();
-                    console.log('✅ [B탭] splitRecording 호출 성공!');
-                    addLog(`✂️ (fallback) splitRecording 호출: "${fullText}"`);
-                    lastSplitAt = new Date().toISOString();
+                    setTimeout(() => {
+                        w.splitRecording();
+                        console.log('✅ [B탭] splitRecording 호출 성공!');
+                        addLog(`✂️ (fallback) splitRecording 호출: "${fullText}"`);
+                        lastSplitAt = new Date().toISOString();
+                    }, 100);
                 } catch (error) {
                     console.error('❌ [B탭] splitRecording 호출 실패:', error);
                     addLog(`❌ 분할 실패: ${error.message}`);
