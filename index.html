@@ -2218,16 +2218,6 @@ Ch01. 오리엔테이션
                 const expectedSec = Math.floor(currentChapter.duration % 60);
                 expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
                 addLog(`🎬 녹음 시작: "${currentChapter.name}" (챕터 ${currentChapterIndex + 1}/${chapters.length}, 예상: ${expectedTimeStr})`, 'success');
-            } else if (lectureTitle) {
-                // B탭 감지 모드
-                addLog(`🎬 녹음 시작: "${lectureTitle}" (소스: 시스템 오디오)`, 'success');
-            } else {
-                // 폴백
-                lectureTitle = `강의 ${lectureCount}`;
-                addLog(`🎬 녹음 시작: "${lectureTitle}"`, 'success');
-            }
-
-            updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
 
                 // ⚠️ 분할 모드 확인 및 감지 시작 (startChapterTimers 호출 전에 먼저 설정)
                 const splitModeRadios = document.getElementsByName('splitMode');
@@ -2278,6 +2268,16 @@ Ch01. 오리엔테이션
                 } else {
                     console.log(`⚠️ [DEBUG] startChapterTimers() 호출 생략 - 이미 타이머가 설정됨`);
                 }
+            } else if (lectureTitle) {
+                // B탭 감지 모드
+                addLog(`🎬 녹음 시작: "${lectureTitle}" (소스: 시스템 오디오)`, 'success');
+            } else {
+                // 폴백
+                lectureTitle = `강의 ${lectureCount}`;
+                addLog(`🎬 녹음 시작: "${lectureTitle}"`, 'success');
+            }
+
+            updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
             } else {
                 // 일반 모드 (챕터 없음)
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
