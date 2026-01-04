@@ -52,8 +52,7 @@
             <div id="btabCurLecture">현재 강의: -</div>
             <div id="btabDuration">동영상 시간: -</div>
             <div id="btabLastRecv">마지막 수신: -</div>
-            <div id="btabRecState">녹음 상태: -</div>
-            <div id="btabLastSplit">마지막 분할: -</div>
+            <div id="btabLastWrite">마지막 기록: -</div>
             <div id="btabFilePath" style="color:#868e96;font-size:10px;margin-top:4px;">파일: 미선택</div>
             <button id="selectFileBtn" style="margin-top:6px;width:100%;padding:6px 8px;border-radius:6px;border:none;background:#5865F2;color:#fff;cursor:pointer;font-size:11px;">
                 📁 CSV 파일 선택
@@ -71,13 +70,12 @@
         const status = document.getElementById('btabStatus');
         const cur = document.getElementById('btabCurLecture');
         const recv = document.getElementById('btabLastRecv');
-        const recState = document.getElementById('btabRecState');
-        const split = document.getElementById('btabLastSplit');
+        const write = document.getElementById('btabLastWrite');
         const filePath = document.getElementById('btabFilePath');
 
         if (status) {
             if (fileHandle && lastReceivedAt) {
-                status.textContent = '✅ CSV 읽기 중';
+                status.textContent = '✅ CSV 기록 중';
                 status.style.color = '#51cf66';
             } else if (fileHandle) {
                 status.textContent = '🟡 CSV 선택됨 / 데이터 대기';
@@ -110,24 +108,9 @@
             recv.textContent = '마지막 수신: ' + time;
         }
 
-        let statusText = '-';
-        const { isRecording, recorder } = detectRecordingState();
-
-        if (isRecording) {
-            statusText = 'recording ✅';
-        } else if (recorder) {
-            statusText = recorder.state;
-        } else {
-            statusText = 'stopped';
-        }
-
-        if (recState) {
-            recState.textContent = '녹음 상태: ' + statusText;
-        }
-
-        if (split) {
+        if (write) {
             const time = lastSplitAt ? new Date(lastSplitAt).toLocaleTimeString('ko-KR') : '-';
-            split.textContent = '마지막 분할: ' + time;
+            write.textContent = '마지막 기록: ' + time;
         }
     }
 
@@ -318,64 +301,17 @@
         lastReceivedAt = new Date().toISOString();
 
         console.log('🎧 [B탭] 새 강의 수신:', fullText);
-
-        // activeChapterName 설정
-        console.log('📝 [B탭] activeChapterName 설정 시도...');
-        w.activeChapterName = fullText;
-        w.currentLectureDuration = lectureInfo.duration;
-        w.currentLectureTitle = fullText; // 추가: 현재 강의 제목도 설정
-        console.log('✅ [B탭] activeChapterName =', w.activeChapterName);
-        console.log('✅ [B탭] currentLectureDuration =', w.currentLectureDuration, '초');
+        console.log('📝 [B탭] CSV에 강의 정보 기록 (A탭에서 자동 감지)');
         console.log('📊 [B탭] 전체 lectureInfo:', lectureInfo);
-
-        const { isRecording, recorder } = detectRecordingState();
-
-        console.log('📊 [B탭] 녹음 상태 감지 결과:', {
-            isRecording,
-            recorderExists: !!recorder,
-            recorderState: recorder ? recorder.state : 'none',
-            mediaRecorderExists: !!w.mediaRecorder,
-            mediaRecorderState: w.mediaRecorder ? w.mediaRecorder.state : 'none',
-            isRecordingFlag: w.isRecording,
-            splitRecordingWithNameExists: typeof w.splitRecordingWithName === 'function',
-            splitRecordingExists: typeof w.splitRecording === 'function'
-        });
 
         const addLog = typeof w.addLog === 'function'
             ? w.addLog
             : (msg) => console.log('[LOG]', msg);
 
-        // 녹음 중이면 분할 시도
-        if (isRecording) {
-            console.log('🔄 [B탭] 녹음 중 확인됨 - BroadcastChannel로 메시지 전송');
-
-            try {
-                // BroadcastChannel을 사용하여 A탭에 메시지 전송
-                const channel = new BroadcastChannel('lecture-sync-channel');
-
-                const message = {
-                    type: 'split_recording',
-                    chapterName: fullText,
-                    duration: lectureInfo.duration,
-                    timestamp: new Date().toISOString()
-                };
-
-                console.log('📡 [B탭] A탭으로 메시지 전송:', message);
-                channel.postMessage(message);
-                channel.close(); // 전송 후 채널 닫기
-
-                console.log('✅ [B탭] 메시지 전송 성공!');
-                addLog(`✂️ 제목 기반 분할 요청: "${fullText}"`);
-                lastSplitAt = new Date().toISOString();
-
-            } catch (error) {
-                console.error('❌ [B탭] BroadcastChannel 메시지 전송 실패:', error);
-                addLog(`❌ 분할 요청 실패: ${error.message}`);
-            }
-        } else {
-            console.log('⏸️ [B탭] 녹음 중 아님 - 제목만 설정');
-            addLog(`📝 녹음 대기 상태. 다음 강의 이름만 설정: "${fullText}"`);
-        }
+        // CSV에 강의 정보 기록만 수행 (A탭이 스스로 CSV를 읽어서 처리)
+        console.log('📝 [B탭] CSV에 강의 정보 기록 완료 - A탭에서 자동 감지됨');
+        addLog(`📊 강의 정보 CSV 기록: "${fullText}"`);
+        lastSplitAt = new Date().toISOString();
 
         updateStatusPanel();
     }
