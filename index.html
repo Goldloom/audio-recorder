@@ -2236,8 +2236,8 @@ Ch01. 오리엔테이션
             stopBtn.disabled = false;
             newLectureBtn.disabled = false;
 
-            // 🔧 우선순위: activeChapterName > lastDetectedLectureName (CSV) > 챕터 정보 > 기본값
-            let lectureTitle = activeChapterName || lastDetectedLectureName;
+            // 🔧 우선순위: CSV 감지된 강의명이 있으면 우선 사용, 그 외에는 activeChapterName
+            let lectureTitle = lastDetectedLectureName || activeChapterName;
             let expectedTimeStr = '';
 
             // CSV에서 감지한 강의명을 activeChapterName에 설정
