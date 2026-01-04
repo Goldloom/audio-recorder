@@ -1145,27 +1145,14 @@
                         <span style="font-size: 11px; color: #666;">위 "새 강의 시작" 버튼을 눌러 수동으로 분할</span>
                     </div>
                 </label>
-                <label for="autoSplitMode" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
-                    <input type="radio" name="splitMode" value="title" id="autoSplitMode" style="width: 18px; height: 18px;">
-                    <div style="flex: 1;">
-                        <strong style="font-size: 13px; display: block; margin-bottom: 2px;">📌 제목 감지 자동 분할 (DOM 기반)</strong>
-                        <span style="font-size: 11px; color: #666;">강의 제목 변경 시 자동 분할 (1초마다 체크)</span>
-                    </div>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
-                    <input type="radio" name="splitMode" value="clipboard" id="clipboardSplitMode" style="width: 18px; height: 18px;">
-                    <div style="flex: 1;">
-                        <strong style="font-size: 13px; display: block; margin-bottom: 2px;">📋 제목감지 자동 분할모드 (클립보드)</strong>
-                        <span style="font-size: 11px; color: #666;">클립보드 내용 변경 시 자동 분할 (1초마다 체크)</span>
-                    </div>
-                </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
-                    <input type="radio" name="splitMode" value="csv" id="csvSplitMode" checked style="width: 18px; height: 18px;">
-                    <div style="flex: 1;">
-                        <strong style="font-size: 13px; display: block; margin-bottom: 2px;">📊 CSV 파일 감시 자동 분할 (실시간)</strong>
-                        <span style="font-size: 11px; color: #666;">File System Access API로 lecture_sync.csv 실시간 감시 (Chrome/Edge 전용)</span>
-                    </div>
-                </label>
+                <div style="margin-bottom: 15px;">
+                    <label for="splitModeSelect" style="display: block; font-weight: bold; margin-bottom: 5px;">분할 모드 선택:</label>
+                    <select id="splitModeSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                        <option value="csv">📊 CSV 파일 감시 자동 분할 (실시간) - File System Access API로 lecture_sync.csv 실시간 감시</option>
+                        <option value="clipboard">📋 제목감지 자동 분할모드 (클립보드) - 클립보드 내용 변경 시 자동 분할</option>
+                        <option value="title">📌 제목 감지 자동 분할 (DOM 기반) - 강의 제목 변경 시 자동 분할</option>
+                    </select>
+                </div>
             </div>
             <div id="autoSplitStatus" style="margin-top: 10px; padding: 8px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px; font-size: 12px; display: none;">
                 <strong>🔍 현재 감지된 제목:</strong> <span id="currentDetectedTitle">-</span>
@@ -2271,38 +2258,32 @@ Ch01. 오리엔테이션
                 addLog(`🎬 녹음 시작: "${currentChapter.name}" (챕터 ${currentChapterIndex + 1}/${chapters.length}, 예상: ${expectedTimeStr})`, 'success');
 
                 // ⚠️ 분할 모드 확인 및 감지 시작 (startChapterTimers 호출 전에 먼저 설정)
-                const splitModeRadios = document.getElementsByName('splitMode');
-                for (const radio of splitModeRadios) {
-                    if (radio.checked) {
-                        if (radio.value === 'title') {
-                            titleDetectionEnabled = true;
-                            clipboardDetectionEnabled = false;
-                            startTitleDetection();
-                            if (autoSplitStatus) {
-                                autoSplitStatus.style.display = 'block';
-                            }
-                        } else if (radio.value === 'clipboard') {
-                            clipboardDetectionEnabled = true;
-                            titleDetectionEnabled = false;
-                            csvFileWatchEnabled = false;
-                            startClipboardDetection();
-                            if (clipboardSplitStatus) {
-                                clipboardSplitStatus.style.display = 'block';
-                            }
-                        } else if (radio.value === 'csv') {
-                            csvFileWatchEnabled = true;
-                            titleDetectionEnabled = false;
-                            clipboardDetectionEnabled = false;
-                            startCSVFileWatch();
-                            if (csvSplitStatus) {
-                                csvSplitStatus.style.display = 'block';
-                            }
-                        } else {
-                            titleDetectionEnabled = false;
-                            clipboardDetectionEnabled = false;
-                            csvFileWatchEnabled = false;
+                const splitModeSelect = document.getElementById('splitModeSelect');
+                if (splitModeSelect) {
+                    const selectedMode = splitModeSelect.value;
+                    if (selectedMode === 'title') {
+                        titleDetectionEnabled = true;
+                        clipboardDetectionEnabled = false;
+                        startTitleDetection();
+                        if (autoSplitStatus) {
+                            autoSplitStatus.style.display = 'block';
                         }
-                        break;
+                    } else if (selectedMode === 'clipboard') {
+                        clipboardDetectionEnabled = true;
+                        titleDetectionEnabled = false;
+                        csvFileWatchEnabled = false;
+                        startClipboardDetection();
+                        if (clipboardSplitStatus) {
+                            clipboardSplitStatus.style.display = 'block';
+                        }
+                    } else if (selectedMode === 'csv') {
+                        csvFileWatchEnabled = true;
+                        titleDetectionEnabled = false;
+                        clipboardDetectionEnabled = false;
+                        startCSVFileWatch();
+                        if (csvSplitStatus) {
+                            csvSplitStatus.style.display = 'block';
+                        }
                     }
                 }
 
@@ -2338,17 +2319,14 @@ Ch01. 오리엔테이션
                 updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
 
                 // CSV 모드인 경우 분할 감시 시작
-                const splitModeRadios = document.getElementsByName('splitMode');
-                for (const radio of splitModeRadios) {
-                    if (radio.checked && radio.value === 'csv') {
-                        csvFileWatchEnabled = true;
-                        titleDetectionEnabled = false;
-                        clipboardDetectionEnabled = false;
-                        startCSVFileWatch();
-                        if (csvSplitStatus) {
-                            csvSplitStatus.style.display = 'block';
-                        }
-                        break;
+                const splitModeSelect = document.getElementById('splitModeSelect');
+                if (splitModeSelect && splitModeSelect.value === 'csv') {
+                    csvFileWatchEnabled = true;
+                    titleDetectionEnabled = false;
+                    clipboardDetectionEnabled = false;
+                    startCSVFileWatch();
+                    if (csvSplitStatus) {
+                        csvSplitStatus.style.display = 'block';
                     }
                 }
             } else {
@@ -5072,9 +5050,9 @@ Ch01. 오리엔테이션
         });
 
         // 분할 모드 변경 이벤트
-        const splitModeRadios = document.getElementsByName('splitMode');
-        splitModeRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
+        const splitModeSelect = document.getElementById('splitModeSelect');
+        if (splitModeSelect) {
+            splitModeSelect.addEventListener('change', (e) => {
                 // 모든 상태 표시 숨기기
                 if (autoSplitStatus) autoSplitStatus.style.display = 'none';
                 if (clipboardSplitStatus) clipboardSplitStatus.style.display = 'none';
