@@ -4623,11 +4623,8 @@ Ch01. 오리엔테이션
 
                     mediaRecorder.onstop = () => {
                         const audioBlob = new Blob(audioChunks, { type: currentMimeType });
-                        const finalName =
-                            activeChapterName ||
-                            (chapters[currentChapterIndex]?.name) ||
-                            `강의${lectureCount}`;
-                        saveRecordingWithName(audioBlob, currentRecordingType, finalName);
+                        // ✅ 분할 시에는 이전 강의명으로 저장 (이미지 포함)
+                        saveRecordingWithNameAndImages(audioBlob, currentRecordingType, endedChapterName, imagesToSave);
                         audioChunks = [];
                     };
 
