@@ -20,6 +20,7 @@
     let lastReceivedAt = null;
     let lastSplitAt = null;
     let fileHandle = null; // 선택된 파일 핸들
+    let lastRecordingState = null; // 이전 녹음 상태 추적
 
     // =============================
     // UI Panel
@@ -202,6 +203,9 @@
             if (lectureInfo.fullText && lectureInfo.fullText !== lastLectureFullText) {
                 console.log('📊 [B탭] CSV에서 새 강의 발견:', lectureInfo.fullText);
                 splitRecordingByLecture(lectureInfo);
+            } else if (lectureInfo.fullText && fileHandle) {
+                // 같은 강의가 계속 유지되는 경우 - 조용히 처리 (로그 생략)
+                updateStatusPanel();
             }
 
         } catch (e) {
@@ -236,24 +240,31 @@
     // 녹음 상태 감지 (개선됨)
     // =============================
     function detectRecordingState() {
-        console.log('🔍 [B탭] 녹음 상태 감지 시작');
-
         // 방법 1: isRecording 플래그 확인 (HTML 파일에서 실제 사용 중)
         if (w.isRecording === true) {
-            console.log('✅ [B탭] window.isRecording === true 감지!');
+            if (lastRecordingState !== 'recording') {
+                console.log('✅ [B탭] window.isRecording === true 감지!');
+                lastRecordingState = 'recording';
+            }
             return { isRecording: true, recorder: w.mediaRecorder };
         }
 
         // 방법 2: mediaRecorder 객체 확인
         if (w.mediaRecorder && w.mediaRecorder.state === 'recording') {
-            console.log('✅ [B탭] mediaRecorder.state === "recording" 감지!');
+            if (lastRecordingState !== 'recording') {
+                console.log('✅ [B탭] mediaRecorder.state === "recording" 감지!');
+                lastRecordingState = 'recording';
+            }
             return { isRecording: true, recorder: w.mediaRecorder };
         }
 
         // 방법 3: UI 요소로 확인 (녹음 버튼 텍스트)
         const recordingText = document.body.textContent;
         if (recordingText.includes('녹음 중') || recordingText.includes('Recording')) {
-            console.log('✅ [B탭] UI 텍스트로 녹음 중 감지!');
+            if (lastRecordingState !== 'recording') {
+                console.log('✅ [B탭] UI 텍스트로 녹음 중 감지!');
+                lastRecordingState = 'recording';
+            }
             return { isRecording: true, recorder: w.mediaRecorder };
         }
 
@@ -261,7 +272,10 @@
         for (const key in w) {
             try {
                 if (w[key] instanceof MediaRecorder && w[key].state === 'recording') {
-                    console.log('✅ [B탭] window.' + key + '로 녹음기 발견!');
+                    if (lastRecordingState !== 'recording') {
+                        console.log('✅ [B탭] window.' + key + '로 녹음기 발견!');
+                        lastRecordingState = 'recording';
+                    }
                     return { isRecording: true, recorder: w[key] };
                 }
             } catch (e) {
@@ -269,7 +283,11 @@
             }
         }
 
-        console.log('❌ [B탭] 녹음 중 아님');
+        // 녹음 중이 아님
+        if (lastRecordingState !== 'stopped') {
+            console.log('❌ [B탭] 녹음 중 아님');
+            lastRecordingState = 'stopped';
+        }
         return { isRecording: false, recorder: null };
     }
 
@@ -376,10 +394,12 @@
 
         createStatusPanel();
 
-        // 3초마다 CSV 파일 읽기
+        // 3초마다 CSV 파일 읽기 (조용하게)
         setInterval(() => {
             if (fileHandle) {
-                readCsvFile();
+                readCsvFile().catch(error => {
+                    console.error('❌ [B탭] CSV 읽기 에러:', error);
+                });
             }
             updateStatusPanel();
         }, 3000);
