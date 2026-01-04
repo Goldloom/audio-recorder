@@ -1780,6 +1780,7 @@ Ch01. 오리엔테이션
                             progressRemaining.textContent = `녹음 경과: ${formatTime(elapsedSec * 1000)} (완료)`;
                         }
                     } else {
+                        const elapsedSec = recordingStartTime ? (Date.now() - recordingStartTime) / 1000 : 0;
                         progressRemaining.textContent = `녹음 경과: ${formatTime(elapsedSec * 1000)}`;
                     }
                     if (remainingTimeIndicator) remainingTimeIndicator.textContent = '';
