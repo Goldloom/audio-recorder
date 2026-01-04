@@ -5425,9 +5425,12 @@ Ch01. 오리엔테이션
 
             try {
                 console.log('📊 [CSV] 파일 읽기 시작...');
+                console.log('📊 [CSV] csvFileHandle 존재:', !!csvFileHandle);
                 const file = await csvFileHandle.getFile();
+                console.log('📊 [CSV] 파일 객체:', file.name, '크기:', file.size, '수정시간:', new Date(file.lastModified).toLocaleString());
                 const content = await file.text();
                 console.log('📊 [CSV] 파일 내용 읽음, 길이:', content.length);
+                console.log('📊 [CSV] 파일 내용 미리보기:', content.substring(0, 100) + (content.length > 100 ? '...' : ''));
 
                 const lines = content.trim().split('\n');
                 console.log('📊 [CSV] 총 줄 수:', lines.length);
