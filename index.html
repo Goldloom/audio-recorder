@@ -2212,10 +2212,10 @@ Ch01. 오리엔테이션
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
                     currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
 
-                // 강의명 우선순위: currentDetectedTitle (제목 감지 모드) > getCurrentLectureTitle() > fallback
+                // 강의명 우선순위: currentDetectedTitle (제목 감지 모드) > 강화된 제목 감지 > fallback
                 let lectureTitle = currentDetectedTitle;
                 if (!lectureTitle) {
-                    lectureTitle = getCurrentLectureTitle();
+                    lectureTitle = getEnhancedLectureTitle();
                 }
                 if (!lectureTitle) {
                     lectureTitle = `강의 ${lectureCount}`;
@@ -2278,6 +2278,110 @@ Ch01. 오리엔테이션
         }
 
         /**
+         * 강화된 강의 제목 감지 함수 (여러 방법 시도)
+         */
+        function getEnhancedLectureTitle() {
+            try {
+                // 방법 1: 기존 DOM 기반 감지
+                let title = getCurrentLectureTitle();
+                if (title) {
+                    console.log('✅ [강화감지] DOM 기반 감지 성공:', title);
+                    return title;
+                }
+
+                // 방법 2: document.title에서 강의 제목 패턴 추출
+                const docTitle = document.title;
+                if (docTitle && docTitle.length > 0) {
+                    // 강의 제목 패턴들 (예: "1-1. 제목 - 강의사이트", "제목 | 강의사이트", 등)
+                    const patterns = [
+                        /^(.+?)\s*[-|]\s*.+$/,  // "제목 - 사이트" 또는 "제목 | 사이트"
+                        /^(.+?)\s*\|\s*.+$/,    // "제목 | 사이트"
+                        /^(.+?)\s*\(.+\)$/,     // "제목 (부가정보)"
+                        /^(.+?)\s*·\s*.+$/,    // "제목 · 사이트"
+                    ];
+
+                    for (const pattern of patterns) {
+                        const match = docTitle.match(pattern);
+                        if (match && match[1] && match[1].trim().length > 3) {
+                            const extracted = match[1].trim();
+                            // 너무 긴 제목이나 너무 짧은 제목 필터링
+                            if (extracted.length <= 100 && extracted.length >= 2) {
+                                console.log('✅ [강화감지] document.title 패턴 추출 성공:', extracted);
+                                return extracted;
+                            }
+                        }
+                    }
+
+                    // 패턴 매칭 실패 시 document.title 그대로 사용 (적절한 길이인 경우)
+                    if (docTitle.length <= 100 && docTitle.length >= 3) {
+                        console.log('✅ [강화감지] document.title 직접 사용:', docTitle);
+                        return docTitle;
+                    }
+                }
+
+                // 방법 3: URL에서 강의 정보 추출
+                const url = window.location.href;
+                if (url) {
+                    // URL에서 숫자-숫자 패턴 찾기 (강의 번호)
+                    const urlPatterns = [
+                        /\/(\d+(?:-\d+)*)/,  // /123 또는 /1-2-3 패턴
+                        /lecture\/(\d+)/,    // /lecture/123 패턴
+                        /lesson\/(\d+)/,     // /lesson/123 패턴
+                        /course\/(\d+)/,     // /course/123 패턴
+                    ];
+
+                    for (const pattern of urlPatterns) {
+                        const match = url.match(pattern);
+                        if (match && match[1]) {
+                            const lectureNum = match[1];
+                            // URL 기반 제목 생성
+                            const urlTitle = `강의 ${lectureNum}`;
+                            console.log('✅ [강화감지] URL 기반 제목 생성:', urlTitle);
+                            return urlTitle;
+                        }
+                    }
+                }
+
+                // 방법 4: 메타 태그에서 제목 찾기
+                const metaTitle = document.querySelector('meta[name="title"], meta[property="og:title"]');
+                if (metaTitle && metaTitle.content && metaTitle.content.trim().length > 0) {
+                    const metaTitleText = metaTitle.content.trim();
+                    if (metaTitleText.length <= 100 && metaTitleText.length >= 3) {
+                        console.log('✅ [강화감지] 메타 태그에서 제목 찾음:', metaTitleText);
+                        return metaTitleText;
+                    }
+                }
+
+                // 방법 5: 일반적인 강의 제목을 포함한 요소들 검색
+                const commonSelectors = [
+                    'h1', 'h2', '.lecture-title', '.course-title', '.lesson-title',
+                    '.title', '[data-title]', '[data-lecture-title]'
+                ];
+
+                for (const selector of commonSelectors) {
+                    const elements = document.querySelectorAll(selector);
+                    for (const element of elements) {
+                        const text = element.textContent?.trim();
+                        if (text && text.length >= 3 && text.length <= 100) {
+                            // 제목 같아 보이는 텍스트인지 확인 (숫자, 한글, 영어 포함)
+                            if (/[가-힣a-zA-Z0-9]/.test(text)) {
+                                console.log('✅ [강화감지] 일반 선택자로 제목 찾음:', text);
+                                return text;
+                            }
+                        }
+                    }
+                }
+
+                console.log('❌ [강화감지] 모든 방법으로 제목을 찾지 못함');
+                return null;
+
+            } catch (error) {
+                console.error('강화된 제목 감지 오류:', error);
+                return null;
+            }
+        }
+
+        /**
          * 제목 감지 시작
          */
         function startTitleDetection() {
@@ -2285,7 +2389,7 @@ Ch01. 오리엔테이션
                 clearInterval(titleCheckInterval);
             }
 
-            currentDetectedTitle = getCurrentLectureTitle() || '';
+            currentDetectedTitle = getEnhancedLectureTitle() || '';
             if (currentDetectedTitleSpan) {
                 currentDetectedTitleSpan.textContent = currentDetectedTitle || '제목을 감지할 수 없습니다';
             }
@@ -2302,7 +2406,7 @@ Ch01. 오리엔테이션
                     return;
                 }
 
-                const newTitle = getCurrentLectureTitle();
+                const newTitle = getEnhancedLectureTitle();
                 console.log(`🔍 [제목감지] 체크 중 - 현재: "${newTitle}"`);
 
                 // 제목 업데이트 (표시용)
@@ -4553,7 +4657,7 @@ Ch01. 오리엔테이션
                     if (autoSplitStatus) autoSplitStatus.style.display = 'block';
 
                     // 현재 감지 가능한지 테스트
-                    const testTitle = getCurrentLectureTitle();
+                    const testTitle = getEnhancedLectureTitle();
                     if (testTitle) {
                         addLog(`✅ 제목 감지 테스트 성공: "${testTitle}"`, 'success');
                     } else {
