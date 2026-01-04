@@ -1704,26 +1704,24 @@ Ch01. 오리엔테이션
                             progressBar.style.width = '100%';
                         }
                         // CSV에서 받은 동영상 재생시간을 기반으로 잔여 시간 계산
-                        console.log('[DEBUG] 잔여 시간 계산:', {
-                            currentLectureDuration: window.currentLectureDuration,
-                            recordingStartTime: recordingStartTime,
-                            isRecording: window.isRecording
-                        });
-
                         if (window.currentLectureDuration && recordingStartTime) {
                             const elapsedSec = (Date.now() - recordingStartTime) / 1000;
-                            const totalSec = parseFloat(window.currentLectureDuration) || 0;
-                            const remainingSec = Math.max(0, totalSec - elapsedSec);
 
-                            console.log('[DEBUG] 시간 계산 결과:', {
-                                elapsedSec: elapsedSec.toFixed(1),
-                                totalSec,
-                                remainingSec: remainingSec.toFixed(1)
-                            });
+                            // MM:SS 형식을 초로 변환 (예: "5:21" -> 321)
+                            let totalSec = 0;
+                            if (window.currentLectureDuration.includes(':')) {
+                                const parts = window.currentLectureDuration.split(':');
+                                const minutes = parseInt(parts[0]) || 0;
+                                const seconds = parseInt(parts[1]) || 0;
+                                totalSec = minutes * 60 + seconds;
+                            } else {
+                                totalSec = parseFloat(window.currentLectureDuration) || 0;
+                            }
+
+                            const remainingSec = Math.max(0, totalSec - elapsedSec);
 
                             if (remainingSec > 0) {
                                 progressRemaining.textContent = `잔여 녹음 시간: ${formatTime(remainingSec * 1000)}`;
-                                console.log('[DEBUG] 잔여 시간 표시:', progressRemaining.textContent);
                             } else {
                                 progressRemaining.textContent = '연속 녹음 중 (완료)';
                             }
@@ -1738,26 +1736,24 @@ Ch01. 오리엔테이션
                         progressBar.style.width = '100%';
                     }
                     // CSV에서 받은 동영상 재생시간을 기반으로 잔여 시간 계산
-                    console.log('[DEBUG] 잔여 시간 계산 (제한없음 모드):', {
-                        currentLectureDuration: window.currentLectureDuration,
-                        recordingStartTime: recordingStartTime,
-                        isRecording: window.isRecording
-                    });
-
                     if (window.currentLectureDuration && recordingStartTime) {
                         const elapsedSec = (Date.now() - recordingStartTime) / 1000;
-                        const totalSec = parseFloat(window.currentLectureDuration) || 0;
-                        const remainingSec = Math.max(0, totalSec - elapsedSec);
 
-                        console.log('[DEBUG] 시간 계산 결과 (제한없음):', {
-                            elapsedSec: elapsedSec.toFixed(1),
-                            totalSec,
-                            remainingSec: remainingSec.toFixed(1)
-                        });
+                        // MM:SS 형식을 초로 변환 (예: "5:21" -> 321)
+                        let totalSec = 0;
+                        if (window.currentLectureDuration.includes(':')) {
+                            const parts = window.currentLectureDuration.split(':');
+                            const minutes = parseInt(parts[0]) || 0;
+                            const seconds = parseInt(parts[1]) || 0;
+                            totalSec = minutes * 60 + seconds;
+                        } else {
+                            totalSec = parseFloat(window.currentLectureDuration) || 0;
+                        }
+
+                        const remainingSec = Math.max(0, totalSec - elapsedSec);
 
                         if (remainingSec > 0) {
                             progressRemaining.textContent = `잔여 녹음 시간: ${formatTime(remainingSec * 1000)}`;
-                            console.log('[DEBUG] 잔여 시간 표시 (제한없음):', progressRemaining.textContent);
                         } else {
                             progressRemaining.textContent = '연속 녹음 중 (완료)';
                         }
