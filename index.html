@@ -2268,16 +2268,18 @@ Ch01. 오리엔테이션
                 } else {
                     console.log(`⚠️ [DEBUG] startChapterTimers() 호출 생략 - 이미 타이머가 설정됨`);
                 }
+
+                updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
             } else if (lectureTitle) {
                 // B탭 감지 모드
                 addLog(`🎬 녹음 시작: "${lectureTitle}" (소스: 시스템 오디오)`, 'success');
+                updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
             } else {
                 // 폴백
                 lectureTitle = `강의 ${lectureCount}`;
                 addLog(`🎬 녹음 시작: "${lectureTitle}"`, 'success');
+                updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
             }
-
-            updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
         }
 
         // ============ 제목 감지 자동 분할 ============
