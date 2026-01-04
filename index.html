@@ -1704,14 +1704,28 @@ Ch01. 오리엔테이션
                             progressBar.style.width = '100%';
                         }
                         // CSV에서 받은 동영상 재생시간을 기반으로 잔여 시간 계산
+                        console.log('[DEBUG] 잔여 시간 계산:', {
+                            currentLectureDuration: window.currentLectureDuration,
+                            recordingStartTime: recordingStartTime,
+                            isRecording: window.isRecording
+                        });
+
                         if (window.currentLectureDuration && recordingStartTime) {
                             const elapsedSec = (Date.now() - recordingStartTime) / 1000;
                             const totalSec = parseFloat(window.currentLectureDuration) || 0;
                             const remainingSec = Math.max(0, totalSec - elapsedSec);
+
+                            console.log('[DEBUG] 시간 계산 결과:', {
+                                elapsedSec: elapsedSec.toFixed(1),
+                                totalSec,
+                                remainingSec: remainingSec.toFixed(1)
+                            });
+
                             if (remainingSec > 0) {
                                 progressRemaining.textContent = `잔여 녹음 시간: ${formatTime(remainingSec * 1000)}`;
+                                console.log('[DEBUG] 잔여 시간 표시:', progressRemaining.textContent);
                             } else {
-                                progressRemaining.textContent = '연속 녹음 중';
+                                progressRemaining.textContent = '연속 녹음 중 (완료)';
                             }
                         } else {
                             progressRemaining.textContent = '연속 녹음 중';
@@ -1723,7 +1737,33 @@ Ch01. 오리엔테이션
                         progressBar.className = 'progress-bar';
                         progressBar.style.width = '100%';
                     }
-                    if (progressRemaining) progressRemaining.textContent = '연속 녹음 중';
+                    // CSV에서 받은 동영상 재생시간을 기반으로 잔여 시간 계산
+                    console.log('[DEBUG] 잔여 시간 계산 (제한없음 모드):', {
+                        currentLectureDuration: window.currentLectureDuration,
+                        recordingStartTime: recordingStartTime,
+                        isRecording: window.isRecording
+                    });
+
+                    if (window.currentLectureDuration && recordingStartTime) {
+                        const elapsedSec = (Date.now() - recordingStartTime) / 1000;
+                        const totalSec = parseFloat(window.currentLectureDuration) || 0;
+                        const remainingSec = Math.max(0, totalSec - elapsedSec);
+
+                        console.log('[DEBUG] 시간 계산 결과 (제한없음):', {
+                            elapsedSec: elapsedSec.toFixed(1),
+                            totalSec,
+                            remainingSec: remainingSec.toFixed(1)
+                        });
+
+                        if (remainingSec > 0) {
+                            progressRemaining.textContent = `잔여 녹음 시간: ${formatTime(remainingSec * 1000)}`;
+                            console.log('[DEBUG] 잔여 시간 표시 (제한없음):', progressRemaining.textContent);
+                        } else {
+                            progressRemaining.textContent = '연속 녹음 중 (완료)';
+                        }
+                    } else {
+                        progressRemaining.textContent = '연속 녹음 중';
+                    }
                     if (remainingTimeIndicator) remainingTimeIndicator.textContent = '';
                 }
 

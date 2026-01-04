@@ -296,7 +296,8 @@
 
         // duration 정보 설정
         w.currentLectureDuration = lectureInfo.duration;
-        console.log('✅ [B탭] currentLectureDuration =', w.currentLectureDuration);
+        console.log('✅ [B탭] currentLectureDuration 설정:', w.currentLectureDuration);
+        console.log('📊 [B탭] 전체 lectureInfo:', lectureInfo);
 
         const { isRecording, recorder } = detectRecordingState();
 
