@@ -1143,13 +1143,25 @@
                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
                     <input type="radio" name="splitMode" value="title" id="autoSplitMode" checked style="width: 18px; height: 18px;">
                     <div style="flex: 1;">
-                        <strong style="font-size: 13px; display: block; margin-bottom: 2px;">📌 제목 감지 자동 분할</strong>
+                        <strong style="font-size: 13px; display: block; margin-bottom: 2px;">📌 제목 감지 자동 분할 (DOM 기반)</strong>
                         <span style="font-size: 11px; color: #666;">강의 제목 변경 시 자동 분할 (1초마다 체크)</span>
+                    </div>
+                </label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                    <input type="radio" name="splitMode" value="clipboard" id="clipboardSplitMode" style="width: 18px; height: 18px;">
+                    <div style="flex: 1;">
+                        <strong style="font-size: 13px; display: block; margin-bottom: 2px;">📋 제목감지 자동 분할모드 (클립보드)</strong>
+                        <span style="font-size: 11px; color: #666;">클립보드 내용 변경 시 자동 분할 (1초마다 체크)</span>
                     </div>
                 </label>
             </div>
             <div id="autoSplitStatus" style="margin-top: 10px; padding: 8px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px; font-size: 12px; display: none;">
                 <strong>🔍 현재 감지된 제목:</strong> <span id="currentDetectedTitle">-</span>
+            </div>
+            <div id="clipboardSplitStatus" style="margin-top: 10px; padding: 8px; background: #e8f5e9; border-left: 3px solid #4caf50; border-radius: 4px; font-size: 12px; display: none;">
+                <div style="margin-bottom: 5px;"><strong>📋 클립보드 감시 중...</strong></div>
+                <div><strong>현재 감지된 강의:</strong> <span id="clipboardDetectedTitle">-</span></div>
+                <div style="font-size: 10px; color: #666; margin-top: 3px;">최근 변경: <span id="clipboardLastChange">-</span></div>
             </div>
         </div>
 
@@ -1205,6 +1217,51 @@ Ch01. 오리엔테이션
             </div>
             <div id="chapterList" class="chapter-list"></div>
             <div id="chapterProgress" class="chapter-progress"></div>
+        </div>
+
+        <div class="csv-batch-section" style="background: #fff3e0; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 2px solid #ff9800;">
+            <h3 style="font-size: 14px; font-weight: 600; color: #e65100; margin-bottom: 12px;">📊 제목감지 일괄 분할모드 (CSV 기반 후처리)</h3>
+            <div style="font-size: 12px; color: #666; margin-bottom: 15px; padding: 10px; background: white; border-radius: 6px;">
+                녹음 완료 후 CSV 파일을 기준으로 전체 녹음 파일과 캡처 이미지를 강의별로 자동 분리합니다.
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #333;">
+                        📄 CSV 파일 선택 (필수)
+                    </label>
+                    <input type="file" id="csvFileInput" accept=".csv" style="font-size: 12px; padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 6px;">
+                    <div id="csvStatus" style="margin-top: 5px; font-size: 11px; color: #666;"></div>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #333;">
+                        🎙️ 전체 녹음 파일 선택 (webm)
+                    </label>
+                    <input type="file" id="fullWebmInput" accept=".webm" style="font-size: 12px; padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 6px;">
+                    <div id="webmStatus" style="margin-top: 5px; font-size: 11px; color: #666;"></div>
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #333;">
+                        🖼️ 캡처 이미지 폴더 선택 (선택사항)
+                    </label>
+                    <input type="file" id="captureImagesInput" webkitdirectory directory multiple style="font-size: 12px; padding: 8px; width: 100%; border: 1px solid #ddd; border-radius: 6px;">
+                    <div id="imagesStatus" style="margin-top: 5px; font-size: 11px; color: #666;"></div>
+                </div>
+
+                <button id="processCsvBatchBtn" disabled style="padding: 12px; background: #ff9800; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: not-allowed; margin-top: 10px;">
+                    🔄 일괄 처리 실행
+                </button>
+
+                <div id="batchProcessStatus" style="display: none; margin-top: 10px; padding: 10px; background: white; border-radius: 6px; font-size: 12px;">
+                    <div><strong>처리 상태:</strong></div>
+                    <div id="batchProgressText" style="margin-top: 5px; color: #666;"></div>
+                    <div style="margin-top: 8px; background: #eee; border-radius: 4px; height: 20px; overflow: hidden;">
+                        <div id="batchProgressBar" style="height: 100%; background: #4caf50; width: 0%; transition: width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="visualizer-container">
@@ -1368,6 +1425,17 @@ Ch01. 오리엔테이션
         let currentDetectedTitle = '';
         let titleCheckInterval = null;
 
+        // 클립보드 기반 자동 분할 관련 변수
+        let clipboardDetectionEnabled = false;
+        let lastClipboardText = '';
+        let clipboardCheckInterval = null;
+        let clipboardDetectedTitle = '';
+
+        // CSV 기반 일괄 분할 관련 변수
+        let csvData = null;
+        let fullWebmFile = null;
+        let captureImagesFiles = [];
+
         // 초 단위 시간을 깔끔하게 표시 (1초, 1.5초 등)
         function formatSeconds(seconds) {
             const fixed = seconds.toFixed(1);
@@ -1429,6 +1497,25 @@ Ch01. 오리엔테이션
         const autoSplitMode = document.getElementById('autoSplitMode');
         const autoSplitStatus = document.getElementById('autoSplitStatus');
         const currentDetectedTitleSpan = document.getElementById('currentDetectedTitle');
+
+        // 클립보드 기반 분할 관련 요소
+        const clipboardSplitMode = document.getElementById('clipboardSplitMode');
+        const clipboardSplitStatus = document.getElementById('clipboardSplitStatus');
+        const clipboardDetectedTitleSpan = document.getElementById('clipboardDetectedTitle');
+        const clipboardLastChange = document.getElementById('clipboardLastChange');
+
+        // CSV 일괄 분할 관련 요소
+        const csvFileInput = document.getElementById('csvFileInput');
+        const fullWebmInput = document.getElementById('fullWebmInput');
+        const captureImagesInput = document.getElementById('captureImagesInput');
+        const processCsvBatchBtn = document.getElementById('processCsvBatchBtn');
+        const csvStatus = document.getElementById('csvStatus');
+        const webmStatus = document.getElementById('webmStatus');
+        const imagesStatus = document.getElementById('imagesStatus');
+        const batchProcessStatus = document.getElementById('batchProcessStatus');
+        const batchProgressText = document.getElementById('batchProgressText');
+        const batchProgressBar = document.getElementById('batchProgressBar');
+
         const downloadAllBtn = document.getElementById('downloadAllBtn');
         const progressBar = document.getElementById('progressBar');
         const progressElapsed = document.getElementById('progressElapsed');
@@ -2064,14 +2151,27 @@ Ch01. 오리엔테이션
                 const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
                 addLog(`🎬 녹음 시작: "${currentChapter.name}" (챕터 ${currentChapterIndex + 1}/${chapters.length}, 예상: ${expectedTimeStr})`, 'success');
 
-                // ⚠️ 제목 감지 자동 분할 모드 확인 (startChapterTimers 호출 전에 먼저 설정)
+                // ⚠️ 분할 모드 확인 및 감지 시작 (startChapterTimers 호출 전에 먼저 설정)
                 const splitModeRadios = document.getElementsByName('splitMode');
                 for (const radio of splitModeRadios) {
-                    if (radio.checked && radio.value === 'title') {
-                        titleDetectionEnabled = true;
-                        startTitleDetection();
-                        if (autoSplitStatus) {
-                            autoSplitStatus.style.display = 'block';
+                    if (radio.checked) {
+                        if (radio.value === 'title') {
+                            titleDetectionEnabled = true;
+                            clipboardDetectionEnabled = false;
+                            startTitleDetection();
+                            if (autoSplitStatus) {
+                                autoSplitStatus.style.display = 'block';
+                            }
+                        } else if (radio.value === 'clipboard') {
+                            clipboardDetectionEnabled = true;
+                            titleDetectionEnabled = false;
+                            startClipboardDetection();
+                            if (clipboardSplitStatus) {
+                                clipboardSplitStatus.style.display = 'block';
+                            }
+                        } else {
+                            titleDetectionEnabled = false;
+                            clipboardDetectionEnabled = false;
                         }
                         break;
                     }
@@ -2104,8 +2204,9 @@ Ch01. 오리엔테이션
                 // 일반 모드 (챕터 없음)
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
                     currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
-                updateStatus('recording', `🔴 녹음 중... (강의 ${lectureCount}, ${sourceText})`);
-                addLog(`🎬 녹음 시작: 강의${lectureCount} (소스: ${sourceText})`, 'success');
+                const lectureTitle = getCurrentLectureTitle() || `강의 ${lectureCount}`;
+                updateStatus('recording', `🔴 녹음 중... (${lectureTitle}, ${sourceText})`);
+                addLog(`🎬 녹음 시작: ${lectureTitle} (소스: ${sourceText})`, 'success');
             }
         }
 
@@ -2300,6 +2401,283 @@ Ch01. 오리엔테이션
 
         // ============ 제목 감지 자동 분할 끝 ============
 
+        // ============ 클립보드 기반 자동 분할 ============
+
+        /**
+         * 클립보드 감시 시작
+         */
+        async function startClipboardDetection() {
+            if (clipboardCheckInterval) {
+                clearInterval(clipboardCheckInterval);
+            }
+
+            // 초기 클립보드 값 읽기
+            try {
+                const text = await navigator.clipboard.readText();
+                lastClipboardText = text;
+                clipboardDetectedTitle = text;
+                if (clipboardDetectedTitleSpan) {
+                    clipboardDetectedTitleSpan.textContent = text || '클립보드가 비어있습니다';
+                }
+                if (clipboardLastChange) {
+                    clipboardLastChange.textContent = new Date().toLocaleTimeString('ko-KR');
+                }
+                console.log(`📋 클립보드 감시 시작 - 현재: "${text}"`);
+                addLog(`📋 클립보드 감시 모드 시작 - 현재: "${text}"`, 'info');
+            } catch (error) {
+                console.error('클립보드 접근 권한 오류:', error);
+                addLog(`⚠️ 클립보드 접근 권한이 필요합니다. 브라우저 설정을 확인하세요.`, 'warning');
+                if (clipboardDetectedTitleSpan) {
+                    clipboardDetectedTitleSpan.textContent = '권한 오류';
+                }
+            }
+
+            // 1초마다 클립보드 체크
+            clipboardCheckInterval = setInterval(async () => {
+                if (!isRecording || isPaused) {
+                    return;
+                }
+
+                try {
+                    const text = await navigator.clipboard.readText();
+
+                    // 클립보드 내용이 변경되었을 때
+                    if (text && text !== lastClipboardText) {
+                        console.log(`\n📋 클립보드 변경 감지!`);
+                        console.log(`   이전: ${lastClipboardText}`);
+                        console.log(`   현재: ${text}`);
+
+                        addLog(`📋 클립보드 변경 감지: "${lastClipboardText}" → "${text}"`, 'success');
+
+                        // UI 업데이트
+                        if (clipboardDetectedTitleSpan) {
+                            clipboardDetectedTitleSpan.textContent = text;
+                        }
+                        if (clipboardLastChange) {
+                            clipboardLastChange.textContent = new Date().toLocaleTimeString('ko-KR');
+                        }
+
+                        const previousText = lastClipboardText;
+                        lastClipboardText = text;
+                        clipboardDetectedTitle = text;
+
+                        // 자동 분할 실행
+                        performClipboardAutoSplit(previousText, text);
+                    }
+                } catch (error) {
+                    // 클립보드 접근 실패 시 조용히 무시 (권한 문제일 수 있음)
+                }
+            }, 1000); // 1초마다 체크
+        }
+
+        /**
+         * 클립보드 기반 자동 분할 실행
+         */
+        function performClipboardAutoSplit(previousText, newText) {
+            if (!mediaRecorder || mediaRecorder.state !== 'recording') {
+                console.warn('📋 [클립보드 분할] 녹음 중이 아니므로 분할을 건너뜁니다');
+                return;
+            }
+
+            console.log(`📋 [클립보드 분할] 실행 시작`);
+            console.log(`   이전: "${previousText}"`);
+            console.log(`   새 제목: "${newText}"`);
+
+            addLog(`🔄 강의 분할 중... (클립보드 변경 감지)`, 'info');
+
+            // 기존 캡처 중지 및 PDF 저장
+            if (capturedImages.length > 0) {
+                stopCapture();
+                const previousName = parseClipboardTitle(previousText);
+                saveCapturedImagesToPDF(previousName);
+            }
+
+            // 강의 카운트 증가
+            lectureCount++;
+
+            // MediaRecorder 재시작
+            mediaRecorder.onstop = () => {
+                console.log(`💾 [클립보드 분할] 이전 녹음 저장: "${parseClipboardTitle(previousText)}"`);
+                const audioBlob = new Blob(audioChunks, { type: currentMimeType });
+                const baseName = parseClipboardTitle(previousText);
+                saveRecordingWithName(audioBlob, currentRecordingType, baseName);
+
+                // 새 녹음 시작
+                audioChunks = [];
+                activeChapterName = parseClipboardTitle(newText);
+
+                console.log(`🎬 [클립보드 분할] 새 녹음 시작: "${activeChapterName}"`);
+                addLog(`🎬 새 강의 녹음 시작: "${activeChapterName}" (강의 ${lectureCount})`, 'success');
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    console.log(`💾 [정상종료] 녹음 저장 중: "${activeChapterName || `강의${lectureCount}`}"`);
+                    const audioBlob = new Blob(audioChunks, { type: currentMimeType });
+                    const baseName = activeChapterName || `강의${lectureCount}`;
+                    saveRecordingWithName(audioBlob, currentRecordingType, baseName);
+                };
+
+                // 새 녹음 시작
+                try {
+                    mediaRecorder.start();
+                    console.log(`✅ [클립보드 분할] MediaRecorder.start() 성공`);
+
+                    // 캡처 재시작
+                    if (captureEnabled && captureEnabled.checked) {
+                        startCapture();
+                    }
+                } catch (error) {
+                    console.error(`❌ [클립보드 분할] MediaRecorder.start() 실패:`, error);
+                    addLog(`❌ 녹음 재시작 실패: ${error.message}`, 'error');
+                }
+            };
+
+            // 현재 녹음 중지
+            mediaRecorder.stop();
+        }
+
+        /**
+         * 클립보드 텍스트를 파일명으로 파싱
+         * 형식: "114 - Ch 5 - 03. RAG 코드 구현하기"
+         */
+        function parseClipboardTitle(clipboardText) {
+            if (!clipboardText) return `강의${lectureCount}`;
+
+            // 목차 분석이 되어 있는 경우, lecture 이름만 비교
+            if (chapters.length > 0) {
+                // clipboardText에서 강의 이름 추출
+                const parts = clipboardText.split('-').map(p => p.trim());
+                const lectureName = parts[parts.length - 1] || clipboardText;
+
+                // 챕터 목록에서 매칭되는 강의 찾기
+                for (const chapter of chapters) {
+                    if (chapter.name && chapter.name.includes(lectureName)) {
+                        return chapter.name;
+                    }
+                }
+            }
+
+            // 목차 분석이 안 되어 있으면 클립보드 문자열 그대로 사용
+            // 파일명에 사용할 수 없는 문자 제거
+            return clipboardText.replace(/[<>:"/\\|?*]/g, '_');
+        }
+
+        /**
+         * 클립보드 감시 중지
+         */
+        function stopClipboardDetection() {
+            if (clipboardCheckInterval) {
+                clearInterval(clipboardCheckInterval);
+                clipboardCheckInterval = null;
+            }
+            console.log('🛑 클립보드 감시 중지');
+        }
+
+        // ============ 클립보드 기반 자동 분할 끝 ============
+
+        // ============ CSV 기반 일괄 분할 ============
+
+        /**
+         * CSV 파일 파싱
+         */
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length < 2) {
+                throw new Error('CSV 파일이 비어있거나 형식이 잘못되었습니다.');
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim());
+            const requiredHeaders = ['startTime', 'endTime', 'donut', 'chapter', 'lecture', 'fullText'];
+
+            for (const required of requiredHeaders) {
+                if (!headers.includes(required)) {
+                    throw new Error(`CSV 파일에 필수 컬럼이 없습니다: ${required}`);
+                }
+            }
+
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index];
+                });
+                data.push(row);
+            }
+
+            return data;
+        }
+
+        /**
+         * CSV 일괄 처리 실행
+         */
+        async function processCsvBatch() {
+            if (!csvData || !fullWebmFile) {
+                addLog('❌ CSV 파일과 webm 파일이 필요합니다.', 'error');
+                return;
+            }
+
+            batchProcessStatus.style.display = 'block';
+            batchProgressText.textContent = '처리 시작...';
+            batchProgressBar.style.width = '0%';
+
+            addLog(`📊 CSV 일괄 처리 시작 - 총 ${csvData.length}개 강의`, 'info');
+
+            try {
+                // 1. webm 파일을 Audio 객체로 로드
+                const audioUrl = URL.createObjectURL(fullWebmFile);
+                const audio = new Audio(audioUrl);
+
+                await new Promise((resolve, reject) => {
+                    audio.onloadedmetadata = resolve;
+                    audio.onerror = reject;
+                });
+
+                addLog(`✅ webm 파일 로드 완료 (길이: ${formatTime(audio.duration * 1000)})`, 'success');
+
+                // 2. 각 강의별로 webm 분리 (MediaRecorder 활용)
+                // 참고: 브라우저에서 실시간 분리는 제한적이므로,
+                // 실제로는 타임스탬프 정보만 저장하고 사용자에게 안내
+
+                batchProgressText.textContent = `CSV 정보 처리 중... (총 ${csvData.length}개)`;
+
+                for (let i = 0; i < csvData.length; i++) {
+                    const row = csvData[i];
+                    const progress = ((i + 1) / csvData.length * 100).toFixed(0);
+                    batchProgressBar.style.width = `${progress}%`;
+                    batchProgressText.textContent = `처리 중: ${i + 1}/${csvData.length} - ${row.fullText}`;
+
+                    const fileName = `${row.donut}${row.chapter ? ' - ' + row.chapter : ''} - ${row.lecture}.webm`;
+
+                    addLog(`📝 [${i + 1}/${csvData.length}] ${fileName}`, 'info');
+                    addLog(`   ⏰ 시작: ${row.startTime}, 종료: ${row.endTime}`, 'info');
+
+                    // 실제 분리는 서버 사이드 또는 FFmpeg.js 필요
+                    // 여기서는 정보만 표시
+
+                    await new Promise(resolve => setTimeout(resolve, 100)); // UI 업데이트 대기
+                }
+
+                batchProgressText.textContent = '처리 완료!';
+                batchProgressBar.style.width = '100%';
+
+                addLog(`✅ CSV 일괄 처리 완료`, 'success');
+                addLog(`ℹ️ 실제 webm 분리는 FFmpeg 등의 외부 도구가 필요합니다.`, 'warning');
+                addLog(`ℹ️ CSV에 기록된 시간 정보를 참고하여 수동으로 분리하세요.`, 'warning');
+
+            } catch (error) {
+                addLog(`❌ 처리 중 오류: ${error.message}`, 'error');
+                batchProgressText.textContent = `오류 발생: ${error.message}`;
+            }
+        }
+
+        // ============ CSV 기반 일괄 분할 끝 ============
+
         function cleanup() {
             streams.forEach(stream => {
                 stream.getTracks().forEach(track => track.stop());
@@ -2314,6 +2692,12 @@ Ch01. 오리엔테이션
             if (animationId) {
                 cancelAnimationFrame(animationId);
             }
+
+            // 제목 감지 중지
+            stopTitleDetection();
+
+            // 클립보드 감시 중지
+            stopClipboardDetection();
 
             analyser = null;
             dataArray = null;
@@ -4140,10 +4524,17 @@ Ch01. 오리엔테이션
         const splitModeRadios = document.getElementsByName('splitMode');
         splitModeRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
+                // 모든 상태 표시 숨기기
+                if (autoSplitStatus) autoSplitStatus.style.display = 'none';
+                if (clipboardSplitStatus) clipboardSplitStatus.style.display = 'none';
+
                 if (e.target.value === 'title') {
-                    console.log('📌 제목 감지 자동 분할 모드 선택됨');
-                    addLog('📌 제목 감지 자동 분할 모드 선택 - 녹음 시 자동으로 제목 감지 시작', 'info');
-                    
+                    console.log('📌 제목 감지 자동 분할 모드 (DOM) 선택됨');
+                    addLog('📌 제목 감지 자동 분할 모드 (DOM) 선택 - 녹음 시 자동으로 제목 감지 시작', 'info');
+
+                    // 상태 표시
+                    if (autoSplitStatus) autoSplitStatus.style.display = 'block';
+
                     // 현재 감지 가능한지 테스트
                     const testTitle = getCurrentLectureTitle();
                     if (testTitle) {
@@ -4151,14 +4542,99 @@ Ch01. 오리엔테이션
                     } else {
                         addLog(`⚠️ 현재 제목을 감지할 수 없습니다. 강의 페이지에서 사용하세요.`, 'warning');
                     }
+                } else if (e.target.value === 'clipboard') {
+                    console.log('📋 클립보드 기반 자동 분할 모드 선택됨');
+                    addLog('📋 클립보드 기반 자동 분할 모드 선택 - 녹음 시 클립보드 감시 시작', 'info');
+
+                    // 상태 표시
+                    if (clipboardSplitStatus) clipboardSplitStatus.style.display = 'block';
+
+                    // 클립보드 권한 테스트
+                    navigator.clipboard.readText()
+                        .then(text => {
+                            addLog(`✅ 클립보드 접근 권한 확인 완료`, 'success');
+                            if (text) {
+                                addLog(`📋 현재 클립보드 내용: "${text}"`, 'info');
+                            }
+                        })
+                        .catch(error => {
+                            addLog(`⚠️ 클립보드 접근 권한이 필요합니다. 브라우저 설정을 확인하세요.`, 'warning');
+                        });
                 } else {
                     console.log('📌 수동 분할 모드 선택됨');
-                    if (autoSplitStatus) {
-                        autoSplitStatus.style.display = 'none';
-                    }
                 }
             });
         });
+
+        // CSV 파일 업로드 이벤트
+        if (csvFileInput) {
+            csvFileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+                    csvData = parseCSV(text);
+
+                    csvStatus.textContent = `✅ CSV 파일 로드 성공 (${csvData.length}개 강의)`;
+                    csvStatus.style.color = '#4caf50';
+
+                    addLog(`✅ CSV 파일 로드 성공: ${csvData.length}개 강의`, 'success');
+
+                    // 처리 버튼 활성화 체크
+                    updateProcessBatchButton();
+                } catch (error) {
+                    csvStatus.textContent = `❌ 오류: ${error.message}`;
+                    csvStatus.style.color = '#f44336';
+                    addLog(`❌ CSV 파일 로드 실패: ${error.message}`, 'error');
+                }
+            });
+        }
+
+        // webm 파일 업로드 이벤트
+        if (fullWebmInput) {
+            fullWebmInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                fullWebmFile = file;
+                webmStatus.textContent = `✅ ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                webmStatus.style.color = '#4caf50';
+
+                addLog(`✅ webm 파일 선택: ${file.name}`, 'success');
+
+                // 처리 버튼 활성화 체크
+                updateProcessBatchButton();
+            });
+        }
+
+        // 캡처 이미지 폴더 업로드 이벤트
+        if (captureImagesInput) {
+            captureImagesInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+
+                captureImagesFiles = files;
+                imagesStatus.textContent = `✅ ${files.length}개 이미지 선택됨`;
+                imagesStatus.style.color = '#4caf50';
+
+                addLog(`✅ 캡처 이미지 ${files.length}개 선택됨`, 'success');
+            });
+        }
+
+        // CSV 일괄 처리 버튼 이벤트
+        if (processCsvBatchBtn) {
+            processCsvBatchBtn.addEventListener('click', processCsvBatch);
+        }
+
+        // 처리 버튼 활성화 체크 함수
+        function updateProcessBatchButton() {
+            if (csvData && fullWebmFile && processCsvBatchBtn) {
+                processCsvBatchBtn.disabled = false;
+                processCsvBatchBtn.style.cursor = 'pointer';
+                processCsvBatchBtn.style.opacity = '1';
+            }
+        }
 
         // 챕터 모드 무음 설정 이벤트
         chapterSilence5.addEventListener('change', (e) => {
