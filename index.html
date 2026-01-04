@@ -4953,6 +4953,47 @@ Ch01. 오리엔테이션
             }
         }
 
+        // 🔄 B탭과의 크로스 탭 통신을 위한 BroadcastChannel 초기화
+        function initBroadcastChannel() {
+            try {
+                const channel = new BroadcastChannel('lecture-sync-channel');
+
+                channel.onmessage = function(event) {
+                    console.log('📡 [A탭] B탭으로부터 메시지 수신:', event.data);
+
+                    if (event.data.type === 'split_recording') {
+                        const chapterName = event.data.chapterName;
+                        const duration = event.data.duration;
+
+                        // 강의 정보 설정
+                        if (chapterName) {
+                            activeChapterName = chapterName;
+                            latestDetectedTitle = chapterName;
+                            previousChapterNameForSplit = chapterName;
+
+                            if (duration) {
+                                window.currentLectureDuration = duration;
+                            }
+                        }
+
+                        // 녹음 분할 실행
+                        if (typeof splitRecordingWithName === 'function') {
+                            console.log('✅ [A탭] splitRecordingWithName 호출:', chapterName);
+                            splitRecordingWithName(chapterName);
+                            addLog(`📡 [B탭] 강의 변경: "${chapterName}"`, 'info');
+                        } else {
+                            console.error('❌ [A탭] splitRecordingWithName 함수를 찾을 수 없음');
+                        }
+                    }
+                };
+
+                console.log('✅ [A탭] BroadcastChannel 초기화 완료');
+            } catch (error) {
+                console.error('❌ [A탭] BroadcastChannel 초기화 실패:', error);
+            }
+        }
+
+        initBroadcastChannel();
         checkBrowserSupport();
     </script>
 

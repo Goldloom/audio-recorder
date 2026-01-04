@@ -347,30 +347,44 @@
 
         // 녹음 중이면 분할 시도
         if (isRecording) {
-            console.log('🔄 [B탭] 녹음 중 확인됨 - BroadcastChannel로 메시지 전송');
+            console.log('🔄 [B탭] 녹음 중 확인됨 - 분할 함수 호출 시도');
 
-            try {
-                // BroadcastChannel을 사용하여 A탭에 메시지 전송
-                const channel = new BroadcastChannel('lecture-sync-channel');
+            if (typeof w.splitRecordingWithName === 'function') {
+                console.log('✅ [B탭] splitRecordingWithName 함수 발견!');
+                console.log('📞 [B탭] splitRecordingWithName("' + fullText + '") 호출...');
 
-                const message = {
-                    type: 'split_recording',
-                    chapterName: fullText,
-                    duration: lectureInfo.duration,
-                    timestamp: new Date().toISOString()
-                };
+                try {
+                    // 강의 정보 설정 후 약간의 지연을 두고 호출
+                    setTimeout(() => {
+                        const result = w.splitRecordingWithName(fullText);
+                        console.log('✅ [B탭] splitRecordingWithName 호출 성공!', result);
+                        addLog(`✂️ 제목 기반 분할: "${fullText}"`);
+                        lastSplitAt = new Date().toISOString();
+                    }, 100); // 100ms 지연
+                } catch (error) {
+                    console.error('❌ [B탭] splitRecordingWithName 호출 실패:', error);
+                    addLog(`❌ 분할 실패: ${error.message}`);
+                }
+            } else if (typeof w.splitRecording === 'function') {
+                console.log('✅ [B탭] splitRecording 함수 발견!');
+                console.log('📞 [B탭] splitRecording() 호출...');
 
-                console.log('📡 [B탭] A탭으로 메시지 전송:', message);
-                channel.postMessage(message);
-                channel.close(); // 전송 후 채널 닫기
-
-                console.log('✅ [B탭] 메시지 전송 성공!');
-                addLog(`✂️ 제목 기반 분할 요청: "${fullText}"`);
-                lastSplitAt = new Date().toISOString();
-
-            } catch (error) {
-                console.error('❌ [B탭] BroadcastChannel 메시지 전송 실패:', error);
-                addLog(`❌ 분할 요청 실패: ${error.message}`);
+                try {
+                    setTimeout(() => {
+                        w.splitRecording();
+                        console.log('✅ [B탭] splitRecording 호출 성공!');
+                        addLog(`✂️ (fallback) splitRecording 호출: "${fullText}"`);
+                        lastSplitAt = new Date().toISOString();
+                    }, 100);
+                } catch (error) {
+                    console.error('❌ [B탭] splitRecording 호출 실패:', error);
+                    addLog(`❌ 분할 실패: ${error.message}`);
+                }
+            } else {
+                console.warn('❌ [B탭] 분할 함수를 찾을 수 없음!');
+                const splitFunctions = Object.keys(w).filter(k => k.toLowerCase().includes('split'));
+                console.warn('[B탭] split 관련 함수:', splitFunctions);
+                addLog('⚠️ 분할 함수를 찾을 수 없습니다');
             }
         } else {
             console.log('⏸️ [B탭] 녹음 중 아님 - 제목만 설정');
