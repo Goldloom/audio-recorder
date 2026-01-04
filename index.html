@@ -1133,14 +1133,14 @@
         <div class="split-mode-section" style="background: #f8f9fa; border-radius: 12px; padding: 15px; margin-bottom: 20px;">
             <h3 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 12px;">🎯 분할 모드</h3>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
-                    <input type="radio" name="splitMode" value="manual" style="width: 18px; height: 18px;">
+                <label for="splitModeManual" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                    <input type="radio" name="splitMode" value="manual" id="splitModeManual" style="width: 18px; height: 18px;">
                     <div style="flex: 1;">
                         <strong style="font-size: 13px; display: block; margin-bottom: 2px;">수동 분할</strong>
                         <span style="font-size: 11px; color: #666;">위 "새 강의 시작" 버튼을 눌러 수동으로 분할</span>
                     </div>
                 </label>
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                <label for="autoSplitMode" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
                     <input type="radio" name="splitMode" value="title" id="autoSplitMode" checked style="width: 18px; height: 18px;">
                     <div style="flex: 1;">
                         <strong style="font-size: 13px; display: block; margin-bottom: 2px;">📌 제목 감지 자동 분할 (DOM 기반)</strong>
@@ -4193,7 +4193,15 @@ Ch01. 오리엔테이션
 
         // (downloadAll / downloadRecording / deleteRecording / splitRecording 함수는 기존과 동일)
 
-        recordBtn.addEventListener('click', startRecording);
+        recordBtn.addEventListener('click', (e) => {
+            console.log('🎵 녹음 버튼 클릭됨', { disabled: recordBtn.disabled, classList: recordBtn.classList });
+            if (!recordBtn.disabled) {
+                startRecording();
+            } else {
+                console.warn('⚠️ 녹음 버튼이 비활성화되어 있습니다');
+                alert('녹음 기능이 현재 사용할 수 없습니다. 브라우저 콘솔을 확인해주세요.');
+            }
+        });
         pauseBtn.addEventListener('click', pauseRecording);
         stopBtn.addEventListener('click', stopRecording);
         newLectureBtn.addEventListener('click', () => splitRecording());
@@ -4936,6 +4944,14 @@ Ch01. 오리엔테이션
             const isSecure = window.isSecureContext;
             const protocol = window.location.protocol;
 
+            console.log('🔍 브라우저 지원 확인:', {
+                hasMediaDevices,
+                hasGetDisplayMedia,
+                isSecure,
+                protocol,
+                userAgent: navigator.userAgent
+            });
+
             if (!hasMediaDevices || !hasGetDisplayMedia) {
                 let reason = "이 브라우저는 시스템 오디오 캡처를 지원하지 않습니다.";
 
@@ -4950,6 +4966,10 @@ Ch01. 오리엔테이션
                 const debugInfo = `(진단: MD=${hasMediaDevices}, GDM=${hasGetDisplayMedia}, Sec=${isSecure}, Proto=${protocol})`;
                 updateStatus('error', `❌ ${reason} ${debugInfo}`);
                 recordBtn.disabled = true;
+                console.error('❌ 녹음 버튼 비활성화:', reason);
+            } else {
+                console.log('✅ 브라우저 지원 확인 통과');
+                updateStatus('ready', '✅ 준비됨 - 녹음 버튼을 눌러 시작하세요');
             }
         }
 
