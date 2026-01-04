@@ -1760,7 +1760,7 @@ Ch01. 오리엔테이션
 
                         // MM:SS 형식을 초로 변환 (예: "5:21" -> 321)
                         let totalSec = 0;
-                        if (window.currentLectureDuration.includes(':')) {
+                        if (typeof window.currentLectureDuration === 'string' && window.currentLectureDuration.includes(':')) {
                             const parts = window.currentLectureDuration.split(':');
                             const minutes = parseInt(parts[0]) || 0;
                             const seconds = parseInt(parts[1]) || 0;
