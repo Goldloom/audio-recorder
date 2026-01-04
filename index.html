@@ -2726,11 +2726,9 @@ Ch01. 오리엔테이션
 
             addLog(`🔄 강의 분할 중... (클립보드 변경 감지)`, 'info');
 
-            // 기존 캡처 중지 및 PDF 저장
+            // 기존 캡처 중지 (이미지는 saveRecordingWithNameAndImages에서 함께 저장됨)
             if (capturedImages.length > 0) {
                 stopCapture();
-                const previousName = parseClipboardTitle(previousText);
-                saveCapturedImagesToPDF(previousName);
             }
 
             // 강의 카운트 증가
@@ -2982,10 +2980,9 @@ Ch01. 오리엔테이션
 
             addLog(`🔄 강의 분할 중... (CSV 파일 변경 감지)`, 'info');
 
-            // 기존 캡처 중지 및 PDF 저장
+            // 기존 캡처 중지 (이미지는 saveRecordingWithNameAndImages에서 함께 저장됨)
             if (capturedImages.length > 0) {
                 stopCapture();
-                saveCapturedImagesToPDF(previousLecture || `강의${lectureCount}`);
             }
 
             // 강의 카운트 증가
