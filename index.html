@@ -5400,6 +5400,7 @@ Ch01. 오리엔테이션
                 addLog(`📁 CSV 파일 선택: ${csvFileHandle.name}`, 'info');
 
                 // 즉시 한번 읽기
+                console.log('📊 [CSV] 파일 선택 후 즉시 읽기 호출');
                 readCsvFile();
             }).catch(e => {
                 if (e.name !== 'AbortError') {
@@ -5412,15 +5413,25 @@ Ch01. 오리엔테이션
             if (!csvFileHandle) return;
 
             try {
+                console.log('📊 [CSV] 파일 읽기 시작...');
                 const file = await csvFileHandle.getFile();
                 const content = await file.text();
-                const lines = content.trim().split('\n');
+                console.log('📊 [CSV] 파일 내용 읽음, 길이:', content.length);
 
-                if (lines.length < 2) return; // 헤더만 있음
+                const lines = content.trim().split('\n');
+                console.log('📊 [CSV] 총 줄 수:', lines.length);
+
+                if (lines.length < 2) {
+                    console.log('📊 [CSV] 헤더만 있어서 스킵');
+                    return; // 헤더만 있음
+                }
 
                 // 마지막 행 파싱 (가장 최근 강의)
                 const lastLine = lines[lines.length - 1];
+                console.log('📊 [CSV] 마지막 줄:', lastLine);
+
                 const columns = parseCsvLine(lastLine);
+                console.log('📊 [CSV] 파싱된 컬럼 수:', columns.length, '컬럼들:', columns);
 
                 if (columns.length >= 5) {
                     const lectureInfo = {
@@ -5432,11 +5443,26 @@ Ch01. 오리엔테이션
                         duration: columns[5] || ''
                     };
 
+                    console.log('📊 [CSV] 강의 정보:', lectureInfo);
+                    console.log('📊 [CSV] 이전 lastCsvLectureText:', lastCsvLectureText);
+
                     // 새로운 강의인지 확인
                     if (lectureInfo.fullText && lectureInfo.fullText !== lastCsvLectureText) {
                         console.log('📊 [A탭] CSV에서 새 강의 발견:', lectureInfo.fullText);
+
+                        // 강의명 즉시 업데이트 (녹음 시작 시 사용)
+                        lastDetectedLectureName = lectureInfo.fullText;
+
                         processNewLectureFromCsv(lectureInfo);
+                    } else if (lectureInfo.fullText) {
+                        // 같은 강의라도 lastDetectedLectureName 업데이트
+                        lastDetectedLectureName = lectureInfo.fullText;
+                        console.log('📊 [CSV] 강의명 업데이트:', lectureInfo.fullText);
+                    } else {
+                        console.log('📊 [CSV] 같은 강의거나 빈 텍스트:', lectureInfo.fullText);
                     }
+                } else {
+                    console.log('📊 [CSV] 컬럼 수가 부족함:', columns.length);
                 }
             } catch (e) {
                 console.error('❌ [A탭] CSV 읽기 실패:', e);
@@ -5479,7 +5505,7 @@ Ch01. 오리엔테이션
 
             // ✅ latestDetectedTitle과 lastDetectedLectureName 업데이트
             latestDetectedTitle = fullText;
-            lastDetectedLectureName = fullText;  // 녹음 시작 시 강의명[0] 표시를 위해 추가
+            lastDetectedLectureName = fullText;  // 녹음 시작 시 강의명 표시를 위해 추가
 
             // duration 처리 (MM:SS → 초 단위 변환)
             if (duration) {
