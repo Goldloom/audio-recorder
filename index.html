@@ -4522,8 +4522,14 @@ Ch01. 오리엔테이션
                 }
                 lastBTabDetectionTime = currentTime;
 
-                // B탭 감지 로그 생성
-                addLog(`📊 [B탭] CSV에서 새 강의 발견${detectionTimeInfo} [${detectionTimeStr}]: ${chapterName}`, 'info');
+                // CSV 파일 감시 모드에서는 중복 로그 방지 (processNewLectureFromCsv에서 이미 출력됨)
+                if (!window.isCsvModeDetection) {
+                    // B탭 감지 로그 생성
+                    addLog(`📊 [B탭] CSV에서 새 강의 발견${detectionTimeInfo} [${detectionTimeStr}]: ${chapterName}`, 'info');
+                }
+
+                // CSV 모드 플래그 리셋
+                window.isCsvModeDetection = false;
             }
 
             if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -5494,11 +5500,16 @@ Ch01. 오리엔테이션
 
             console.log('🎧 [A탭] CSV로부터 새 강의 수신:', fullText);
 
+            // CSV 모드 플래그 설정 (중복 로그 방지)
+            window.isCsvModeDetection = true;
+
+            // 1단계: CSV 강의 감지 로그 출력 (녹음 종료 로직보다 먼저)
+            addLog(`📊 CSV 강의 감지: "${fullText}"`, 'info');
+
             // 녹음 분할 실행 (activeChapterName은 이 함수 내부에서 업데이트됨)
             if (typeof splitRecordingWithName === 'function') {
                 console.log('✅ [A탭] splitRecordingWithName 호출:', fullText);
                 splitRecordingWithName(fullText);
-                addLog(`📊 CSV 강의 감지: "${fullText}"`, 'info');
             } else {
                 console.error('❌ [A탭] splitRecordingWithName 함수를 찾을 수 없음');
             }
