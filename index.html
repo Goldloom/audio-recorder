@@ -2952,7 +2952,7 @@ Ch01. 오리엔테이션
                             lastCsvModifiedTime = file.lastModified;
                             lastDetectedLectureName = newLecture;
 
-                            // 자동 분할 실행
+                            // 자동 분할 실행 (상태 업데이트는 performCSVAutoSplit 내에서 처리)
                             performCSVAutoSplit(previousLecture, newLecture);
                         } else {
                             // 강의명은 같지만 파일 내용이 바뀐 경우 (시간 정보 업데이트 등)
@@ -3028,6 +3028,9 @@ Ch01. 오리엔테이션
                     recordingStartTime = Date.now();
                     startTime = Date.now();
                     pausedTime = 0;
+
+                    // 상태 표시 업데이트
+                    updateStatus('recording', `🔴 녹음 중... (${activeChapterName})`);
 
                     // 캡처 재시작
                     if (captureEnabled && captureEnabled.checked) {
