@@ -2236,9 +2236,14 @@ Ch01. 오리엔테이션
             stopBtn.disabled = false;
             newLectureBtn.disabled = false;
 
-            // 🔧 B탭 감지된 강의명이 있으면 우선 사용, 없으면 기존 챕터 정보 사용
-            let lectureTitle = activeChapterName;
+            // 🔧 우선순위: activeChapterName > lastDetectedLectureName (CSV) > 챕터 정보 > 기본값
+            let lectureTitle = activeChapterName || lastDetectedLectureName;
             let expectedTimeStr = '';
+
+            // CSV에서 감지한 강의명을 activeChapterName에 설정
+            if (lectureTitle && !activeChapterName) {
+                activeChapterName = lectureTitle;
+            }
 
             if (!lectureTitle && chapters.length > 0) {
                 // 기존 챕터 모드
@@ -2314,12 +2319,29 @@ Ch01. 오리엔테이션
 
                 updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
             } else if (lectureTitle) {
-                // B탭 감지 모드
-                addLog(`🎬 녹음 시작: "${lectureTitle}" (소스: 시스템 오디오)`, 'success');
+                // CSV 감지 모드 또는 기타 자동 감지 모드
+                const sourceInfo = lastDetectedLectureName ? '(소스: CSV 파일)' : '(소스: 시스템 오디오)';
+                addLog(`🎬 녹음 시작: "${lectureTitle}" ${sourceInfo}`, 'success');
                 updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
+
+                // CSV 모드인 경우 분할 감시 시작
+                const splitModeRadios = document.getElementsByName('splitMode');
+                for (const radio of splitModeRadios) {
+                    if (radio.checked && radio.value === 'csv') {
+                        csvFileWatchEnabled = true;
+                        titleDetectionEnabled = false;
+                        clipboardDetectionEnabled = false;
+                        startCSVFileWatch();
+                        if (csvSplitStatus) {
+                            csvSplitStatus.style.display = 'block';
+                        }
+                        break;
+                    }
+                }
             } else {
                 // 폴백
                 lectureTitle = `강의 ${lectureCount}`;
+                activeChapterName = lectureTitle;
                 addLog(`🎬 녹음 시작: "${lectureTitle}"`, 'success');
                 updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
             }
