@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Lecture Tracker (Real CSV File Writer)
 // @namespace    lecture-sync-namespace
-// @version      7.2
+// @version      7.6
 // @description  강의 정보를 실제 CSV 파일에 저장 (File System Access API) - 동영상 재생시간 포함
 // @match        https://kdt.fastcampus.co.kr/classroom/*
 // @match        https://kdt.fastcampus.co.kr/*
@@ -219,15 +219,73 @@
         }
 
         let donut = null;
-        const donutNodes = document.querySelectorAll('text.common-donut-graph__text');
-        if (donutNodes.length) {
-            for (const node of donutNodes) {
-                const m = node.textContent.trim().match(/\d+/);
-                if (m) {
-                    donut = m[0];
-                    break;
+
+        // 방법 1: 열려 있는 아코디언에서 donut 텍스트 찾기 (116 추출)
+        const openAccordionSelector = '.classroom-sidebar-clip__chapter .common-accordion-menu.common-accordion-menu--open .common-donut-graph__text';
+        const openAccordionNodes = document.querySelectorAll(openAccordionSelector);
+
+        if (openAccordionNodes.length > 0) {
+            // 열려 있는 아코디언들의 donut 값 수집
+            const donutValues = Array.from(openAccordionNodes)
+                .map(node => node.textContent.trim())
+                .filter(text => text && /^\d+$/.test(text))
+                .map(text => parseInt(text))
+                .filter(num => num > 0 && num < 200);
+
+            if (donutValues.length > 0) {
+                // 가장 큰 값 선택 (현재 보고 있는 챕터)
+                const maxDonut = Math.max(...donutValues);
+                donut = maxDonut.toString();
+                console.log('✅ [A탭] donut 추출 성공 (열려 있는 아코디언):', donut);
+            }
+        }
+
+        // 방법 2: fallback - 기존 방식 (로그 최소화)
+        if (!donut) {
+            const svgSelector = 'text.common-donut-graph__text[x="50%"][y="50%"][dy="0.6ex"]';
+            const svgNodes = document.querySelectorAll(svgSelector);
+
+            if (svgNodes.length > 0) {
+                const svgValues = Array.from(svgNodes)
+                    .map(node => node.textContent.trim())
+                    .filter(text => /^\d+$/.test(text))
+                    .map(text => parseInt(text))
+                    .filter(num => num > 0 && num < 200);
+
+                if (svgValues.length > 0) {
+                    donut = Math.max(...svgValues).toString();
+                    console.log('✅ [A탭] donut 추출 성공 (SVG fallback):', donut);
                 }
             }
+        }
+
+        // 방법 2: 기존 방식으로 fallback
+        if (!donut) {
+            console.log('⚠️ [A탭] 중앙 텍스트를 찾을 수 없어 기존 방식으로 시도');
+            const donutNodes = document.querySelectorAll('text.common-donut-graph__text');
+
+            if (donutNodes.length) {
+                const allNumbers = [];
+                for (const node of donutNodes) {
+                    const text = node.textContent.trim();
+                    const numMatch = text.match(/^\d+$/);
+                    if (numMatch) {
+                        const num = parseInt(numMatch[0]);
+                        if (num < 200) { // 200 미만의 숫자만 고려 (섹션 번호 제외)
+                            allNumbers.push(num);
+                        }
+                    }
+                }
+
+                if (allNumbers.length > 0) {
+                    donut = Math.max(...allNumbers).toString();
+                    console.log('⚠️ [A탭] donut 추출 (제한된 최대값):', donut, 'from:', allNumbers);
+                }
+            }
+        }
+
+        if (!donut) {
+            console.log('❌ [A탭] donut 값을 찾을 수 없음');
         }
 
         // 동영상 클립 재생시간 추출

@@ -2203,17 +2203,31 @@ Ch01. 오리엔테이션
             stopBtn.disabled = false;
             newLectureBtn.disabled = false;
 
-            if (chapters.length > 0) {
-                // 현재 챕터의 이름 설정
-                const currentChapter = chapters[currentChapterIndex];
-                activeChapterName = currentChapter.name;
-                updateStatus('recording', `🔴 녹음 중... (${currentChapter.shortName || currentChapter.name})`);
+            // 🔧 B탭 감지된 강의명이 있으면 우선 사용, 없으면 기존 챕터 정보 사용
+            let lectureTitle = activeChapterName;
+            let expectedTimeStr = '';
 
-                // 로그 추가 (예상 시간 포함)
+            if (!lectureTitle && chapters.length > 0) {
+                // 기존 챕터 모드
+                const currentChapter = chapters[currentChapterIndex];
+                lectureTitle = currentChapter.name;
+                activeChapterName = currentChapter.name;
+
+                // 예상 시간 계산
                 const expectedMin = Math.floor(currentChapter.duration / 60);
                 const expectedSec = Math.floor(currentChapter.duration % 60);
-                const expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
+                expectedTimeStr = `${expectedMin}분 ${expectedSec}초`;
                 addLog(`🎬 녹음 시작: "${currentChapter.name}" (챕터 ${currentChapterIndex + 1}/${chapters.length}, 예상: ${expectedTimeStr})`, 'success');
+            } else if (lectureTitle) {
+                // B탭 감지 모드
+                addLog(`🎬 녹음 시작: "${lectureTitle}" (소스: 시스템 오디오)`, 'success');
+            } else {
+                // 폴백
+                lectureTitle = `강의 ${lectureCount}`;
+                addLog(`🎬 녹음 시작: "${lectureTitle}"`, 'success');
+            }
+
+            updateStatus('recording', `🔴 녹음 중... (${lectureTitle})`);
 
                 // ⚠️ 분할 모드 확인 및 감지 시작 (startChapterTimers 호출 전에 먼저 설정)
                 const splitModeRadios = document.getElementsByName('splitMode');
@@ -4190,6 +4204,8 @@ Ch01. 오리엔테이션
             if (chapterName) {
                 latestDetectedTitle = chapterName;
                 activeChapterName = chapterName;
+                // 🔧 수정: 새로운 강의명으로 previousChapterNameForSplit 업데이트
+                previousChapterNameForSplit = chapterName;
 
                 // B탭 감지 시간 계산 및 로그
                 const currentTime = Date.now();
@@ -4223,6 +4239,8 @@ Ch01. 오리엔테이션
                 if (chapterName) {
                     activeChapterName = chapterName;
                     latestDetectedTitle = chapterName;
+                    // 🔧 UI를 새로운 강의명으로 즉시 업데이트
+                    updateStatus('recording', `🔄 강의 변경됨: ${chapterName}`);
                 }
 
                 // 실제 녹음 시간 계산
@@ -4314,7 +4332,8 @@ Ch01. 오리엔테이션
                     if (autoStartOnSound.checked) {
                         isWaitingForFirstSound = true;
                         isRecording = false; // 실제 녹음 전까지는 false
-                        const nextName = chapters[currentChapterIndex]?.shortName || chapters[currentChapterIndex]?.name || `강의 ${lectureCount}`;
+                        // 🔧 B탭 감지된 강의명을 우선 사용
+                        const nextName = activeChapterName || chapters[currentChapterIndex]?.shortName || chapters[currentChapterIndex]?.name || `강의 ${lectureCount}`;
                         updateStatus('recording', `🎵 소리 대기 중... (${nextName})`);
                         // actuallyStartRecording()이 루프에서 호출될 것임
                     } else {
