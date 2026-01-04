@@ -1556,6 +1556,9 @@ Ch01. 오리엔테이션
         // 🎯 B탭에서 감지한 최신 강의 제목 (일반 모드에서도 사용)
         let latestDetectedTitle = '';
 
+        // 📝 B탭 분할 시 사용할 이전 강의명 저장
+        let previousChapterNameForSplit = '';
+
         // ⏱️ B탭 감지 시간 추적
         let lastBTabDetectionTime = 0;
 
@@ -2232,6 +2235,9 @@ Ch01. 오리엔테이션
                 if (!lectureTitle) {
                     lectureTitle = `강의 ${lectureCount}`;
                 }
+
+                // 새 녹음 시작 시 이전 강의명 저장 (다음 분할 시 사용)
+                previousChapterNameForSplit = lectureTitle;
 
                 updateStatus('recording', `🔴 녹음 중... (${lectureTitle}, ${sourceText})`);
                 addLog(`🎬 녹음 시작: ${lectureTitle} (소스: ${sourceText})`, 'success');
@@ -4162,15 +4168,14 @@ Ch01. 오리엔테이션
             }
 
             if (mediaRecorder && mediaRecorder.state === 'recording') {
-                // 현재 녹음 중인 파일은 이전 강의명으로 저장 (B탭 감지 시점 이전의 제목)
-                const previousChapterName = activeChapterName || (chapters[currentChapterIndex]?.name) || `강의${lectureCount}`;
+                // 현재 녹음 중인 파일은 녹음 시작 시 저장해둔 이전 강의명으로 저장
+                const endedChapterName = previousChapterNameForSplit || activeChapterName || (chapters[currentChapterIndex]?.name) || `강의${lectureCount}`;
 
                 // 새로 발견된 강의명은 다음 녹음을 위해 저장
                 if (chapterName) {
                     activeChapterName = chapterName;
+                    latestDetectedTitle = chapterName;
                 }
-
-                const endedChapterName = previousChapterName;
 
                 // 실제 녹음 시간 계산
                 const actualDuration = recordingStartTime ? (Date.now() - recordingStartTime) / 1000 : 0; // 초 단위
