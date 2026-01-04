@@ -2204,7 +2204,16 @@ Ch01. 오리엔테이션
                 // 일반 모드 (챕터 없음)
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
                     currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
-                const lectureTitle = getCurrentLectureTitle() || `강의 ${lectureCount}`;
+
+                // 강의명 우선순위: currentDetectedTitle (제목 감지 모드) > getCurrentLectureTitle() > fallback
+                let lectureTitle = currentDetectedTitle;
+                if (!lectureTitle) {
+                    lectureTitle = getCurrentLectureTitle();
+                }
+                if (!lectureTitle) {
+                    lectureTitle = `강의 ${lectureCount}`;
+                }
+
                 updateStatus('recording', `🔴 녹음 중... (${lectureTitle}, ${sourceText})`);
                 addLog(`🎬 녹음 시작: ${lectureTitle} (소스: ${sourceText})`, 'success');
             }
