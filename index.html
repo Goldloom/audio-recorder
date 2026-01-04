@@ -4434,12 +4434,12 @@ Ch01. 오리엔테이션
 
         // ✅ 챕터명 기반 분할 저장
         function splitRecordingWithName(chapterName) {
+            // 🔧 현재 녹음 중인 강의명 저장 (새 강의명으로 덮어쓰기 전에 백업)
+            const currentRecordingName = activeChapterName || (chapters[currentChapterIndex]?.name) || `강의${lectureCount}`;
+
             // B탭에서 호출된 경우 최신 제목 저장 및 시간 측정
             if (chapterName) {
                 latestDetectedTitle = chapterName;
-                activeChapterName = chapterName;
-                // 🔧 수정: 새로운 강의명으로 previousChapterNameForSplit 업데이트
-                previousChapterNameForSplit = chapterName;
 
                 // B탭 감지 시간 계산 및 로그
                 const currentTime = Date.now();
@@ -4466,14 +4466,12 @@ Ch01. 오리엔테이션
             }
 
             if (mediaRecorder && mediaRecorder.state === 'recording') {
-                // 현재 녹음 중인 파일은 녹음 시작 시 저장해둔 이전 강의명으로 저장
-                const endedChapterName = previousChapterNameForSplit || activeChapterName || (chapters[currentChapterIndex]?.name) || `강의${lectureCount}`;
+                // ✅ 현재 녹음 중인 파일은 백업해둔 이전 강의명으로 저장
+                const endedChapterName = currentRecordingName;
 
-                // 새로 발견된 강의명은 다음 녹음을 위해 저장
+                // 🔧 새로 발견된 강의명은 다음 녹음을 위해 저장 (현재 녹음 저장 후에 업데이트)
                 if (chapterName) {
-                    activeChapterName = chapterName;
-                    latestDetectedTitle = chapterName;
-                    // 🔧 UI를 새로운 강의명으로 즉시 업데이트
+                    // UI를 새로운 강의명으로 즉시 업데이트
                     updateStatus('recording', `🔄 강의 변경됨: ${chapterName}`);
                 }
 
@@ -4524,6 +4522,13 @@ Ch01. 오리엔테이션
                     const audioBlob = new Blob(audioChunks, { type: currentMimeType });
                     saveRecordingWithNameAndImages(audioBlob, currentRecordingType, endedChapterName, imagesToSave);
                     audioChunks = [];
+
+                    // ✅ 이전 녹음 저장 완료 후 새 강의명으로 업데이트
+                    if (chapterName) {
+                        activeChapterName = chapterName;
+                        previousChapterNameForSplit = chapterName;
+                        console.log(`✅ 다음 녹음을 위해 강의명 업데이트: "${chapterName}"`);
+                    }
                 };
 
                 mediaRecorder.stop();
