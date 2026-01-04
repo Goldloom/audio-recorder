@@ -26,37 +26,40 @@
         const existing = document.getElementById('lecture-status-panel');
         if (existing) existing.remove();
 
+        // document.body가 준비될 때까지 대기
+        if (!document.body) {
+            console.warn('⚠️ [A탭] document.body가 아직 준비되지 않음, 100ms 후 재시도');
+            setTimeout(createStatusPanel, 100);
+            return;
+        }
+
         const box = document.createElement('div');
         box.id = 'lecture-status-panel';
-        box.style.cssText = `
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            padding: 10px 14px;
-            border-radius: 10px;
-            background: rgba(0,0,0,0.85);
-            color: #fff;
-            font-size: 12px;
-            line-height: 16px;
-            z-index: 999999;
-            user-select: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        `;
+        box.style.cssText = 'position: fixed; bottom: 10px; right: 10px; padding: 10px 14px; border-radius: 10px; background: rgba(0,0,0,0.85); color: #fff; font-size: 12px; line-height: 16px; z-index: 999999; user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3);';
 
-        box.innerHTML = `
-            <div style="font-weight:bold;margin-bottom:4px;">📡 A탭 CSV Writer</div>
-            <div id="uiStatus" style="color:#ffd43b;font-size:11px;margin-bottom:4px;">⏸️ CSV 파일 선택 필요</div>
-            <div id="uiCurrent">현재 강의: -</div>
-            <div id="uiStart">시작시간: -</div>
-            <div id="uiFilePath" style="color:#868e96;font-size:10px;margin-top:4px;">파일: 미선택</div>
-            <button id="selectFileBtn" style="margin-top:6px;width:100%;padding:6px 8px;border-radius:6px;border:none;background:#5865F2;color:#fff;cursor:pointer;font-size:11px;">
-                📁 CSV 파일 선택
-            </button>
-        `;
+        const content = document.createElement('div');
+        content.innerHTML = '<div style="font-weight:bold;margin-bottom:4px;">&#128225; A&#xD0ED; CSV Writer</div>' +
+            '<div id="uiStatus" style="color:#ffd43b;font-size:11px;margin-bottom:4px;">&#9208;&#65039; CSV &#xD30C;&#xC77C; &#xC120;&#xD0DD; &#xD544;&#xC694;</div>' +
+            '<div id="uiCurrent">&#xD604;&#xC7AC; &#xAC15;&#xC758;: -</div>' +
+            '<div id="uiStart">&#xC2DC;&#xC791;&#xC2DC;&#xAC04;: -</div>' +
+            '<div id="uiFilePath" style="color:#868e96;font-size:10px;margin-top:4px;">&#xD30C;&#xC77C;: &#xBBF8;&#xC120;&#xD0DD;</div>' +
+            '<button id="selectFileBtn" style="margin-top:6px;width:100%;padding:6px 8px;border-radius:6px;border:none;background:#5865F2;color:#fff;cursor:pointer;font-size:11px;">' +
+            '&#128193; CSV &#xD30C;&#xC77C; &#xC120;&#xD0DD;' +
+            '</button>';
 
-        document.body.appendChild(box);
+        box.appendChild(content);
 
-        document.getElementById('selectFileBtn').onclick = selectCsvFile;
+        try {
+            document.body.appendChild(box);
+        } catch (e) {
+            console.error('❌ [A탭] UI Panel appendChild 실패:', e);
+            return;
+        }
+
+        const selectBtn = document.getElementById('selectFileBtn');
+        if (selectBtn) {
+            selectBtn.onclick = selectCsvFile;
+        }
 
         console.log('✅ [A탭] UI Panel 생성 완료');
     }
