@@ -1553,6 +1553,9 @@ Ch01. 오리엔테이션
         // ✅ 현재 녹음 중인 챕터 이름
         let activeChapterName = '';
 
+        // 🎯 B탭에서 감지한 최신 강의 제목 (일반 모드에서도 사용)
+        let latestDetectedTitle = '';
+
         // 화면 변화 감지 변수들
         let sceneChangeDetector = null;
         let lastFrameData = null;
@@ -2212,8 +2215,14 @@ Ch01. 오리엔테이션
                 const sourceText = currentRecordingType === 'both' ? '시스템 + 마이크' :
                     currentRecordingType === 'system' ? '시스템 오디오' : '마이크';
 
-                // 강의명 우선순위: currentDetectedTitle (제목 감지 모드) > 강화된 제목 감지 > fallback
-                let lectureTitle = currentDetectedTitle;
+                // 강의명 우선순위: latestDetectedTitle (B탭 최신 감지) > activeChapterName > currentDetectedTitle > 강화된 제목 감지 > fallback
+                let lectureTitle = latestDetectedTitle;
+                if (!lectureTitle) {
+                    lectureTitle = activeChapterName;
+                }
+                if (!lectureTitle) {
+                    lectureTitle = currentDetectedTitle;
+                }
                 if (!lectureTitle) {
                     lectureTitle = getEnhancedLectureTitle();
                 }
@@ -2625,6 +2634,7 @@ Ch01. 오리엔테이션
                 // 새 녹음 시작
                 audioChunks = [];
                 activeChapterName = parseClipboardTitle(newText);
+                latestDetectedTitle = activeChapterName; // B탭 감지 제목 저장
 
                 console.log(`🎬 [클립보드 분할] 새 녹음 시작: "${activeChapterName}"`);
                 addLog(`🎬 새 강의 녹음 시작: "${activeChapterName}" (강의 ${lectureCount})`, 'success');
@@ -4119,6 +4129,12 @@ Ch01. 오리엔테이션
 
         // ✅ 챕터명 기반 분할 저장
         function splitRecordingWithName(chapterName) {
+            // B탭에서 호출된 경우 최신 제목 저장
+            if (chapterName) {
+                latestDetectedTitle = chapterName;
+                activeChapterName = chapterName;
+            }
+
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 const endedChapterName =
                     chapterName ||
