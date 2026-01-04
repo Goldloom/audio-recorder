@@ -5394,14 +5394,25 @@ Ch01. 오리엔테이션
                     accept: { 'text/csv': ['.csv'] }
                 }],
                 multiple: false
-            }).then(handles => {
+            }).then(async (handles) => {
                 csvFileHandle = handles[0];
                 console.log('✅ [A탭] CSV 파일 선택:', csvFileHandle.name);
                 addLog(`📁 CSV 파일 선택: ${csvFileHandle.name}`, 'info');
 
-                // 즉시 한번 읽기
+                // 즉시 한번 읽기 (강의명 즉시 로드)
                 console.log('📊 [CSV] 파일 선택 후 즉시 읽기 호출');
-                readCsvFile();
+                try {
+                    await readCsvFile();
+                    console.log('📊 [CSV] 파일 읽기 완료, 현재 lastDetectedLectureName:', lastDetectedLectureName);
+
+                    // 강의명이 로드되었으면 UI에 표시
+                    if (lastDetectedLectureName) {
+                        console.log('📊 [CSV] 강의명 로드됨:', lastDetectedLectureName);
+                        // 필요한 경우 여기서 추가 처리
+                    }
+                } catch (error) {
+                    console.error('❌ [CSV] 초기 파일 읽기 실패:', error);
+                }
             }).catch(e => {
                 if (e.name !== 'AbortError') {
                     console.error('❌ [A탭] CSV 파일 선택 실패:', e);
