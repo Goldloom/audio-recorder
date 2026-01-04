@@ -199,7 +199,10 @@
                 console.log('📊 [B탭] CSV에서 새 강의 발견:', lectureInfo.fullText);
                 splitRecordingByLecture(lectureInfo);
             } else if (lectureInfo.fullText && fileHandle) {
-                // 같은 강의가 계속 유지되는 경우 - 조용히 처리 (로그 생략)
+                // 같은 강의가 계속 유지되는 경우 - duration만 업데이트 (로그 생략)
+                if (lectureInfo.duration !== null && lectureInfo.duration !== undefined) {
+                    w.currentLectureDuration = lectureInfo.duration; // 초 단위
+                }
                 updateStatusPanel();
             }
 
@@ -304,13 +307,33 @@
         console.log('📝 [B탭] CSV에 강의 정보 기록 (A탭에서 자동 감지)');
         console.log('📊 [B탭] 전체 lectureInfo:', lectureInfo);
 
+        // 🔧 duration을 window 객체에 설정 (A탭에서 사용)
+        if (lectureInfo.duration !== null && lectureInfo.duration !== undefined) {
+            w.currentLectureDuration = lectureInfo.duration; // 초 단위
+            console.log('⏱️ [B탭] duration 설정:', lectureInfo.duration, '초');
+        }
+
         const addLog = typeof w.addLog === 'function'
             ? w.addLog
             : (msg) => console.log('[LOG]', msg);
 
-        // CSV에 강의 정보 기록만 수행 (A탭이 스스로 CSV를 읽어서 처리)
-        console.log('📝 [B탭] CSV에 강의 정보 기록 완료 - A탭에서 자동 감지됨');
-        addLog(`📊 강의 정보 CSV 기록: "${fullText}"`);
+        // 🔧 B탭이 A탭의 CSV 정보를 받아서 index에 전달
+        if (typeof w.processNewLectureFromCsv === 'function') {
+            console.log('✅ [B탭] index의 processNewLectureFromCsv 함수 호출');
+            try {
+                w.processNewLectureFromCsv(lectureInfo);
+                console.log('📝 [B탭] index에 강의 정보 전달 완료');
+                addLog(`📊 [B탭] 강의 정보 전달: "${fullText}"`);
+            } catch (error) {
+                console.error('❌ [B탭] index 함수 호출 실패:', error);
+                // 폴백: 그냥 로그 기록
+                addLog(`📊 강의 정보 CSV 기록: "${fullText}"`);
+            }
+        } else {
+            console.warn('⚠️ [B탭] index의 processNewLectureFromCsv 함수를 찾을 수 없음');
+            addLog(`📊 강의 정보 CSV 기록: "${fullText}"`);
+        }
+
         lastSplitAt = new Date().toISOString();
 
         updateStatusPanel();

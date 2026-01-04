@@ -1723,10 +1723,10 @@ Ch01. 오리엔테이션
                             if (remainingSec > 0) {
                                 progressRemaining.textContent = `잔여 녹음 시간: ${formatTime(remainingSec * 1000)}`;
                             } else {
-                                progressRemaining.textContent = '연속 녹음 중 (완료)';
+                                progressRemaining.textContent = `녹음 경과: ${formatTime(elapsedSec * 1000)} (완료)`;
                             }
                         } else {
-                            progressRemaining.textContent = '연속 녹음 중';
+                            progressRemaining.textContent = `녹음 경과: ${formatTime(elapsedSec * 1000)}`;
                         }
                         if (remainingTimeIndicator) remainingTimeIndicator.textContent = '';
                     }
@@ -1755,10 +1755,10 @@ Ch01. 오리엔테이션
                         if (remainingSec > 0) {
                             progressRemaining.textContent = `잔여 녹음 시간: ${formatTime(remainingSec * 1000)}`;
                         } else {
-                            progressRemaining.textContent = '연속 녹음 중 (완료)';
+                            progressRemaining.textContent = `녹음 경과: ${formatTime(elapsedSec * 1000)} (완료)`;
                         }
                     } else {
-                        progressRemaining.textContent = '연속 녹음 중';
+                        progressRemaining.textContent = `녹음 경과: ${formatTime(elapsedSec * 1000)}`;
                     }
                     if (remainingTimeIndicator) remainingTimeIndicator.textContent = '';
                 }
