@@ -1711,7 +1711,9 @@ Ch01. 오리엔테이션
                 // 프로그레스 바 및 잔여 시간 업데이트
                 if (chapters.length > 0 && chapters[currentChapterIndex]) {
                     const currentChapter = chapters[currentChapterIndex];
-                    const chapterDuration = currentChapter.duration; // seconds
+                    // 재생 배속 고려하여 실제 예상 시간 계산
+                    const playbackSpeed = parseFloat(document.getElementById('playbackSpeed')?.value || '1');
+                    const chapterDuration = currentChapter.duration / playbackSpeed; // seconds
                     const durationMs = chapterDuration * 1000;
 
                     if (chapterDuration && chapterDuration > 0) {
@@ -1839,7 +1841,9 @@ Ch01. 오리엔테이션
                             let remainingTime = null;
                             if (chapters.length > 0 && currentChapterIndex < chapters.length) {
                                 const currentChapter = chapters[currentChapterIndex];
-                                const expectedDuration = currentChapter.duration;
+                                // 재생 배속 고려하여 실제 예상 시간 계산
+                                const playbackSpeed = parseFloat(document.getElementById('playbackSpeed')?.value || '1');
+                                const expectedDuration = currentChapter.duration / playbackSpeed;
                                 const elapsedTime = (Date.now() - startTime) / 1000;
                                 const rawRemaining = expectedDuration - elapsedTime;
                                 // 챕터 전환 시간 1초 고려 (마지막 챕터 제외)
@@ -1865,7 +1869,12 @@ Ch01. 오리엔테이션
                         // 챕터 전환 시간 1초 고려 (마지막 챕터 제외)
                         const isLastChapter = currentChapterIndex >= chapters.length - 1;
                         const transitionTime = isLastChapter ? 0 : 1;
-                        remainingTime = Math.max(-8, currentChapter.duration - elapsedTime + transitionTime);
+
+                        // 재생 배속 고려하여 실제 예상 시간 계산
+                        const playbackSpeed = parseFloat(document.getElementById('playbackSpeed')?.value || '1');
+                        const adjustedDuration = currentChapter.duration / playbackSpeed;
+
+                        remainingTime = Math.max(-8, adjustedDuration - elapsedTime + transitionTime);
 
                         if (remainingTime <= 5) reqSilence = parseInt(chapterSilence5.value);
                         else reqSilence = Infinity;
@@ -1938,7 +1947,11 @@ Ch01. 오리엔테이션
                         // 챕터 전환 시간 1초 고려 (마지막 챕터 제외)
                         const isLastChapter = currentChapterIndex >= chapters.length - 1;
                         const transitionTime = isLastChapter ? 0 : 1;
-                        const remainingTime = Math.max(-8, currentChapter.duration - elapsedTime + transitionTime);
+
+                        // 재생 배속 고려하여 실제 예상 시간 계산
+                        const playbackSpeed = parseFloat(document.getElementById('playbackSpeed')?.value || '1');
+                        const adjustedDuration = currentChapter.duration / playbackSpeed;
+                        const remainingTime = Math.max(-8, adjustedDuration - elapsedTime + transitionTime);
                         remainingInfo = `, 잔여: ${formatSeconds(remainingTime)}초`;
                     }
                     console.log(`❌ [무음 감지] 무음 중단 (${average.toFixed(1)} / ${silenceThreshold}, ${interruptedTime}초${remainingInfo})`);
