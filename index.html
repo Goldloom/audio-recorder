@@ -4162,11 +4162,15 @@ Ch01. 오리엔테이션
             }
 
             if (mediaRecorder && mediaRecorder.state === 'recording') {
-                const endedChapterName =
-                    chapterName ||
-                    activeChapterName ||
-                    (chapters[currentChapterIndex]?.name) ||
-                    `강의${lectureCount}`;
+                // 현재 녹음 중인 파일은 이전 강의명으로 저장 (B탭 감지 시점 이전의 제목)
+                const previousChapterName = activeChapterName || (chapters[currentChapterIndex]?.name) || `강의${lectureCount}`;
+
+                // 새로 발견된 강의명은 다음 녹음을 위해 저장
+                if (chapterName) {
+                    activeChapterName = chapterName;
+                }
+
+                const endedChapterName = previousChapterName;
 
                 // 실제 녹음 시간 계산
                 const actualDuration = recordingStartTime ? (Date.now() - recordingStartTime) / 1000 : 0; // 초 단위
