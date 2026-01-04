@@ -1556,6 +1556,9 @@ Ch01. 오리엔테이션
         // 🎯 B탭에서 감지한 최신 강의 제목 (일반 모드에서도 사용)
         let latestDetectedTitle = '';
 
+        // ⏱️ B탭 감지 시간 추적
+        let lastBTabDetectionTime = 0;
+
         // 화면 변화 감지 변수들
         let sceneChangeDetector = null;
         let lastFrameData = null;
@@ -4129,10 +4132,22 @@ Ch01. 오리엔테이션
 
         // ✅ 챕터명 기반 분할 저장
         function splitRecordingWithName(chapterName) {
-            // B탭에서 호출된 경우 최신 제목 저장
+            // B탭에서 호출된 경우 최신 제목 저장 및 시간 측정
             if (chapterName) {
                 latestDetectedTitle = chapterName;
                 activeChapterName = chapterName;
+
+                // B탭 감지 시간 계산 및 로그
+                const currentTime = Date.now();
+                let detectionTimeInfo = '';
+                if (lastBTabDetectionTime > 0) {
+                    const timeDiff = Math.round((currentTime - lastBTabDetectionTime) / 1000);
+                    detectionTimeInfo = ` (${timeDiff}초)`;
+                }
+                lastBTabDetectionTime = currentTime;
+
+                // B탭 감지 로그 생성
+                addLog(`📊 [B탭] CSV에서 새 강의 발견${detectionTimeInfo}: ${chapterName}`, 'info');
             }
 
             if (mediaRecorder && mediaRecorder.state === 'recording') {
