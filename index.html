@@ -1154,6 +1154,13 @@
                         <span style="font-size: 11px; color: #666;">클립보드 내용 변경 시 자동 분할 (1초마다 체크)</span>
                     </div>
                 </label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: white; border-radius: 8px; border: 2px solid #e0e0e0;">
+                    <input type="radio" name="splitMode" value="csv" id="csvSplitMode" style="width: 18px; height: 18px;">
+                    <div style="flex: 1;">
+                        <strong style="font-size: 13px; display: block; margin-bottom: 2px;">📊 제목감지 일괄 분할모드 (CSV 기반)</strong>
+                        <span style="font-size: 11px; color: #666;">녹음 완료 후 CSV 파일로 자동 분할</span>
+                    </div>
+                </label>
             </div>
             <div id="autoSplitStatus" style="margin-top: 10px; padding: 8px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px; font-size: 12px; display: none;">
                 <strong>🔍 현재 감지된 제목:</strong> <span id="currentDetectedTitle">-</span>
@@ -1219,8 +1226,8 @@ Ch01. 오리엔테이션
             <div id="chapterProgress" class="chapter-progress"></div>
         </div>
 
-        <div class="csv-batch-section" style="background: #fff3e0; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 2px solid #ff9800;">
-            <h3 style="font-size: 14px; font-weight: 600; color: #e65100; margin-bottom: 12px;">📊 제목감지 일괄 분할모드 (CSV 기반 후처리)</h3>
+        <div id="csvBatchSection" class="csv-batch-section" style="background: #fff3e0; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 2px solid #ff9800; display: none;">
+            <h3 style="font-size: 14px; font-weight: 600; color: #e65100; margin-bottom: 12px;">📊 CSV 기반 일괄 분할 설정</h3>
             <div style="font-size: 12px; color: #666; margin-bottom: 15px; padding: 10px; background: white; border-radius: 6px;">
                 녹음 완료 후 CSV 파일을 기준으로 전체 녹음 파일과 캡처 이미지를 강의별로 자동 분리합니다.
             </div>
@@ -4536,6 +4543,7 @@ Ch01. 오리엔테이션
                 // 모든 상태 표시 숨기기
                 if (autoSplitStatus) autoSplitStatus.style.display = 'none';
                 if (clipboardSplitStatus) clipboardSplitStatus.style.display = 'none';
+                if (csvBatchSection) csvBatchSection.style.display = 'none';
 
                 if (e.target.value === 'title') {
                     console.log('📌 제목 감지 자동 분할 모드 (DOM) 선택됨');
@@ -4569,8 +4577,17 @@ Ch01. 오리엔테이션
                         .catch(error => {
                             addLog(`⚠️ 클립보드 접근 권한이 필요합니다. 브라우저 설정을 확인하세요.`, 'warning');
                         });
+                } else if (e.target.value === 'csv') {
+                    console.log('📊 CSV 기반 일괄 분할 모드 선택됨');
+                    addLog('📊 CSV 기반 일괄 분할 모드 선택 - 녹음 완료 후 CSV 파일로 분할 가능', 'info');
+
+                    // CSV 설정 섹션 표시
+                    if (csvBatchSection) csvBatchSection.style.display = 'block';
                 } else {
                     console.log('📌 수동 분할 모드 선택됨');
+
+                    // 다른 모드 선택 시 CSV 섹션 숨기기
+                    if (csvBatchSection) csvBatchSection.style.display = 'none';
                 }
             });
         });
