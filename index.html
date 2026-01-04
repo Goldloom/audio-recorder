@@ -4437,6 +4437,12 @@ Ch01. 오리엔테이션
             // 🔧 현재 녹음 중인 강의명 저장 (새 강의명으로 덮어쓰기 전에 백업)
             const currentRecordingName = activeChapterName || (chapters[currentChapterIndex]?.name) || `강의${lectureCount}`;
 
+            console.log(`🔍 [splitRecordingWithName] 호출됨`);
+            console.log(`   새 강의명: "${chapterName}"`);
+            console.log(`   activeChapterName: "${activeChapterName}"`);
+            console.log(`   currentRecordingName: "${currentRecordingName}"`);
+            console.log(`   lectureCount: ${lectureCount}`);
+
             // B탭에서 호출된 경우 최신 제목 저장 및 시간 측정
             if (chapterName) {
                 latestDetectedTitle = chapterName;
@@ -5364,10 +5370,8 @@ Ch01. 오리엔테이션
 
             lastCsvLectureText = fullText;
 
-            // 강의 정보 설정
-            activeChapterName = fullText;
+            // ✅ latestDetectedTitle만 업데이트 (activeChapterName은 splitRecordingWithName에서 처리)
             latestDetectedTitle = fullText;
-            previousChapterNameForSplit = fullText;
 
             // duration 처리 (MM:SS → 초 단위 변환)
             if (duration) {
@@ -5381,7 +5385,7 @@ Ch01. 오리엔테이션
 
             console.log('🎧 [A탭] CSV로부터 새 강의 수신:', fullText);
 
-            // 녹음 분할 실행
+            // 녹음 분할 실행 (activeChapterName은 이 함수 내부에서 업데이트됨)
             if (typeof splitRecordingWithName === 'function') {
                 console.log('✅ [A탭] splitRecordingWithName 호출:', fullText);
                 splitRecordingWithName(fullText);
