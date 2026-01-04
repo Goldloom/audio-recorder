@@ -5477,6 +5477,12 @@ Ch01. 오리엔테이션
             const fullText = lectureInfo.fullText;
             const duration = lectureInfo.duration;
 
+            // CSV 파일 감시 모드가 활성화되어 있다면 중복 실행 방지
+            if (csvFileWatchEnabled) {
+                console.log('📊 [중복 방지] CSV 파일 감시 모드 활성화됨 - processNewLectureFromCsv 스킵');
+                return;
+            }
+
             lastCsvLectureText = fullText;
 
             // ✅ latestDetectedTitle과 lastDetectedLectureName 업데이트
