@@ -5479,8 +5479,9 @@ Ch01. 오리엔테이션
 
             lastCsvLectureText = fullText;
 
-            // ✅ latestDetectedTitle만 업데이트 (activeChapterName은 splitRecordingWithName에서 처리)
+            // ✅ latestDetectedTitle과 lastDetectedLectureName 업데이트
             latestDetectedTitle = fullText;
+            lastDetectedLectureName = fullText;  // 녹음 시작 시 강의명[0] 표시를 위해 추가
 
             // duration 처리 (MM:SS → 초 단위 변환)
             if (duration) {
