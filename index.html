@@ -1703,7 +1703,19 @@ Ch01. 오리엔테이션
                             progressBar.className = 'progress-bar';
                             progressBar.style.width = '100%';
                         }
-                        if (progressRemaining) progressRemaining.textContent = '연속 녹음 중';
+                        // CSV에서 받은 동영상 재생시간을 기반으로 잔여 시간 계산
+                        if (window.currentLectureDuration && recordingStartTime) {
+                            const elapsedSec = (Date.now() - recordingStartTime) / 1000;
+                            const totalSec = parseFloat(window.currentLectureDuration) || 0;
+                            const remainingSec = Math.max(0, totalSec - elapsedSec);
+                            if (remainingSec > 0) {
+                                progressRemaining.textContent = `잔여 녹음 시간: ${formatTime(remainingSec * 1000)}`;
+                            } else {
+                                progressRemaining.textContent = '연속 녹음 중';
+                            }
+                        } else {
+                            progressRemaining.textContent = '연속 녹음 중';
+                        }
                         if (remainingTimeIndicator) remainingTimeIndicator.textContent = '';
                     }
                 } else {
