@@ -1402,6 +1402,31 @@ Ch01. 오리엔테이션
                         <span id="captureStatus" style="font-size: 11px; color: #666;"></span>
                     </div>
                 </div>
+
+                <!-- 텔레그램 알림 설정 -->
+                <div class="toggle-container">
+                    <span class="toggle-label">📱 텔레그램 알림</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="telegramEnabled">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-container" style="margin-left: 20px; font-size: 12px; flex-direction: column; align-items: flex-start; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                        <label for="telegramBotToken" style="color: #666; min-width: 80px;">Bot Token:</label>
+                        <input type="text" id="telegramBotToken" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz"
+                            style="flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                        <label for="telegramChatId" style="color: #666; min-width: 80px;">Chat ID:</label>
+                        <input type="text" id="telegramChatId" placeholder="123456789"
+                            style="flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid #ddd; font-size: 12px;">
+                    </div>
+                    <button id="testTelegramBtn"
+                        style="padding: 6px 12px; border-radius: 6px; border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: white; font-size: 12px; cursor: pointer; font-weight: 600;">
+                        📤 테스트 메시지 보내기
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1511,7 +1536,13 @@ Ch01. 오리엔테이션
         const captureInterval = document.getElementById('captureInterval');
         const captureQuality = document.getElementById('captureQuality');
         const captureStatus = document.getElementById('captureStatus');
-        
+
+        // 텔레그램 알림 관련 요소
+        const telegramEnabled = document.getElementById('telegramEnabled');
+        const telegramBotToken = document.getElementById('telegramBotToken');
+        const telegramChatId = document.getElementById('telegramChatId');
+        const testTelegramBtn = document.getElementById('testTelegramBtn');
+
         // 제목 감지 자동 분할 관련 요소
         const autoSplitMode = document.getElementById('autoSplitMode');
         const autoSplitStatus = document.getElementById('autoSplitStatus');
@@ -4701,6 +4732,9 @@ Ch01. 오리엔테이션
                 addLog(`📸 캡처 이미지 ${images.length}개 → PDF 변환 시작`, 'info');
                 saveImagesAsPdf(images, uniqueName);
             }
+
+            // 텔레그램 알림 전송
+            sendTelegramNotification(uniqueName, fileSizeMB);
         }
 
         function saveRecordingWithName(blob, type, name) {
@@ -4734,6 +4768,94 @@ Ch01. 오리엔테이션
                 capturedImages = [];
                 captureCount = 0;
                 updateCaptureStatus();
+            }
+
+            // 텔레그램 알림 전송
+            const fileSizeMB = (blob.size / (1024 * 1024)).toFixed(2);
+            sendTelegramNotification(uniqueName, fileSizeMB);
+        }
+
+        // 텔레그램 알림 전송 함수
+        async function sendTelegramNotification(lectureName, fileSizeMB) {
+            // 텔레그램 알림이 활성화되어 있지 않으면 종료
+            if (!telegramEnabled.checked) {
+                return;
+            }
+
+            const botToken = telegramBotToken.value.trim();
+            const chatId = telegramChatId.value.trim();
+
+            if (!botToken || !chatId) {
+                console.log('📱 텔레그램 알림: 봇 토큰 또는 채팅 ID가 설정되지 않음');
+                return;
+            }
+
+            try {
+                const message = `🎓 새로운 강의가 녹음되었습니다!\n\n📝 강의명: ${lectureName}\n💾 파일 크기: ${fileSizeMB}MB\n📅 시간: ${new Date().toLocaleString('ko-KR')}`;
+
+                const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    console.log('📱 텔레그램 알림 전송 성공:', lectureName);
+                    addLog(`📱 텔레그램 알림 전송 성공: "${lectureName}"`, 'success');
+                } else {
+                    console.error('📱 텔레그램 알림 전송 실패:', result);
+                    addLog(`📱 텔레그램 알림 전송 실패: ${result.description || '알 수 없는 오류'}`, 'error');
+                }
+            } catch (error) {
+                console.error('📱 텔레그램 알림 전송 중 오류:', error);
+                addLog(`📱 텔레그램 알림 전송 오류: ${error.message}`, 'error');
+            }
+        }
+
+        // 텔레그램 테스트 메시지 전송
+        async function sendTestTelegramMessage() {
+            const botToken = telegramBotToken.value.trim();
+            const chatId = telegramChatId.value.trim();
+
+            if (!botToken || !chatId) {
+                addLog('📱 텔레그램 테스트: 봇 토큰과 채팅 ID를 모두 입력해주세요', 'error');
+                return;
+            }
+
+            try {
+                const message = `✅ 텔레그램 연결 테스트\n\n🤖 봇이 정상적으로 작동하고 있습니다!\n📅 테스트 시간: ${new Date().toLocaleString('ko-KR')}`;
+
+                const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.ok) {
+                    addLog('📱 텔레그램 테스트 메시지 전송 성공!', 'success');
+                } else {
+                    addLog(`📱 텔레그램 테스트 실패: ${result.description || '알 수 없는 오류'}`, 'error');
+                }
+            } catch (error) {
+                addLog(`📱 텔레그램 테스트 오류: ${error.message}`, 'error');
             }
         }
 
@@ -5338,6 +5460,51 @@ Ch01. 오리엔테이션
                 console.log('ℹ️ 로컬 시간으로 표시:', formattedDate);
             }
         }
+
+        // 텔레그램 설정 저장 함수
+        function saveTelegramSettings() {
+            const settings = {
+                enabled: telegramEnabled.checked,
+                botToken: telegramBotToken.value.trim(),
+                chatId: telegramChatId.value.trim()
+            };
+            localStorage.setItem('telegramSettings', JSON.stringify(settings));
+            console.log('💾 텔레그램 설정 저장됨:', settings);
+        }
+
+        // 텔레그램 설정 불러오기 함수
+        function loadTelegramSettings() {
+            try {
+                const saved = localStorage.getItem('telegramSettings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    telegramEnabled.checked = settings.enabled || false;
+                    telegramBotToken.value = settings.botToken || '';
+                    telegramChatId.value = settings.chatId || '';
+                    console.log('✅ 텔레그램 설정 불러오기 완료:', settings);
+                } else {
+                    // 첫 실행 시 기본값 설정
+                    telegramEnabled.checked = true;
+                    telegramBotToken.value = '8381826449:AAGqPxZvya2RfsSzrfi4uPzFZdyk6SpOCSI';
+                    telegramChatId.value = '377308688';
+                    saveTelegramSettings();
+                    console.log('✅ 텔레그램 기본 설정 저장 완료');
+                }
+            } catch (error) {
+                console.error('❌ 텔레그램 설정 불러오기 실패:', error);
+            }
+        }
+
+        // 텔레그램 테스트 버튼 이벤트 리스너
+        testTelegramBtn.addEventListener('click', sendTestTelegramMessage);
+
+        // 텔레그램 설정 변경 시 자동 저장
+        telegramEnabled.addEventListener('change', saveTelegramSettings);
+        telegramBotToken.addEventListener('input', saveTelegramSettings);
+        telegramChatId.addEventListener('input', saveTelegramSettings);
+
+        // 페이지 로드 시 텔레그램 설정 불러오기
+        loadTelegramSettings();
 
         updateLastUpdateDate();
         drawVisualizer();
