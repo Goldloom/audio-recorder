@@ -4733,8 +4733,16 @@ Ch01. 오리엔테이션
                 saveImagesAsPdf(images, uniqueName);
             }
 
+            // 녹음 정보 수집
+            const recordingInfo = {
+                startTime: recordingStartTime ? new Date(recordingStartTime).toLocaleString('ko-KR') : null,
+                endTime: now.toLocaleString('ko-KR'),
+                duration: recordingStartTime ? formatTime(Date.now() - recordingStartTime) : null,
+                expectedDuration: expectedDuration ? formatTime(expectedDuration * 1000) : null
+            };
+
             // 텔레그램 알림 전송
-            sendTelegramNotification(uniqueName, fileSizeMB);
+            sendTelegramNotification(uniqueName, fileSizeMB, recordingInfo);
         }
 
         function saveRecordingWithName(blob, type, name) {
@@ -4770,13 +4778,21 @@ Ch01. 오리엔테이션
                 updateCaptureStatus();
             }
 
-            // 텔레그램 알림 전송
+            // 녹음 정보 수집
             const fileSizeMB = (blob.size / (1024 * 1024)).toFixed(2);
-            sendTelegramNotification(uniqueName, fileSizeMB);
+            const recordingInfo = {
+                startTime: recordingStartTime ? new Date(recordingStartTime).toLocaleString('ko-KR') : null,
+                endTime: now.toLocaleString('ko-KR'),
+                duration: recordingStartTime ? formatTime(Date.now() - recordingStartTime) : null,
+                expectedDuration: expectedDuration ? formatTime(expectedDuration * 1000) : null
+            };
+
+            // 텔레그램 알림 전송
+            sendTelegramNotification(uniqueName, fileSizeMB, recordingInfo);
         }
 
         // 텔레그램 알림 전송 함수
-        async function sendTelegramNotification(lectureName, fileSizeMB) {
+        async function sendTelegramNotification(lectureName, fileSizeMB, recordingInfo) {
             // 텔레그램 알림이 활성화되어 있지 않으면 종료
             if (!telegramEnabled.checked) {
                 return;
@@ -4791,7 +4807,24 @@ Ch01. 오리엔테이션
             }
 
             try {
-                const message = `🎓 새로운 강의가 녹음되었습니다!\n\n📝 강의명: ${lectureName}\n💾 파일 크기: ${fileSizeMB}MB\n📅 시간: ${new Date().toLocaleString('ko-KR')}`;
+                // 메시지 구성
+                let message = `🎓 새로운 강의가 녹음되었습니다!\n\n📝 강의명: ${lectureName}\n💾 파일 크기: ${fileSizeMB}MB`;
+
+                // 녹음 시작/완료 시간 추가
+                if (recordingInfo) {
+                    if (recordingInfo.startTime) {
+                        message += `\n⏰ 녹음 시작: ${recordingInfo.startTime}`;
+                    }
+                    if (recordingInfo.endTime) {
+                        message += `\n✅ 녹음 완료: ${recordingInfo.endTime}`;
+                    }
+                    if (recordingInfo.duration) {
+                        message += `\n⏱️ 녹음 시간: ${recordingInfo.duration}`;
+                    }
+                    if (recordingInfo.expectedDuration) {
+                        message += `\n📺 원본 영상: ${recordingInfo.expectedDuration}`;
+                    }
+                }
 
                 const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
                 const response = await fetch(url, {
